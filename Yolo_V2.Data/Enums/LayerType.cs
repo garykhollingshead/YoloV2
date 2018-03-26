@@ -1,0 +1,30 @@
+﻿namespace Yolo_V2.Data.Enums
+{
+    public enum LayerType
+    {
+        Convolutional,
+        Deconvolutional,
+        Connected,
+        Maxpool,
+        Softmax,
+        Detection,
+        Dropout,
+        Crop,
+        Route,
+        Cost,
+        Normalization,
+        Avgpool,
+        Local,
+        Shortcut,
+        Active,
+        Rnn,
+        Gru,
+        Crnn,
+        Batchnorm,
+        Network,
+        Xnor,
+        Region,
+        Reorg,
+        Blank
+    }
+}

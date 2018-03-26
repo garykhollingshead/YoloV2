@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Alea" Version="3.0.4" />
+    <PackageReference Include="Alea.CudaDnn" Version="1.0.0" />
+    <PackageReference Include="Alea.Fody" Version="3.0.4" />
+  </ItemGroup>
+
+</Project>
