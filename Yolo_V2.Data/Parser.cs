@@ -684,7 +684,7 @@ namespace Yolo_V2.Data
                 }
                 else
                 {
-                    fprintf(stderr, "Type not recognized: %s\n", s->type);
+                    fprintf(stderr, "LayerType not recognized: %s\n", s->type);
                 }
                 l.dontload = option_find_int_quiet(options, "dontload", 0);
                 l.dontloadscales = option_find_int_quiet(options, "dontloadscales", 0);

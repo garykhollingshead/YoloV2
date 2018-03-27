@@ -20,10 +20,9 @@ namespace Yolo_V2.Data
         public static void sorta_shuffle<T>(T[] arr, int sections)
         {
             int n = 0;
-            Random rnd = new Random();
             while (n <= sections)
             {
-                int k = rnd.Next(0, sections);
+                int k = Rand.Next(0, sections);
                 T value = arr[k];
                 arr[k] = arr[n];
                 arr[n] = value;
@@ -34,10 +33,9 @@ namespace Yolo_V2.Data
         public static void Shuffle<T>(T[] arr)
         {
             int n = arr.Length;
-            Random rnd = new Random();
             while (n > 1)
             {
-                int k = rnd.Next(0, n);
+                int k = Rand.Next(0, n);
                 n--;
                 T value = arr[k];
                 arr[k] = arr[n];
@@ -344,7 +342,7 @@ namespace Yolo_V2.Data
             return maxI;
         }
 
-        private static Random _rand = new Random(DateTime.Now.Millisecond);
+        public static Random Rand = new Random(DateTime.Now.Millisecond);
         private static int _haveSpare;
         private static double _rand1, _rand2;
 
