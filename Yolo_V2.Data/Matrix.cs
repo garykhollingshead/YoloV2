@@ -12,7 +12,7 @@ namespace Yolo_V2.Data
         public int Cols;
         public float[][] Vals;
 
-        public float matrix_topk_accuracy(Matrix truth, Matrix guess, int k)
+        public static float matrix_topk_accuracy(Matrix truth, Matrix guess, int k)
         {
             int[] indexes = new int[k];
             int n = truth.Cols;
@@ -34,33 +34,32 @@ namespace Yolo_V2.Data
             return (float)correct / truth.Rows;
         }
 
-        public void scale_matrix(Matrix m, float scale)
+        public void scale_matrix(float scale)
         {
             int i, j;
-            for (i = 0; i < m.Rows; ++i)
+            for (i = 0; i < Rows; ++i)
             {
-                for (j = 0; j < m.Cols; ++j)
+                for (j = 0; j < Cols; ++j)
                 {
-                    m.Vals[i][j] *= scale;
+                    Vals[i][j] *= scale;
                 }
             }
         }
 
-        public Matrix resize_matrix(Matrix m, int size)
+        public void resize_matrix(int size)
         {
             int i;
-            if (m.Rows == size) return m;
+            if (Rows == size) return;
 
-            Array.Resize(ref m.Vals, size);
-            for (i = m.Rows; i < size; ++i)
+            Array.Resize(ref Vals, size);
+            for (i = Rows; i < size; ++i)
             {
-                Array.Resize(ref m.Vals[i], m.Cols);
+                Array.Resize(ref Vals[i], Cols);
             }
-            m.Rows = size;
-            return m;
+            Rows = size;
         }
 
-        public void matrix_add_matrix(Matrix from, Matrix to)
+        public static void matrix_add_matrix(Matrix from, Matrix to)
         {
             int i, j;
             for (i = 0; i < from.Rows; ++i)
@@ -83,78 +82,75 @@ namespace Yolo_V2.Data
             }
         }
 
-        public Matrix hold_out_matrix(Matrix m, int n)
+        public Matrix hold_out_matrix(int n)
         {
             int i;
             Matrix h = new Matrix();
             h.Rows = n;
-            h.Cols = m.Cols;
-            m.Vals = new float[m.Rows][];
+            h.Cols = Cols;
+            Vals = new float[Rows][];
             for (i = 0; i < n; ++i)
             {
-                int index = Utils.Rand.Next() % m.Rows;
-                h.Vals[i] = m.Vals[index];
-                m.Vals[index] = m.Vals[--(m.Rows)];
+                int index = Utils.Rand.Next() % Rows;
+                h.Vals[i] = Vals[index];
+                Vals[index] = Vals[--(Rows)];
             }
             return h;
         }
 
-        public float[] pop_column(Matrix m, int c)
+        public float[] pop_column(int c)
         {
-            float[] col = new float[m.Rows];
+            float[] col = new float[Rows];
             int i, j;
-            for (i = 0; i < m.Rows; ++i)
+            for (i = 0; i < Rows; ++i)
             {
-                col[i] = m.Vals[i][c];
-                for (j = c; j < m.Cols - 1; ++j)
+                col[i] = Vals[i][c];
+                for (j = c; j < Cols - 1; ++j)
                 {
-                    m.Vals[i][j] = m.Vals[i][j + 1];
+                    Vals[i][j] = Vals[i][j + 1];
                 }
             }
-            --m.Cols;
+            --Cols;
             return col;
         }
 
-        public Matrix csv_to_matrix(string filename)
+        public Matrix(string filename)
         {
             if (!File.Exists(filename))
             {
                 Utils.file_error(filename);
             }
 
-
-            Matrix m = new Matrix();
-            m.Cols = -1;
+            Cols = -1;
             
             int n = 0;
             int size = 1024;
-            m.Vals = new float[size][]; 
+            Vals = new float[size][]; 
             foreach (var line in File.ReadAllLines(filename))
             {
-                if (m.Cols == -1) m.Cols = Utils.count_fields(line);
+                if (Cols == -1) Cols = Utils.count_fields(line);
                 if (n == size)
                 {
                     size *= 2;
-                    Array.Resize(ref m.Vals, size);
+                    Array.Resize(ref Vals, size);
                 }
-                m.Vals[n] = Utils.parse_fields(line);
+                Vals[n] = Utils.parse_fields(line);
                 ++n;
             }
-            Array.Resize(ref m.Vals, n);
-            m.Rows = n;
-            return m;
+            Array.Resize(ref Vals, n);
+            Rows = n;
         }
 
-        public void matrix_to_csv(Matrix m)
+        public void to_csv()
         {
             int i, j;
             var lines = new StringBuilder();
-            for (i = 0; i < m.Rows; ++i)
+            for (i = 0; i < Rows; ++i)
             {
-                for (j = 0; j < m.Cols; ++j)
+                for (j = 0; j < Cols; ++j)
                 {
                     if (j > 0) lines.Append(",");
-                    lines.Append($"{m.Vals[i][j]:17g}");
+                    lines.Append($"{Vals[i][j]:17g}");
                 }
 
                 lines.AppendLine();
@@ -162,29 +158,29 @@ namespace Yolo_V2.Data
             Console.Write(lines);
         }
 
-        public void print_matrix(Matrix m)
+        public void print_matrix()
         {
             int i, j;
-            Console.Write($"{m.Rows} X {m.Cols} Matrix:\n");
+            Console.Write($"{Rows} X {Cols} Matrix:\n");
             Console.Write(" __");
-            for (j = 0; j < 16 * m.Cols - 1; ++j) Console.Write(" ");
+            for (j = 0; j < 16 * Cols - 1; ++j) Console.Write(" ");
             Console.Write("__ \n");
 
             Console.Write("|  ");
-            for (j = 0; j < 16 * m.Cols - 1; ++j) Console.Write(" ");
+            for (j = 0; j < 16 * Cols - 1; ++j) Console.Write(" ");
             Console.Write("  |\n");
 
-            for (i = 0; i < m.Rows; ++i)
+            for (i = 0; i < Rows; ++i)
             {
                 Console.Write("|  ");
-                for (j = 0; j < m.Cols; ++j)
+                for (j = 0; j < Cols; ++j)
                 {
-                    Console.Write($"{m.Vals[i][j]:15.7} ", m.Vals[i][j]);
+                    Console.Write($"{Vals[i][j]:15.7} ", Vals[i][j]);
                 }
                 Console.Write(" |\n");
             }
             Console.Write("|__");
-            for (j = 0; j < 16 * m.Cols - 1; ++j) Console.Write(" ");
+            for (j = 0; j < 16 * Cols - 1; ++j) Console.Write(" ");
             Console.Write("__|\n");
         }
     }

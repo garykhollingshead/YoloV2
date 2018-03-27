@@ -46,9 +46,8 @@ namespace Yolo_V2.Data
         public float Exposure;
         public float Saturation;
         public float Hue;
-
-        public int GpuIndex;
-        public Tree[] Hierarchy;
+        
+        public Tree Hierarchy;
 
         public float[][] InputGpu;
         public float[][] TruthGpu;
@@ -381,7 +380,6 @@ namespace Yolo_V2.Data
             {
                 net.Workspace = new float[1];
             }
-            //fprintf(stderr, " Done!\n");
             return 0;
         }
 
@@ -534,13 +532,13 @@ namespace Yolo_V2.Data
                 Layer l = net.Layers[i];
                 float[] output = l.Output;
                 int n = l.Outputs;
-                float mean = mean_array(output, n);
-                float vari = variance_array(output, n);
-                fprintf(stderr, "Layer %d - Mean: %f, Variance: %f\n", i, mean, vari);
+                float mean = Utils.mean_array(output, n);
+                float vari = Utils.variance_array(output, n);
+                Console.Error.WriteLine($"Layer {i} - Mean: {mean}, Variance: {vari}");
                 if (n > 100) n = 100;
-                for (j = 0; j < n; ++j) fprintf(stderr, "%f, ", output[j]);
-                if (n == 100) fprintf(stderr, ".....\n");
-                fprintf(stderr, "\n");
+                for (j = 0; j < n; ++j) Console.Error.Write($"{output[j]}, ");
+                if (n == 100) Console.Error.Write(".....\n");
+                Console.Error.Write("\n");
             }
         }
 
@@ -553,9 +551,9 @@ namespace Yolo_V2.Data
             a = b = c = d = 0;
             for (i = 0; i < g1.Rows; ++i)
             {
-                int truth = max_index(test.Y.Vals[i], test.Y.Cols);
-                int p1 = max_index(g1.Vals[i], g1.Cols);
-                int p2 = max_index(g2.Vals[i], g2.Cols);
+                int truth = Utils.max_index(test.Y.Vals[i], test.Y.Cols);
+                int p1 = Utils.max_index(g1.Vals[i], g1.Cols);
+                int p2 = Utils.max_index(g2.Vals[i], g2.Cols);
                 if (p1 == truth)
                 {
                     if (p2 == truth) ++d;
@@ -567,50 +565,33 @@ namespace Yolo_V2.Data
                     else ++a;
                 }
             }
-            printf("%5d %5d\n%5d %5d\n", a, b, c, d);
-            float num = Math.Pow((abs(b - c) - 1.), 2.);
+            Console.Write($"{a:5} {b:5}\n{c:5} {d:5}\n");
+            float num = (float)Math.Pow((Math.Abs(b - c) - 1), 2);
             float den = b + c;
-            printf("%f\n", num / den);
+            Console.Write($"{num / den}\n");
         }
 
         float network_accuracy(Network net, Data d)
         {
             Matrix guess = network_predict_data(net, d);
-            float acc = matrix_topk_accuracy(d.Y, guess, 1);
-            free_matrix(guess);
+            float acc = Matrix.matrix_topk_accuracy(d.Y, guess, 1);
             return acc;
         }
 
         float[] network_accuracies(Network net, Data d, int n)
         {
-            static float acc[2];
+            float[] acc = new float[2];
             Matrix guess = network_predict_data(net, d);
-            acc[0] = matrix_topk_accuracy(d.Y, guess, 1);
-            acc[1] = matrix_topk_accuracy(d.Y, guess, n);
-            free_matrix(guess);
+            acc[0] = Matrix.matrix_topk_accuracy(d.Y, guess, 1);
+            acc[1] = Matrix.matrix_topk_accuracy(d.Y, guess, n);
             return acc;
         }
 
         float network_accuracy_multi(Network net, Data d, int n)
         {
             Matrix guess = network_predict_data_multi(net, d, n);
-            float acc = matrix_topk_accuracy(d.Y, guess, 1);
-            free_matrix(guess);
+            float acc = Matrix.matrix_topk_accuracy(d.Y, guess, 1);
             return acc;
-        }
-
-        void free_network(Network net)
-        {
-            int i;
-            for (i = 0; i < net.N; ++i)
-            {
-                free_layer(net.Layers[i]);
-            }
-            free(net.Layers);
-            if (*net.InputGpu) cuda_free(*net.InputGpu);
-            if (*net.TruthGpu) cuda_free(*net.TruthGpu);
-            if (net.InputGpu) free(net.InputGpu);
-            if (net.TruthGpu) free(net.TruthGpu);
         }
     }
 }

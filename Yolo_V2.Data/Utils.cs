@@ -204,9 +204,9 @@ namespace Yolo_V2.Data
             return fields.ToArray();
         }
 
-        public static float mean_array(float[] a)
+        public static float mean_array(float[] a, int n)
         {
-            return a.Sum() / a.Length;
+            return a.Take(n).Sum() / n;
         }
 
         public static void mean_arrays(float[][] a, float[] avg)
@@ -225,20 +225,20 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void print_statistics(float[] a)
+        public static void print_statistics(float[] a, int n)
         {
-            float m = mean_array(a);
-            float v = variance_array(a);
+            float m = mean_array(a, n);
+            float v = variance_array(a, n);
             Console.WriteLine($"MSE: {mse_array(a):.6}, Mean: {m:.6}f, Variance: {v}f");
         }
 
-        public static float variance_array(float[] a)
+        public static float variance_array(float[] a, int n)
         {
             int i;
             float sum = 0;
-            float mean = mean_array(a);
-            for (i = 0; i < a.Length; ++i) sum += (a[i] - mean) * (a[i] - mean);
-            float variance = sum / a.Length;
+            float mean = mean_array(a, n);
+            for (i = 0; i < n; ++i) sum += (a[i] - mean) * (a[i] - mean);
+            float variance = sum / n;
             return variance;
         }
 
@@ -272,11 +272,11 @@ namespace Yolo_V2.Data
             return (float)Math.Sqrt(sum / a.Length);
         }
 
-        public static void normalize_array(float[] a)
+        public static void normalize_array(float[] a, int n)
         {
             int i;
-            float mu = mean_array(a);
-            var sigma = Math.Sqrt(variance_array(a));
+            float mu = mean_array(a, n);
+            var sigma = Math.Sqrt(variance_array(a, n));
             for (i = 0; i < a.Length; ++i)
             {
                 a[i] = (float)((a[i] - mu) / sigma);
@@ -355,7 +355,7 @@ namespace Yolo_V2.Data
                 max = s;
             }
 
-            return _rand.Next(min, max);
+            return Rand.Next(min, max);
         }
 
         public static float rand_normal()
@@ -368,24 +368,24 @@ namespace Yolo_V2.Data
 
             _haveSpare = 1;
 
-            _rand1 = _rand.NextDouble() / double.MaxValue;
+            _rand1 = Rand.NextDouble() / double.MaxValue;
             if (_rand1 < 1e-100) _rand1 = 1e-100;
             _rand1 = -2 * Math.Log(_rand1);
-            _rand2 = (_rand.NextDouble() / double.MaxValue) * Math.PI * 2;
+            _rand2 = (Rand.NextDouble() / double.MaxValue) * Math.PI * 2;
 
             return (float)(Math.Sqrt(_rand1) * Math.Cos(_rand2));
         }
 
         public static ulong rand_size_t()
         {
-            return ((ulong)(_rand.Next() & 0xff) << 56) |
-                    ((ulong)(_rand.Next() & 0xff) << 48) |
-                    ((ulong)(_rand.Next() & 0xff) << 40) |
-                    ((ulong)(_rand.Next() & 0xff) << 32) |
-                    ((ulong)(_rand.Next() & 0xff) << 24) |
-                    ((ulong)(_rand.Next() & 0xff) << 16) |
-                    ((ulong)(_rand.Next() & 0xff) << 8) |
-                    ((ulong)(_rand.Next() & 0xff) << 0);
+            return ((ulong)(Rand.Next() & 0xff) << 56) |
+                    ((ulong)(Rand.Next() & 0xff) << 48) |
+                    ((ulong)(Rand.Next() & 0xff) << 40) |
+                    ((ulong)(Rand.Next() & 0xff) << 32) |
+                    ((ulong)(Rand.Next() & 0xff) << 24) |
+                    ((ulong)(Rand.Next() & 0xff) << 16) |
+                    ((ulong)(Rand.Next() & 0xff) << 8) |
+                    ((ulong)(Rand.Next() & 0xff) << 0);
         }
 
         public static float rand_uniform(float min, float max)
@@ -396,13 +396,13 @@ namespace Yolo_V2.Data
                 min = max;
                 max = swap;
             }
-            return (float)(_rand.NextDouble() / double.MaxValue * (max - min)) + min;
+            return (float)(Rand.NextDouble() / double.MaxValue * (max - min)) + min;
         }
 
         public static float rand_scale(float s)
         {
             float scale = rand_uniform(1, s);
-            if (_rand.Next() % 2 == 1) return scale;
+            if (Rand.Next() % 2 == 1) return scale;
             return 1.0f / scale;
         }
 

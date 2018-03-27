@@ -202,6 +202,7 @@ namespace Yolo_V2.Data
                 B = Gpu.CopyToHost(gpuB);
                 C = Gpu.CopyToHost(gpuC);
             }
+            
         }
 
         public static void gemm_gpu(int TA, int TB, int M, int N, int K, float ALPHA,

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +10,7 @@ namespace Yolo_V2.Data
 {
     public static class Parser
     {
-        LayerType string_to_layer_type(string type)
+        public static LayerType string_to_layer_type(string type)
         {
             switch (type)
             {
@@ -31,7 +32,7 @@ namespace Yolo_V2.Data
                 case "[activation]":
                     return LayerType.Active;
                 case "[net]":
-                case "[network]":
+                case "[Network]":
                     return LayerType.Network;
                 case "[crnn]":
                     return LayerType.Crnn;
@@ -66,15 +67,15 @@ namespace Yolo_V2.Data
 
             return LayerType.Blank;
         }
-        
-        void parse_data(string data, float[] a)
+
+        public static void parse_data(string data, ref float[] a)
         {
             if (string.IsNullOrEmpty(data)) return;
             var numbs = data.Split(',');
-            a.AddRange(numbs.Select(float.Parse));
+            a = numbs.Select(float.Parse).ToArray();
         }
 
-        Layer parse_local(KeyValuePair[] options, SizeParams parameters)
+        public static Layer parse_local(KeyValuePair[] options, SizeParams parameters)
         {
             int n = OptionList.option_find_int(options, "filters", 1);
             int size = OptionList.option_find_int(options, "size", 1);
@@ -87,645 +88,623 @@ namespace Yolo_V2.Data
             h = parameters.H;
             w = parameters.W;
             c = parameters.C;
-            batch =parameters.Batch;
-            if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before local layer must output image.");
+            batch = parameters.Batch;
+            if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before local Layer must output image.");
 
-            Layer layer = make_local_layer(batch, h, w, c, n, size, stride, pad, activation);
+            Layer Layer = new Layer(batch, h, w, c, n, size, stride, pad, activation);
 
-            return layer;
+            return Layer;
         }
 
-        Layer parse_convolutional(list* options, SizeParams parameters)
+        public static Layer parse_convolutional(KeyValuePair[] options, SizeParams parameters)
         {
-            int n = option_find_int(options, "filters", 1);
-            int size = option_find_int(options, "size", 1);
-            int stride = option_find_int(options, "stride", 1);
-            int pad = option_find_int_quiet(options, "pad", 0);
-            int padding = option_find_int_quiet(options, "padding", 0);
-            if (pad) padding = size / 2;
+            int n = OptionList.option_find_int(options, "filters", 1);
+            int size = OptionList.option_find_int(options, "size", 1);
+            int stride = OptionList.option_find_int(options, "stride", 1);
+            int pad = OptionList.option_find_int_quiet(options, "pad", 0);
+            int padding = OptionList.option_find_int_quiet(options, "padding", 0);
+            if (pad != 0) padding = size / 2;
 
-            string activation_s = option_find_str(options, "activation", "logistic");
-            ACTIVATION activation = get_activation(activation_s);
+            string activation_s = OptionList.option_find_str(options, "activation", "logistic");
+            Activation activation = ActivationsHelper.Get_activation(activation_s);
 
             int batch, h, w, c;
-            h = parameters.h;
-            w = parameters.w;
-            c = parameters.c;
-            batch =parameters.batch;
-            if (!(h && w && c)) error("Layer before convolutional layer must output image.");
-            int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
-            int binary = option_find_int_quiet(options, "binary", 0);
-            int xnor = option_find_int_quiet(options, "xnor", 0);
+            h = parameters.H;
+            w = parameters.W;
+            c = parameters.C;
+            batch = parameters.Batch;
+            if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before convolutional Layer must output image.");
+            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+            int binary = OptionList.option_find_int_quiet(options, "binary", 0);
+            int xnor = OptionList.option_find_int_quiet(options, "xnor", 0);
 
-            Layer layer = make_convolutional_layer(batch, h, w, c, n, size, stride, padding, activation, batch_normalize, binary, xnor, parameters.net.adam);
-            layer.flipped = option_find_int_quiet(options, "flipped", 0);
-            layer.dot = option_find_float_quiet(options, "dot", 0);
-            if (parameters.net.adam){
-                layer.B1 = parameters.net.B1;
-                layer.B2 = parameters.net.B2;
-                layer.eps = parameters.net.eps;
-            }
-
-            return layer;
-        }
-
-        layer parse_crnn(list* options, SizeParams parameters)
-        {
-            int output_filters = option_find_int(options, "output_filters", 1);
-            int hidden_filters = option_find_int(options, "hidden_filters", 1);
-            string activation_s = option_find_str(options, "activation", "logistic");
-            ACTIVATION activation = get_activation(activation_s);
-            int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
-
-            layer l = make_crnn_layer(parameters.batch, parameters.w, parameters.h, parameters.c, hidden_filters, output_filters, parameters.time_steps, activation, batch_normalize);
-
-            l.shortcut = option_find_int_quiet(options, "shortcut", 0);
-
-            return l;
-        }
-
-        layer parse_rnn(list* options, SizeParams parameters)
-        {
-            int output = option_find_int(options, "output", 1);
-            int hidden = option_find_int(options, "hidden", 1);
-            string activation_s = option_find_str(options, "activation", "logistic");
-            ACTIVATION activation = get_activation(activation_s);
-            int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
-            int logistic = option_find_int_quiet(options, "logistic", 0);
-
-            layer l = make_rnn_layer(parameters.batch, parameters.inputs, hidden, output, parameters.time_steps, activation, batch_normalize, logistic);
-
-            l.shortcut = option_find_int_quiet(options, "shortcut", 0);
-
-            return l;
-        }
-
-        layer parse_gru(list* options, SizeParams parameters)
-        {
-            int output = option_find_int(options, "output", 1);
-            int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
-
-            layer l = make_gru_layer(parameters.batch, parameters.inputs, output, parameters.time_steps, batch_normalize);
-
-            return l;
-        }
-
-        connected_layer parse_connected(list* options, SizeParams parameters)
-        {
-            int output = option_find_int(options, "output", 1);
-            string activation_s = option_find_str(options, "activation", "logistic");
-            ACTIVATION activation = get_activation(activation_s);
-            int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
-
-            connected_layer layer = make_connected_layer(parameters.batch, parameters.inputs, output, activation, batch_normalize);
-
-            return layer;
-        }
-
-        softmax_layer parse_softmax(list* options, SizeParams parameters)
-        {
-            int groups = option_find_int_quiet(options, "groups", 1);
-            softmax_layer layer = make_softmax_layer(parameters.batch, parameters.inputs, groups);
-            layer.temperature = option_find_float_quiet(options, "temperature", 1);
-            string tree_file = option_find_str(options, "tree", 0);
-            if (tree_file) layer.softmax_tree = read_tree(tree_file);
-            return layer;
-        }
-
-        layer parse_region(list* options, SizeParams parameters)
-        {
-            int coords = option_find_int(options, "coords", 4);
-            int classes = option_find_int(options, "classes", 20);
-            int num = option_find_int(options, "num", 1);
-
-            layer l = make_region_layer(parameters.batch, parameters.w, parameters.h, num, classes, coords);
-            assert(l.outputs == parameters.inputs);
-
-            l.log = option_find_int_quiet(options, "log", 0);
-            l.sqrt = option_find_int_quiet(options, "sqrt", 0);
-
-            l.softmax = option_find_int(options, "softmax", 0);
-            l.max_boxes = option_find_int_quiet(options, "max", 30);
-            l.jitter = option_find_float(options, "jitter", .2);
-            l.rescore = option_find_int_quiet(options, "rescore", 0);
-
-            l.thresh = option_find_float(options, "thresh", .5);
-            l.classfix = option_find_int_quiet(options, "classfix", 0);
-            l.absolute = option_find_int_quiet(options, "absolute", 0);
-            l.random = option_find_int_quiet(options, "random", 0);
-
-            l.coord_scale = option_find_float(options, "coord_scale", 1);
-            l.object_scale = option_find_float(options, "object_scale", 1);
-            l.noobject_scale = option_find_float(options, "noobject_scale", 1);
-            l.class_scale = option_find_float(options, "class_scale", 1);
-            l.bias_match = option_find_int_quiet(options, "bias_match", 0);
-
-            string tree_file = option_find_str(options, "tree", 0);
-            if (tree_file) l.softmax_tree = read_tree(tree_file);
-            string map_file = option_find_str(options, "map", 0);
-            if (map_file) l.map = read_map(map_file);
-
-            string a = option_find_str(options, "anchors", 0);
-            if (a)
+            Layer Layer = make_convolutional_layer(batch, h, w, c, n, size, stride, padding, activation, batch_normalize, binary, xnor, parameters.Net.Adam);
+            Layer.Flipped = OptionList.option_find_int_quiet(options, "flipped", 0);
+            Layer.Dot = OptionList.option_find_float_quiet(options, "dot", 0);
+            if (parameters.Net.Adam != 0)
             {
-                int len = strlen(a);
-                int n = 1;
-                int i;
-                for (i = 0; i < len; ++i)
+                Layer.B1 = parameters.Net.B1;
+                Layer.B2 = parameters.Net.B2;
+                Layer.Eps = parameters.Net.Eps;
+            }
+
+            return Layer;
+        }
+
+        public static Layer parse_crnn(KeyValuePair[] options, SizeParams parameters)
+        {
+            int output_filters = OptionList.option_find_int(options, "output_filters", 1);
+            int hidden_filters = OptionList.option_find_int(options, "hidden_filters", 1);
+            string activation_s = OptionList.option_find_str(options, "activation", "logistic");
+            Activation activation = ActivationsHelper.Get_activation(activation_s);
+            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+
+            Layer l = make_crnn_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, hidden_filters, output_filters, parameters.TimeSteps, activation, batch_normalize);
+
+            l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0);
+
+            return l;
+        }
+
+        public static Layer parse_rnn(KeyValuePair[] options, SizeParams parameters)
+        {
+            int output = OptionList.option_find_int(options, "output", 1);
+            int hidden = OptionList.option_find_int(options, "hidden", 1);
+            string activation_s = OptionList.option_find_str(options, "activation", "logistic");
+            Activation activation = ActivationsHelper.Get_activation(activation_s);
+            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+            int logistic = OptionList.option_find_int_quiet(options, "logistic", 0);
+
+            Layer l = make_rnn_layer(parameters.Batch, parameters.Inputs, hidden, output, parameters.TimeSteps, activation, batch_normalize, logistic);
+
+            l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0);
+
+            return l;
+        }
+
+        public static Layer parse_gru(KeyValuePair[] options, SizeParams parameters)
+        {
+            int output = OptionList.option_find_int(options, "output", 1);
+            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+
+            Layer l = make_gru_layer(parameters.Batch, parameters.Inputs, output, parameters.TimeSteps, batch_normalize);
+
+            return l;
+        }
+
+        public static Layer parse_connected(KeyValuePair[] options, SizeParams parameters)
+        {
+            int output = OptionList.option_find_int(options, "output", 1);
+            string activation_s = OptionList.option_find_str(options, "activation", "logistic");
+            Activation activation = ActivationsHelper.Get_activation(activation_s);
+            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+
+            Layer Layer = make_connected_layer(parameters.Batch, parameters.Inputs, output, activation, batch_normalize);
+
+            return Layer;
+        }
+
+        public static Layer parse_softmax(KeyValuePair[] options, SizeParams parameters)
+        {
+            int groups = OptionList.option_find_int_quiet(options, "groups", 1);
+            Layer Layer = make_softmax_layer(parameters.Batch, parameters.Inputs, groups);
+            Layer.temperature = OptionList.option_find_float_quiet(options, "temperature", 1);
+            string tree_file = OptionList.option_find_str(options, "tree", "");
+            if (!string.IsNullOrEmpty(tree_file)) Layer.softmax_tree = new Tree(tree_file);
+            return Layer;
+        }
+
+        public static Layer parse_region(KeyValuePair[] options, SizeParams parameters)
+        {
+            int coords = OptionList.option_find_int(options, "coords", 4);
+            int classes = OptionList.option_find_int(options, "classes", 20);
+            int num = OptionList.option_find_int(options, "num", 1);
+
+            Layer l = make_region_layer(parameters.Batch, parameters.W, parameters.H, num, classes, coords);
+
+            l.Log = OptionList.option_find_int_quiet(options, "log", 0);
+            l.Sqrt = OptionList.option_find_int_quiet(options, "sqrt", 0);
+
+            l.Softmax = OptionList.option_find_int(options, "softmax", 0);
+            l.MaxBoxes = OptionList.option_find_int_quiet(options, "max", 30);
+            l.Jitter = OptionList.option_find_float(options, "jitter", .2);
+            l.Rescore = OptionList.option_find_int_quiet(options, "rescore", 0);
+
+            l.Thresh = OptionList.option_find_float(options, "thresh", .5);
+            l.Classfix = OptionList.option_find_int_quiet(options, "classfix", 0);
+            l.Absolute = OptionList.option_find_int_quiet(options, "absolute", 0);
+            l.Random = OptionList.option_find_int_quiet(options, "random", 0);
+
+            l.CoordScale = OptionList.option_find_float(options, "coord_scale", 1);
+            l.ObjectScale = OptionList.option_find_float(options, "object_scale", 1);
+            l.NoobjectScale = OptionList.option_find_float(options, "noobject_scale", 1);
+            l.ClassScale = OptionList.option_find_float(options, "class_scale", 1);
+            l.BiasMatch = OptionList.option_find_int_quiet(options, "bias_match", 0);
+
+            string tree_file = OptionList.option_find_str(options, "tree", "");
+            if (!string.IsNullOrEmpty(tree_file)) l.SoftmaxTree = new Tree(tree_file);
+            string map_file = OptionList.option_find_str(options, "map", "");
+            if (!string.IsNullOrEmpty(map_file)) l.Map = Utils.read_map(map_file);
+
+            string a = OptionList.option_find_str(options, "anchors", null);
+            if (!string.IsNullOrEmpty(a))
+            {
+                var lines = a.Split(',');
+                for (int i = 0; i < lines.Length; ++i)
                 {
-                    if (a[i] == ',') ++n;
-                }
-                for (i = 0; i < n; ++i)
-                {
-                    float bias = atof(a);
-                    l.biases[i] = bias;
-                    a = strchr(a, ',') + 1;
+                    l.Biases[i] = float.Parse(lines[i]);
                 }
             }
             return l;
         }
-        detection_layer parse_detection(list* options, SizeParams parameters)
+
+        public static Layer parse_detection(KeyValuePair[] options, SizeParams parameters)
         {
-            int coords = option_find_int(options, "coords", 1);
-            int classes = option_find_int(options, "classes", 1);
-            int rescore = option_find_int(options, "rescore", 0);
-            int num = option_find_int(options, "num", 1);
-            int side = option_find_int(options, "side", 7);
-            detection_layer layer = make_detection_layer(parameters.batch, parameters.inputs, num, side, classes, coords, rescore);
+            int coords = OptionList.option_find_int(options, "coords", 1);
+            int classes = OptionList.option_find_int(options, "classes", 1);
+            int rescore = OptionList.option_find_int(options, "rescore", 0);
+            int num = OptionList.option_find_int(options, "num", 1);
+            int side = OptionList.option_find_int(options, "side", 7);
+            Layer Layer = make_detection_layer(parameters.Batch, parameters.Inputs, num, side, classes, coords, rescore);
 
-            layer.softmax = option_find_int(options, "softmax", 0);
-            layer.sqrt = option_find_int(options, "sqrt", 0);
+            Layer.Softmax = OptionList.option_find_int(options, "softmax", 0);
+            Layer.Sqrt = OptionList.option_find_int(options, "sqrt", 0);
 
-            layer.max_boxes = option_find_int_quiet(options, "max", 30);
-            layer.coord_scale = option_find_float(options, "coord_scale", 1);
-            layer.forced = option_find_int(options, "forced", 0);
-            layer.object_scale = option_find_float(options, "object_scale", 1);
-            layer.noobject_scale = option_find_float(options, "noobject_scale", 1);
-            layer.class_scale = option_find_float(options, "class_scale", 1);
-            layer.jitter = option_find_float(options, "jitter", .2);
-            layer.random = option_find_int_quiet(options, "random", 0);
-            layer.reorg = option_find_int_quiet(options, "reorg", 0);
-            return layer;
+            Layer.MaxBoxes = OptionList.option_find_int_quiet(options, "max", 30);
+            Layer.CoordScale = OptionList.option_find_float(options, "coord_scale", 1);
+            Layer.Forced = OptionList.option_find_int(options, "forced", 0);
+            Layer.ObjectScale = OptionList.option_find_float(options, "object_scale", 1);
+            Layer.NoobjectScale = OptionList.option_find_float(options, "noobject_scale", 1);
+            Layer.ClassScale = OptionList.option_find_float(options, "class_scale", 1);
+            Layer.Jitter = OptionList.option_find_float(options, "jitter", .2);
+            Layer.Random = OptionList.option_find_int_quiet(options, "random", 0);
+            Layer.Reorg = OptionList.option_find_int_quiet(options, "reorg", 0);
+            return Layer;
         }
 
-        cost_layer parse_cost(list* options, SizeParams parameters)
+        public static Layer parse_cost(KeyValuePair[] options, SizeParams parameters)
         {
-            string type_s = option_find_str(options, "type", "sse");
-            COST_TYPE type = get_cost_type(type_s);
-            float scale = option_find_float_quiet(options, "scale", 1);
-            cost_layer layer = make_cost_layer(parameters.batch, parameters.inputs, type, scale);
-            layer.ratio = option_find_float_quiet(options, "ratio", 0);
-            return layer;
+            string type_s = OptionList.option_find_str(options, "type", "sse");
+            CostType type = get_cost_type(type_s);
+            float scale = OptionList.option_find_float_quiet(options, "scale", 1);
+            Layer Layer = make_cost_layer(parameters.Batch, parameters.Inputs, type, scale);
+            Layer.Ratio = OptionList.option_find_float_quiet(options, "ratio", 0);
+            return Layer;
         }
 
-        crop_layer parse_crop(list* options, SizeParams parameters)
+        public static Layer parse_crop(KeyValuePair[] options, SizeParams parameters)
         {
-            int crop_height = option_find_int(options, "crop_height", 1);
-            int crop_width = option_find_int(options, "crop_width", 1);
-            int flip = option_find_int(options, "flip", 0);
-            float angle = option_find_float(options, "angle", 0);
-            float saturation = option_find_float(options, "saturation", 1);
-            float exposure = option_find_float(options, "exposure", 1);
+            int crop_height = OptionList.option_find_int(options, "crop_height", 1);
+            int crop_width = OptionList.option_find_int(options, "crop_width", 1);
+            int flip = OptionList.option_find_int(options, "flip", 0);
+            float angle = OptionList.option_find_float(options, "angle", 0);
+            float saturation = OptionList.option_find_float(options, "saturation", 1);
+            float exposure = OptionList.option_find_float(options, "exposure", 1);
 
             int batch, h, w, c;
-            h = parameters.h;
-            w = parameters.w;
-            c = parameters.c;
-            batch =parameters.batch;
-            if (!(h && w && c)) error("Layer before crop layer must output image.");
+            h = parameters.H;
+            w = parameters.W;
+            c = parameters.C;
+            batch = parameters.Batch;
+            if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before crop Layer must output image.");
 
-            int noadjust = option_find_int_quiet(options, "noadjust", 0);
+            int noadjust = OptionList.option_find_int_quiet(options, "noadjust", 0);
 
-            crop_layer l = make_crop_layer(batch, h, w, c, crop_height, crop_width, flip, angle, saturation, exposure);
-            l.shift = option_find_float(options, "shift", 0);
-            l.noadjust = noadjust;
+            Layer l = make_crop_layer(batch, h, w, c, crop_height, crop_width, flip, angle, saturation, exposure);
+            l.Shift = OptionList.option_find_float(options, "shift", 0);
+            l.Noadjust = noadjust;
             return l;
         }
 
-        layer parse_reorg(list* options, SizeParams parameters)
+        public static Layer parse_reorg(KeyValuePair[] options, SizeParams parameters)
         {
-            int stride = option_find_int(options, "stride", 1);
-            int reverse = option_find_int_quiet(options, "reverse", 0);
+            int stride = OptionList.option_find_int(options, "stride", 1);
+            int reverse = OptionList.option_find_int_quiet(options, "reverse", 0);
 
             int batch, h, w, c;
-            h = parameters.h;
-            w = parameters.w;
-            c = parameters.c;
-            batch =parameters.batch;
-            if (!(h && w && c)) error("Layer before reorg layer must output image.");
+            h = parameters.H;
+            w = parameters.W;
+            c = parameters.C;
+            batch = parameters.Batch;
+            if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before reorg Layer must output image.");
 
-            layer layer = make_reorg_layer(batch, w, h, c, stride, reverse);
-            return layer;
+            Layer Layer = make_reorg_layer(batch, w, h, c, stride, reverse);
+            return Layer;
         }
 
-        maxpool_layer parse_maxpool(list* options, SizeParams parameters)
+        public static Layer parse_maxpool(KeyValuePair[] options, SizeParams parameters)
         {
-            int stride = option_find_int(options, "stride", 1);
-            int size = option_find_int(options, "size", stride);
-            int padding = option_find_int_quiet(options, "padding", (size - 1) / 2);
+            int stride = OptionList.option_find_int(options, "stride", 1);
+            int size = OptionList.option_find_int(options, "size", stride);
+            int padding = OptionList.option_find_int_quiet(options, "padding", (size - 1) / 2);
 
             int batch, h, w, c;
-            h = parameters.h;
-            w = parameters.w;
-            c = parameters.c;
-            batch =parameters.batch;
-            if (!(h && w && c)) error("Layer before maxpool layer must output image.");
+            h = parameters.H;
+            w = parameters.W;
+            c = parameters.C;
+            batch = parameters.Batch;
+            if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before maxpool Layer must output image.");
 
-            maxpool_layer layer = make_maxpool_layer(batch, h, w, c, size, stride, padding);
-            return layer;
+            Layer Layer = make_maxpool_layer(batch, h, w, c, size, stride, padding);
+            return Layer;
         }
 
-        avgpool_layer parse_avgpool(list* options, SizeParams parameters)
+        public static Layer parse_avgpool(KeyValuePair[] options, SizeParams parameters)
         {
             int batch, w, h, c;
-            w = parameters.w;
-            h = parameters.h;
-            c = parameters.c;
-            batch =parameters.batch;
-            if (!(h && w && c)) error("Layer before avgpool layer must output image.");
+            w = parameters.W;
+            h = parameters.H;
+            c = parameters.C;
+            batch = parameters.Batch;
+            if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before avgpool Layer must output image.");
 
-            avgpool_layer layer = make_avgpool_layer(batch, w, h, c);
-            return layer;
+            Layer Layer = make_avgpool_layer(batch, w, h, c);
+            return Layer;
         }
 
-        dropout_layer parse_dropout(list* options, SizeParams parameters)
+        public static Layer parse_dropout(KeyValuePair[] options, SizeParams parameters)
         {
-            float probability = option_find_float(options, "probability", .5);
-            dropout_layer layer = make_dropout_layer(parameters.batch, parameters.inputs, probability);
-            layer.out_w = parameters.w;
-            layer.out_h = parameters.h;
-            layer.out_c = parameters.c;
-            return layer;
+            float probability = OptionList.option_find_float(options, "probability", .5);
+            Layer Layer = make_dropout_layer(parameters.Batch, parameters.Inputs, probability);
+            Layer.OutW = parameters.W;
+            Layer.OutH = parameters.H;
+            Layer.OutC = parameters.C;
+            return Layer;
         }
 
-        layer parse_normalization(list* options, SizeParams parameters)
+        public static Layer parse_normalization(KeyValuePair[] options, SizeParams parameters)
         {
-            float alpha = option_find_float(options, "alpha", .0001);
-            float beta = option_find_float(options, "beta", .75);
-            float kappa = option_find_float(options, "kappa", 1);
-            int size = option_find_int(options, "size", 5);
-            layer l = make_normalization_layer(parameters.batch, parameters.w, parameters.h, parameters.c, size, alpha, beta, kappa);
+            float alpha = OptionList.option_find_float(options, "alpha", .0001f);
+            float beta = OptionList.option_find_float(options, "beta", .75f);
+            float kappa = OptionList.option_find_float(options, "kappa", 1);
+            int size = OptionList.option_find_int(options, "size", 5);
+            Layer l = make_normalization_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, size, alpha, beta, kappa);
             return l;
         }
 
-        layer parse_batchnorm(list* options, SizeParams parameters)
+        public static Layer parse_batchnorm(KeyValuePair[] options, SizeParams parameters)
         {
-            layer l = make_batchnorm_layer(parameters.batch, parameters.w, parameters.h, parameters.c);
+            Layer l = make_batchnorm_layer(parameters.Batch, parameters.W, parameters.H, parameters.C);
             return l;
         }
 
-        layer parse_shortcut(list* options, SizeParams parameters, network net)
+        public static Layer parse_shortcut(KeyValuePair[] options, SizeParams parameters, Network net)
         {
-            string l = option_find(options, "from");
-            int index = atoi(l);
-            if (index < 0) index = parameters.index + index;
+            string l = OptionList.option_find(options, "from");
+            int index = int.Parse(l);
+            if (index < 0) index = parameters.Index + index;
 
-            int batch = parameters.batch;
-            layer from = net.layers[index];
+            int batch = parameters.Batch;
+            Layer from = net.Layers[index];
 
-            layer s = make_shortcut_layer(batch, index, parameters.w, parameters.h, parameters.c, from.out_w, from.out_h, from.out_c);
+            Layer s = make_shortcut_layer(batch, index, parameters.W, parameters.H, parameters.C, from.OutW, from.OutH, from.OutC);
 
-            string activation_s = option_find_str(options, "activation", "linear");
-            ACTIVATION activation = get_activation(activation_s);
-            s.activation = activation;
+            string activation_s = OptionList.option_find_str(options, "activation", "linear");
+            Activation activation = ActivationsHelper.Get_activation(activation_s);
+            s.Activation = activation;
             return s;
         }
 
-
-        layer parse_activation(list* options, SizeParams parameters)
+        public static Layer parse_activation(KeyValuePair[] options, SizeParams parameters)
         {
-            string activation_s = option_find_str(options, "activation", "linear");
-            ACTIVATION activation = get_activation(activation_s);
+            string activation_s = OptionList.option_find_str(options, "activation", "linear");
+            Activation activation = ActivationsHelper.Get_activation(activation_s);
 
-            layer l = make_activation_layer(parameters.batch, parameters.inputs, activation);
+            Layer l = make_activation_layer(parameters.Batch, parameters.Inputs, activation);
 
-            l.out_h = parameters.h;
-            l.out_w = parameters.w;
-            l.out_c = parameters.c;
-            l.h = parameters.h;
-            l.w = parameters.w;
-            l.c = parameters.c;
+            l.OutH = parameters.H;
+            l.OutW = parameters.W;
+            l.OutC = parameters.C;
+            l.H = parameters.H;
+            l.W = parameters.W;
+            l.C = parameters.C;
 
             return l;
         }
 
-        route_layer parse_route(list* options, SizeParams parameters, network net)
+        public static Layer parse_route(KeyValuePair[] options, SizeParams parameters, Network net)
         {
-            string l = option_find(options, "layers");
-            int len = strlen(l);
-            if (!l) error("Route Layer must specify input layers");
-            int n = 1;
-            int i;
-            for (i = 0; i < len; ++i)
-            {
-                if (l[i] == ',') ++n;
-            }
+            string l = OptionList.option_find(options, "layers");
+            if (string.IsNullOrEmpty(l)) Utils.Error("Route Layer must specify input layers");
+            var lines = l.Split(',');
+            int n = lines.Length - 1;
 
-            int* layers = calloc(n, sizeof(int));
-            int* sizes = calloc(n, sizeof(int));
-            for (i = 0; i < n; ++i)
+
+            int[] layers = new int[n];
+            int[] sizes = new int[n];
+
+            for (var i = 0; i < lines.Length; ++i)
             {
-                int index = atoi(l);
-                l = strchr(l, ',') + 1;
-                if (index < 0) index = parameters.index + index;
+                int index = int.Parse(lines[i]);
+                if (index < 0) index = parameters.Index + index;
                 layers[i] = index;
-                sizes[i] = net.layers[index].outputs;
+                sizes[i] = net.Layers[index].Outputs;
             }
-            int batch = parameters.batch;
 
-            route_layer layer = make_route_layer(batch, n, layers, sizes);
+            int batch = parameters.Batch;
 
-            Layer first = net.layers[layers[0]];
-            layer.out_w = first.out_w;
-            layer.out_h = first.out_h;
-            layer.out_c = first.out_c;
-            for (i = 1; i < n; ++i)
+            Layer Layer = make_route_layer(batch, n, layers, sizes);
+
+            Layer first = net.Layers[layers[0]];
+            Layer.OutW = first.OutW;
+            Layer.OutH = first.OutH;
+            Layer.OutC = first.OutC;
+            for (var i = 1; i < n; ++i)
             {
                 int index = layers[i];
-                Layer next = net.layers[index];
-                if (next.out_w == first.out_w && next.out_h == first.out_h)
+                Layer next = net.Layers[index];
+                if (next.OutW == first.OutW && next.OutH == first.OutH)
                 {
-                    layer.out_c += next.out_c;
+                    Layer.OutC += next.OutC;
                 }
                 else
                 {
-                    layer.out_h = layer.out_w = layer.out_c = 0;
+                    Layer.OutH = Layer.OutW = Layer.OutC = 0;
                 }
             }
 
-            return layer;
+            return Layer;
         }
 
-        learning_rate_policy get_policy(string s)
+        public static LearningRatePolicy get_policy(string s)
         {
-            if (s, "random") == 0) return RANDOM;
-            if (s, "poly") == 0) return POLY;
-            if (s, "constant") == 0) return CONSTANT;
-            if (s, "step") == 0) return STEP;
-            if (s, "exp") == 0) return EXP;
-            if (s, "sigmoid") == 0) return SIG;
-            if (s, "steps") == 0) return STEPS;
-            fprintf(stderr, "Couldn't find policy %s, going with constant\n", s);
-            return CONSTANT;
+            return (LearningRatePolicy)Enum.Parse(typeof(LearningRatePolicy), s);
+            //if (s, "random") == 0) return RANDOM;
+            //if (s, "poly") == 0) return POLY;
+            //if (s, "constant") == 0) return CONSTANT;
+            //if (s, "step") == 0) return STEP;
+            //if (s, "exp") == 0) return EXP;
+            //if (s, "sigmoid") == 0) return SIG;
+            //if (s, "steps") == 0) return STEPS;
+            //Console.Error.Write("Couldn't find policy %s, going with constant\n", s);
+            //return CONSTANT;
         }
 
-        void parse_net_options(list* options, network* net)
+        public static void parse_net_options(KeyValuePair[] options, Network net)
         {
-            net->batch = option_find_int(options, "batch", 1);
-            net->learning_rate = option_find_float(options, "learning_rate", .001);
-            net->momentum = option_find_float(options, "momentum", .9);
-            net->decay = option_find_float(options, "decay", .0001);
-            int subdivs = option_find_int(options, "subdivisions", 1);
-            net->time_steps = option_find_int_quiet(options, "time_steps", 1);
-            net->batch /= subdivs;
-            net->batch *= net->time_steps;
-            net->subdivisions = subdivs;
+            net.Batch = OptionList.option_find_int(options, "batch", 1);
+            net.LearningRate = OptionList.option_find_float(options, "learning_rate", .001f);
+            net.Momentum = OptionList.option_find_float(options, "momentum", .9f);
+            net.Decay = OptionList.option_find_float(options, "decay", .0001f);
+            int subdivs = OptionList.option_find_int(options, "subdivisions", 1);
+            net.TimeSteps = OptionList.option_find_int_quiet(options, "time_steps", 1);
+            net.Batch /= subdivs;
+            net.Batch *= net.TimeSteps;
+            net.Subdivisions = subdivs;
 
-            net->adam = option_find_int_quiet(options, "adam", 0);
-            if (net->adam)
+            net.Adam = OptionList.option_find_int_quiet(options, "adam", 0);
+            if (net.Adam != 0)
             {
-                net->B1 = option_find_float(options, "B1", .9);
-                net->B2 = option_find_float(options, "B2", .999);
-                net->eps = option_find_float(options, "eps", .000001);
+                net.B1 = OptionList.option_find_float(options, "B1", .9f);
+                net.B2 = OptionList.option_find_float(options, "B2", .999f);
+                net.Eps = OptionList.option_find_float(options, "eps", .000001f);
             }
 
-            net->h = option_find_int_quiet(options, "height", 0);
-            net->w = option_find_int_quiet(options, "width", 0);
-            net->c = option_find_int_quiet(options, "channels", 0);
-            net->inputs = option_find_int_quiet(options, "inputs", net->h * net->w * net->c);
-            net->max_crop = option_find_int_quiet(options, "max_crop", net->w * 2);
-            net->min_crop = option_find_int_quiet(options, "min_crop", net->w);
+            net.H = OptionList.option_find_int_quiet(options, "height", 0);
+            net.W = OptionList.option_find_int_quiet(options, "width", 0);
+            net.C = OptionList.option_find_int_quiet(options, "channels", 0);
+            net.Inputs = OptionList.option_find_int_quiet(options, "inputs", net.H * net.W * net.C);
+            net.MaxCrop = OptionList.option_find_int_quiet(options, "max_crop", net.W * 2);
+            net.MinCrop = OptionList.option_find_int_quiet(options, "min_crop", net.W);
 
-            net->angle = option_find_float_quiet(options, "angle", 0);
-            net->aspect = option_find_float_quiet(options, "aspect", 1);
-            net->saturation = option_find_float_quiet(options, "saturation", 1);
-            net->exposure = option_find_float_quiet(options, "exposure", 1);
-            net->hue = option_find_float_quiet(options, "hue", 0);
+            net.Angle = OptionList.option_find_float_quiet(options, "angle", 0);
+            net.Aspect = OptionList.option_find_float_quiet(options, "aspect", 1);
+            net.Saturation = OptionList.option_find_float_quiet(options, "saturation", 1);
+            net.Exposure = OptionList.option_find_float_quiet(options, "exposure", 1);
+            net.Hue = OptionList.option_find_float_quiet(options, "hue", 0);
 
-            if (!net->inputs && !(net->h && net->w && net->c)) error("No input parameters supplied");
+            if (net.Inputs == 0 && !(net.H != 0 && net.W != 0 && net.C != 0)) Utils.Error("No input parameters supplied");
 
-            string policy_s = option_find_str(options, "policy", "constant");
-            net->policy = get_policy(policy_s);
-            net->burn_in = option_find_int_quiet(options, "burn_in", 0);
-            if (net->policy == STEP)
+            string policy_s = OptionList.option_find_str(options, "policy", "constant");
+            net.Policy = get_policy(policy_s);
+            net.BurnIn = OptionList.option_find_int_quiet(options, "burn_in", 0);
+            if (net.Policy == LearningRatePolicy.Step)
             {
-                net->step = option_find_int(options, "step", 1);
-                net->scale = option_find_float(options, "scale", 1);
+                net.Step = OptionList.option_find_int(options, "step", 1);
+                net.Scale = OptionList.option_find_float(options, "scale", 1);
             }
-            else if (net->policy == STEPS)
+            else if (net.Policy == LearningRatePolicy.Steps)
             {
-                string l = option_find(options, "steps");
-                string p = option_find(options, "scales");
-                if (!l || !p) error("STEPS policy must have steps and scales in cfg file");
+                string l = OptionList.option_find(options, "steps");
+                string p = OptionList.option_find(options, "scales");
+                if (string.IsNullOrEmpty(l) || string.IsNullOrEmpty(p)) Utils.Error("STEPS policy must have steps and scales in cfg file");
 
-                int len = strlen(l);
-                int n = 1;
-                int i;
-                for (i = 0; i < len; ++i)
+                var lines = l.Split(',');
+                int[] steps = new int[lines.Length];
+                float[] scales = new float[lines.Length];
+                for (var i = 0; i < lines.Length; ++i)
                 {
-                    if (l[i] == ',') ++n;
+                    steps[i] = int.Parse(lines[i]);
+                    scales[i] = float.Parse(lines[i]);
                 }
-                int* steps = calloc(n, sizeof(int));
-                float[] scales = calloc(n, sizeof(float));
-                for (i = 0; i < n; ++i)
-                {
-                    int step = atoi(l);
-                    float scale = atof(p);
-                    l = strchr(l, ',') + 1;
-                    p = strchr(p, ',') + 1;
-                    steps[i] = step;
-                    scales[i] = scale;
-                }
-                net->scales = scales;
-                net->steps = steps;
-                net->num_steps = n;
+
+                net.Scales = scales;
+                net.Steps = steps;
+                net.NumSteps = lines.Length;
             }
-            else if (net->policy == EXP)
+            else if (net.Policy == LearningRatePolicy.Exp)
             {
-                net->gamma = option_find_float(options, "gamma", 1);
+                net.Gamma = OptionList.option_find_float(options, "gamma", 1);
             }
-            else if (net->policy == SIG)
+            else if (net.Policy == LearningRatePolicy.Sig)
             {
-                net->gamma = option_find_float(options, "gamma", 1);
-                net->step = option_find_int(options, "step", 1);
+                net.Gamma = OptionList.option_find_float(options, "gamma", 1);
+                net.Step = OptionList.option_find_int(options, "step", 1);
             }
-            else if (net->policy == POLY || net->policy == RANDOM)
+            else if (net.Policy == LearningRatePolicy.Poly || net.Policy == LearningRatePolicy.Random)
             {
-                net->power = option_find_float(options, "power", 1);
+                net.Power = OptionList.option_find_float(options, "power", 1);
             }
-            net->max_batches = option_find_int(options, "max_batches", 0);
+            net.MaxBatches = OptionList.option_find_int(options, "max_batches", 0);
         }
 
-        int is_network(section* s)
+        public static int is_network(section s)
         {
-            return (s->type, "[net]") == 0
-                    || s->type, "[network]") == 0);
+            return (s.type, "[net]") == 0
+                    || s.type, "[Network]") == 0);
         }
 
-        network parse_network_cfg(string filename)
+        public static Network parse_network_cfg(string filename)
         {
-            list* sections = read_cfg(filename);
-            node* n = sections->front;
-            if (!n) error("Config file has no sections");
-            network net = make_network(sections->size - 1);
-            net.gpu_index = gpu_index;
-            SizeParams parameters;
+            KeyValuePair[] sections = read_cfg(filename);
+            if (sections.Length < 1) Utils.Error("Config file has no sections");
+            var n = sections[0];
+            Network net = make_network(sections.Length - 1);
+            SizeParams parameters = new SizeParams();
 
-            section* s = (section*)n->val;
-            list* options = s->options;
-            if (!is_network(s)) error("First section must be [net] or [network]");
-            parse_net_options(options, &net);
+            var s = new section(n.Val);
+            KeyValuePair[] options = s.Options;
+            if (!is_network(s)) Utils.Error("First section must be [net] or [Network]");
+            parse_net_options(options, net);
 
-    parameters.h = net.h;
-    parameters.w = net.w;
-    parameters.c = net.c;
-    parameters.inputs = net.inputs;
-    parameters.batch = net.batch;
-    parameters.time_steps = net.time_steps;
-    parameters.net = net;
+            parameters.H = net.H;
+            parameters.W = net.W;
+            parameters.C = net.C;
+            parameters.Inputs = net.Inputs;
+            parameters.Batch = net.Batch;
+            parameters.TimeSteps = net.TimeSteps;
+            parameters.Net = net;
 
-            size_t workspace_size = 0;
-            n = n->next;
+            ulong workspace_size = 0;
+            var index = 1;
             int count = 0;
-            free_section(s);
-            fprintf(stderr, "layer     filters    size              input                output\n");
-            while (n)
+            Console.Error.Write("Layer     filters    size              input                output\n");
+            while (index < sections.Length)
             {
-        parameters.index = count;
-                fprintf(stderr, "%5d ", count);
-                s = (section*)n->val;
-                options = s->options;
-                layer l = { 0 };
-                LayerType lt = string_to_layer_type(s->type);
-                if (lt == CONVOLUTIONAL)
+                n = sections[index];
+                index++;
+                parameters.Index = count;
+                Console.Error.Write($"{count:5} ");
+                s = new section(n.Val);
+                options = s.options;
+                Layer l = new Layer();
+                LayerType lt = string_to_layer_type(s.type);
+                if (lt == LayerType.Convolutional)
                 {
                     l = parse_convolutional(options, parameters);
                 }
-                else if (lt == LOCAL)
+                else if (lt == LayerType.Local)
                 {
                     l = parse_local(options, parameters);
                 }
-                else if (lt == ACTIVE)
+                else if (lt == LayerType.Avgpool)
                 {
                     l = parse_activation(options, parameters);
                 }
-                else if (lt == RNN)
+                else if (lt == LayerType.Rnn)
                 {
                     l = parse_rnn(options, parameters);
                 }
-                else if (lt == GRU)
+                else if (lt == LayerType.Gru)
                 {
                     l = parse_gru(options, parameters);
                 }
-                else if (lt == CRNN)
+                else if (lt == LayerType.Crnn)
                 {
                     l = parse_crnn(options, parameters);
                 }
-                else if (lt == CONNECTED)
+                else if (lt == LayerType.Connected)
                 {
                     l = parse_connected(options, parameters);
                 }
-                else if (lt == CROP)
+                else if (lt == LayerType.Crop)
                 {
                     l = parse_crop(options, parameters);
                 }
-                else if (lt == COST)
+                else if (lt == LayerType.Cost)
                 {
                     l = parse_cost(options, parameters);
                 }
-                else if (lt == REGION)
+                else if (lt == LayerType.Region)
                 {
                     l = parse_region(options, parameters);
                 }
-                else if (lt == DETECTION)
+                else if (lt == LayerType.Detection)
                 {
                     l = parse_detection(options, parameters);
                 }
-                else if (lt == SOFTMAX)
+                else if (lt == LayerType.Softmax)
                 {
                     l = parse_softmax(options, parameters);
-                    net.hierarchy = l.softmax_tree;
+                    net.Hierarchy = l.SoftmaxTree;
                 }
-                else if (lt == NORMALIZATION)
+                else if (lt == LayerType.Normalization)
                 {
                     l = parse_normalization(options, parameters);
                 }
-                else if (lt == BATCHNORM)
+                else if (lt == LayerType.Batchnorm)
                 {
                     l = parse_batchnorm(options, parameters);
                 }
-                else if (lt == MAXPOOL)
+                else if (lt == LayerType.Maxpool)
                 {
                     l = parse_maxpool(options, parameters);
                 }
-                else if (lt == REORG)
+                else if (lt == LayerType.Reorg)
                 {
                     l = parse_reorg(options, parameters);
                 }
-                else if (lt == AVGPOOL)
+                else if (lt == LayerType.Avgpool)
                 {
                     l = parse_avgpool(options, parameters);
                 }
-                else if (lt == ROUTE)
+                else if (lt == LayerType.Route)
                 {
                     l = parse_route(options, parameters, net);
                 }
-                else if (lt == SHORTCUT)
+                else if (lt == LayerType.Shortcut)
                 {
                     l = parse_shortcut(options, parameters, net);
                 }
-                else if (lt == DROPOUT)
+                else if (lt == LayerType.Dropout)
                 {
                     l = parse_dropout(options, parameters);
-                    l.output = net.layers[count - 1].output;
-                    l.delta = net.layers[count - 1].delta;
-                    l.output_gpu = net.layers[count - 1].output_gpu;
-                    l.delta_gpu = net.layers[count - 1].delta_gpu;
+                    l.Output = net.Layers[count - 1].Output;
+                    l.Delta = net.Layers[count - 1].Delta;
+                    l.OutputGpu = net.Layers[count - 1].OutputGpu;
+                    l.DeltaGpu = net.Layers[count - 1].DeltaGpu;
                 }
                 else
                 {
-                    fprintf(stderr, "LayerType not recognized: %s\n", s->type);
+                    Console.Error.Write($"LayerType not recognized: {s.type}\n");
                 }
-                l.dontload = option_find_int_quiet(options, "dontload", 0);
-                l.dontloadscales = option_find_int_quiet(options, "dontloadscales", 0);
-                option_unused(options);
-                net.layers[count] = l;
-                if (l.workspace_size > workspace_size) workspace_size = l.workspace_size;
-                free_section(s);
-                n = n->next;
+                l.Dontload = OptionList.option_find_int_quiet(options, "dontload", 0);
+                l.Dontloadscales = OptionList.option_find_int_quiet(options, "dontloadscales", 0);
+                OptionList.option_unused(options);
+                net.Layers[count] = l;
+                if (l.WorkspaceSize > workspace_size) workspace_size = l.WorkspaceSize;
                 ++count;
-                if (n)
+                if (index + 1 < sections.Length)
                 {
-            parameters.h = l.out_h;
-            parameters.w = l.out_w;
-            parameters.c = l.out_c;
-            parameters.inputs = l.outputs;
+                    parameters.H = l.OutH;
+                    parameters.W = l.OutW;
+                    parameters.C = l.OutC;
+                    parameters.Inputs = l.Outputs;
                 }
             }
-            free_list(sections);
-            net.outputs = get_network_output_size(net);
-            net.output = get_network_output(net);
-            if (workspace_size)
+            net.Outputs = get_network_output_size(net);
+            net.Output = get_network_output(net);
+            if (workspace_size != 0)
             {
-                if (gpu_index >= 0)
+                if (CudaUtils.UseGpu)
                 {
-                    net.workspace = cuda_make_array(0, (workspace_size - 1) / sizeof(float) + 1);
+                    net.Workspace = cuda_make_array(0, (workspace_size - 1) / sizeof(float) + 1);
                 }
                 else
                 {
-                    net.workspace = calloc(1, workspace_size);
+                    net.Workspace = new float[1];
                 }
             }
             return net;
         }
 
-        list* read_cfg(string filename)
+        public static KeyValuePair[] read_cfg(string filename)
         {
             FILE* file = fopen(filename, "r");
             if (file == 0) file_error(filename);
             string line;
             int nu = 0;
-            list* sections = make_list();
+            KeyValuePair[] sections = make_list();
             section* current = 0;
             while ((line = fgetl(file)) != 0)
             {
@@ -736,8 +715,8 @@ namespace Yolo_V2.Data
                     case '[':
                         current = malloc(sizeof(section));
                         list_insert(sections, current);
-                        current->options = make_list();
-                        current->type = line;
+                        current.options = make_list();
+                        current.type = line;
                         break;
                     case '\0':
                     case '#':
@@ -745,9 +724,9 @@ namespace Yolo_V2.Data
                         free(line);
                         break;
                     default:
-                        if (!read_option(line, current->options))
+                        if (!read_option(line, current.options))
                         {
-                            fprintf(stderr, "Config file error line %d, could parse: %s\n", nu, line);
+                            Console.Error.Write("Config file Utils.Error line %d, could parse: %s\n", nu, line);
                             free(line);
                         }
                         break;
@@ -757,103 +736,128 @@ namespace Yolo_V2.Data
             return sections;
         }
 
-        void save_convolutional_weights_binary(layer l, FILE* fp)
+        public static void save_convolutional_weights_binary(Layer l, string filename)
         {
-            if (gpu_index >= 0)
+            if (CudaUtils.UseGpu)
             {
                 pull_convolutional_layer(l);
             }
-            binarize_weights(l.weights, l.n, l.c * l.size * l.size, l.binary_weights);
-            int size = l.c * l.size * l.size;
-            int i, j, k;
-            fwrite(l.biases, sizeof(float), l.n, fp);
-            if (l.batch_normalize)
+            binarize_weights(l.Weights, l.N, l.C * l.Size * l.Size, l.BinaryWeights);
+            int size = l.C * l.Size * l.Size;
+            int i, j;
+            using (var fstream = File.OpenWrite(filename))
             {
-                fwrite(l.scales, sizeof(float), l.n, fp);
-                fwrite(l.rolling_mean, sizeof(float), l.n, fp);
-                fwrite(l.rolling_variance, sizeof(float), l.n, fp);
-            }
-            for (i = 0; i < l.n; ++i)
-            {
-                float mean = l.binary_weights[i * size];
-                if (mean < 0) mean = -mean;
-                fwrite(&mean, sizeof(float), 1, fp);
-                for (j = 0; j < size / 8; ++j)
+                var biases = FloatArrayToByteArray(l.Biases);
+                fstream.Write(biases, 0, biases.Length);
+                if (l.BatchNormalize != 0)
                 {
-                    int index = i * size + j * 8;
-                    unsigned char c = 0;
-                    for (k = 0; k < 8; ++k)
+                    var scales = FloatArrayToByteArray(l.Scales);
+                    var mean = FloatArrayToByteArray(l.RollingMean);
+                    var variance = FloatArrayToByteArray(l.RollingVariance);
+                    fstream.Write(scales, 0, scales.Length);
+                    fstream.Write(mean, 0, mean.Length);
+                    fstream.Write(variance, 0, variance.Length);
+                }
+                for (i = 0; i < l.N; ++i)
+                {
+                    float mean = l.BinaryWeights[i * size];
+                    if (mean < 0) mean = -mean;
+                    var writeMean = BitConverter.GetBytes(mean);
+                    fstream.Write(writeMean, 0, writeMean.Length);
+                    for (j = 0; j < size / 8; ++j)
                     {
-                        if (j * 8 + k >= size) break;
-                        if (l.binary_weights[index + k] > 0) c = (c | 1 << k);
+                        int index = i * size + j * 8;
+                        byte[] c = new byte[1];
+                        c[0] = 0;
+                        for (byte k = 0; k < 8; ++k)
+                        {
+                            if (j * 8 + k >= size) break;
+                            if (l.BinaryWeights[index + k] > 0) c[0] = (byte)(c[0] | 0x1 << k);
+                        }
+                        fstream.Write(c, 0, 1);
                     }
-                    fwrite(&c, sizeof(char), 1, fp);
                 }
             }
         }
 
-        void save_convolutional_weights(layer l, FILE* fp)
+        private static byte[] FloatArrayToByteArray(float[] floats)
         {
-            if (l.binary)
-            {
-                //save_convolutional_weights_binary(l, fp);
-                //return;
-            }
-            if (gpu_index >= 0)
+            var bytes = new byte[floats.Length * 4];
+            Buffer.BlockCopy(floats, 0, bytes, 0, bytes.Length);
+            return bytes;
+        }
+
+        public static void save_convolutional_weights(Layer l, string filename)
+        {
+            if (CudaUtils.UseGpu)
             {
                 pull_convolutional_layer(l);
             }
-            int num = l.n * l.c * l.size * l.size;
-            fwrite(l.biases, sizeof(float), l.n, fp);
-            if (l.batch_normalize)
+
+            int num = l.N * l.C * l.Size * l.Size;
+            using (var fstream = File.OpenWrite(filename))
             {
-                fwrite(l.scales, sizeof(float), l.n, fp);
-                fwrite(l.rolling_mean, sizeof(float), l.n, fp);
-                fwrite(l.rolling_variance, sizeof(float), l.n, fp);
-            }
-            fwrite(l.weights, sizeof(float), num, fp);
-            if (l.adam)
-            {
-                fwrite(l.m, sizeof(float), num, fp);
-                fwrite(l.v, sizeof(float), num, fp);
+                var biases = FloatArrayToByteArray(l.Biases);
+                fstream.Write(biases, 0, biases.Length);
+
+                if (l.BatchNormalize != 0)
+                {
+                    var scales = FloatArrayToByteArray(l.Scales);
+                    var mean = FloatArrayToByteArray(l.RollingMean);
+                    var variance = FloatArrayToByteArray(l.RollingVariance);
+                    fstream.Write(scales, 0, scales.Length);
+                    fstream.Write(mean, 0, mean.Length);
+                    fstream.Write(variance, 0, variance.Length);
+                }
+
+                var weights = FloatArrayToByteArray(l.Weights);
+                fstream.Write(weights, 0, weights.Length);
+
+                if (l.Adam != 0)
+                {
+                    var m = FloatArrayToByteArray(l.M);
+                    var v = FloatArrayToByteArray(l.V);
+                    fstream.Write(m, 0, m.Length);
+                    fstream.Write(v, 0, v.Length);
+                }
             }
         }
 
-        void save_batchnorm_weights(layer l, FILE* fp)
+        public static void save_batchnorm_weights(Layer l, FileStream fread)
         {
-            if (gpu_index >= 0)
+            if (CudaUtils.UseGpu)
             {
                 pull_batchnorm_layer(l);
             }
-            fwrite(l.scales, sizeof(float), l.c, fp);
-            fwrite(l.rolling_mean, sizeof(float), l.c, fp);
-            fwrite(l.rolling_variance, sizeof(float), l.c, fp);
+            fwrite(l.Scales, sizeof(float), l.C, fp);
+            fwrite(l.RollingMean, sizeof(float), l.C, fp);
+            fwrite(l.RollingVariance, sizeof(float), l.C, fp);
         }
 
-        void save_connected_weights(layer l, FILE* fp)
+        public static void save_connected_weights(Layer l, FileStream fread)
         {
-            if (gpu_index >= 0)
+            if (CudaUtils.UseGpu)
             {
                 pull_connected_layer(l);
             }
-            fwrite(l.biases, sizeof(float), l.outputs, fp);
-            fwrite(l.weights, sizeof(float), l.outputs * l.inputs, fp);
-            if (l.batch_normalize)
+            fwrite(l.Biases, sizeof(float), l.outputs, fp);
+            fwrite(l.Weights, sizeof(float), l.outputs * l.Inputs, fp);
+            if (l.BatchNormalize)
             {
-                fwrite(l.scales, sizeof(float), l.outputs, fp);
-                fwrite(l.rolling_mean, sizeof(float), l.outputs, fp);
-                fwrite(l.rolling_variance, sizeof(float), l.outputs, fp);
+                fwrite(l.Scales, sizeof(float), l.outputs, fp);
+                fwrite(l.RollingMean, sizeof(float), l.outputs, fp);
+                fwrite(l.RollingVariance, sizeof(float), l.outputs, fp);
             }
         }
 
-        void save_weights_upto(network net, string filename, int cutoff)
+        public static void save_weights_upto(Network net, string filename, int cutoff)
         {
-            if (net.gpu_index >= 0)
+            if (net.CudaUtils.UseGpu)
             {
                 cuda_set_device(net.gpu_index);
             }
-            fprintf(stderr, "Saving weights to %s\n", filename);
-            FILE* fp = fopen(filename, "wb");
+            Console.Error.Write("Saving weights to %s\n", filename);
+            FileStream fread = fopen(filename, "wb");
             if (!fp) file_error(filename);
 
             int major = 0;
@@ -865,9 +869,9 @@ namespace Yolo_V2.Data
             fwrite(net.seen, sizeof(int), 1, fp);
 
             int i;
-            for (i = 0; i < net.n && i < cutoff; ++i)
+            for (i = 0; i < net.N && i < cutoff; ++i)
             {
-                layer l = net.layers[i];
+                Layer l = net.layers[i];
                 if (l.type == CONVOLUTIONAL)
                 {
                     save_convolutional_weights(l, fp);
@@ -882,45 +886,46 @@ namespace Yolo_V2.Data
                 }
                 if (l.type == RNN)
                 {
-                    save_connected_weights(*(l.input_layer), fp);
-                    save_connected_weights(*(l.self_layer), fp);
-                    save_connected_weights(*(l.output_layer), fp);
+                    save_connected_weights(*(l.InputLayer), fp);
+                    save_connected_weights(*(l.SelfLayer), fp);
+                    save_connected_weights(*(l.OutputLayer), fp);
                 }
                 if (l.type == GRU)
                 {
-                    save_connected_weights(*(l.input_z_layer), fp);
-                    save_connected_weights(*(l.input_r_layer), fp);
-                    save_connected_weights(*(l.input_h_layer), fp);
-                    save_connected_weights(*(l.state_z_layer), fp);
-                    save_connected_weights(*(l.state_r_layer), fp);
-                    save_connected_weights(*(l.state_h_layer), fp);
+                    save_connected_weights(*(l.InputZLayer), fp);
+                    save_connected_weights(*(l.InputRLayer), fp);
+                    save_connected_weights(*(l.InputHLayer), fp);
+                    save_connected_weights(*(l.StateZLayer), fp);
+                    save_connected_weights(*(l.StateRLayer), fp);
+                    save_connected_weights(*(l.StateHLayer), fp);
                 }
                 if (l.type == CRNN)
                 {
-                    save_convolutional_weights(*(l.input_layer), fp);
-                    save_convolutional_weights(*(l.self_layer), fp);
-                    save_convolutional_weights(*(l.output_layer), fp);
+                    save_convolutional_weights(*(l.InputLayer), fp);
+                    save_convolutional_weights(*(l.SelfLayer), fp);
+                    save_convolutional_weights(*(l.OutputLayer), fp);
                 }
                 if (l.type == LOCAL)
                 {
-                    if (gpu_index >= 0)
+                    if (CudaUtils.UseGpu)
                     {
                         pull_local_layer(l);
                     }
-                    int locations = l.out_w * l.out_h;
-                    int size = l.size * l.size * l.c * l.n * locations;
-                    fwrite(l.biases, sizeof(float), l.outputs, fp);
-                    fwrite(l.weights, sizeof(float), size, fp);
+                    int locations = l.OutW * l.OutH;
+                    int size = l.Size * l.Size * l.C * l.N * locations;
+                    fwrite(l.Biases, sizeof(float), l.outputs, fp);
+                    fwrite(l.Weights, sizeof(float), size, fp);
                 }
             }
             fclose(fp);
         }
-        void save_weights(network net, string filename)
+
+        public static void save_weights(Network net, string filename)
         {
-            save_weights_upto(net, filename, net.n);
+            save_weights_upto(net, filename, net.N);
         }
 
-        void transpose_matrix(float[] a, int rows, int cols)
+        public static void transpose_matrix(float[] a, int rows, int cols)
         {
             float[] transpose = calloc(rows * cols, sizeof(float));
             int x, y;
@@ -935,49 +940,49 @@ namespace Yolo_V2.Data
             free(transpose);
         }
 
-        void load_connected_weights(layer l, FILE* fp, int transpose)
+        public static void load_connected_weights(Layer l, FileStream fread, int transpose)
         {
-            fread(l.biases, sizeof(float), l.outputs, fp);
-            fread(l.weights, sizeof(float), l.outputs * l.inputs, fp);
+            fread(l.Biases, sizeof(float), l.outputs, fp);
+            fread(l.Weights, sizeof(float), l.outputs * l.Inputs, fp);
             if (transpose)
             {
-                transpose_matrix(l.weights, l.inputs, l.outputs);
+                transpose_matrix(l.Weights, l.Inputs, l.outputs);
             }
-            if (l.batch_normalize && (!l.dontloadscales))
+            if (l.BatchNormalize && (!l.dontloadscales))
             {
-                fread(l.scales, sizeof(float), l.outputs, fp);
-                fread(l.rolling_mean, sizeof(float), l.outputs, fp);
-                fread(l.rolling_variance, sizeof(float), l.outputs, fp);
+                fread(l.Scales, sizeof(float), l.outputs, fp);
+                fread(l.RollingMean, sizeof(float), l.outputs, fp);
+                fread(l.RollingVariance, sizeof(float), l.outputs, fp);
             }
-            if (gpu_index >= 0)
+            if (CudaUtils.UseGpu)
             {
                 push_connected_layer(l);
             }
         }
 
-        void load_batchnorm_weights(layer l, FILE* fp)
+        public static void load_batchnorm_weights(Layer l, FileStream fread)
         {
-            fread(l.scales, sizeof(float), l.c, fp);
-            fread(l.rolling_mean, sizeof(float), l.c, fp);
-            fread(l.rolling_variance, sizeof(float), l.c, fp);
-            if (gpu_index >= 0)
+            fread(l.Scales, sizeof(float), l.C, fp);
+            fread(l.RollingMean, sizeof(float), l.C, fp);
+            fread(l.RollingVariance, sizeof(float), l.C, fp);
+            if (CudaUtils.UseGpu)
             {
                 push_batchnorm_layer(l);
             }
         }
 
-        void load_convolutional_weights_binary(layer l, FILE* fp)
+        public static void load_convolutional_weights_binary(Layer l, FileStream fread)
         {
-            fread(l.biases, sizeof(float), l.n, fp);
-            if (l.batch_normalize && (!l.dontloadscales))
+            fread(l.Biases, sizeof(float), l.N, fp);
+            if (l.BatchNormalize && (!l.dontloadscales))
             {
-                fread(l.scales, sizeof(float), l.n, fp);
-                fread(l.rolling_mean, sizeof(float), l.n, fp);
-                fread(l.rolling_variance, sizeof(float), l.n, fp);
+                fread(l.Scales, sizeof(float), l.N, fp);
+                fread(l.RollingMean, sizeof(float), l.N, fp);
+                fread(l.RollingVariance, sizeof(float), l.N, fp);
             }
-            int size = l.c * l.size * l.size;
+            int size = l.C * l.Size * l.Size;
             int i, j, k;
-            for (i = 0; i < l.n; ++i)
+            for (i = 0; i < l.N; ++i)
             {
                 float mean = 0;
                 fread(&mean, sizeof(float), 1, fp);
@@ -989,72 +994,71 @@ namespace Yolo_V2.Data
                     for (k = 0; k < 8; ++k)
                     {
                         if (j * 8 + k >= size) break;
-                        l.weights[index + k] = (c & 1 << k) ? mean : -mean;
+                        l.Weights[index + k] = (c & 1 << k) ? mean : -mean;
                     }
                 }
             }
-            if (gpu_index >= 0)
+            if (CudaUtils.UseGpu)
             {
                 push_convolutional_layer(l);
             }
         }
 
-        void load_convolutional_weights(layer l, FILE* fp)
+        public static void load_convolutional_weights(Layer l, FileStream fread)
         {
-            int num = l.n * l.c * l.size * l.size;
-            fread(l.biases, sizeof(float), l.n, fp);
-            if (l.batch_normalize && (!l.dontloadscales))
+            int num = l.N * l.C * l.Size * l.Size;
+            fread(l.Biases, sizeof(float), l.N, fp);
+            if (l.BatchNormalize != 0 && (!l.Dontloadscales))
             {
-                fread(l.scales, sizeof(float), l.n, fp);
-                fread(l.rolling_mean, sizeof(float), l.n, fp);
-                fread(l.rolling_variance, sizeof(float), l.n, fp);
+                fread(l.Scales, sizeof(float), l.N, fp);
+                fread(l.RollingMean, sizeof(float), l.N, fp);
+                fread(l.RollingVariance, sizeof(float), l.N, fp);
                 if (0)
                 {
                     int i;
-                    for (i = 0; i < l.n; ++i)
+                    for (i = 0; i < l.N; ++i)
                     {
-                        printf("%g, ", l.rolling_mean[i]);
+                        printf("%g, ", l.RollingMean[i]);
                     }
                     printf("\n");
-                    for (i = 0; i < l.n; ++i)
+                    for (i = 0; i < l.N; ++i)
                     {
-                        printf("%g, ", l.rolling_variance[i]);
+                        printf("%g, ", l.RollingVariance[i]);
                     }
                     printf("\n");
                 }
                 if (0)
                 {
-                    fill_cpu(l.n, 0, l.rolling_mean, 1);
-                    fill_cpu(l.n, 0, l.rolling_variance, 1);
+                    fill_cpu(l.N, 0, l.RollingMean, 1);
+                    fill_cpu(l.N, 0, l.RollingVariance, 1);
                 }
             }
-            fread(l.weights, sizeof(float), num, fp);
-            if (l.adam)
+            fread(l.Weights, sizeof(float), num, fp);
+            if (l.Adam)
             {
                 fread(l.m, sizeof(float), num, fp);
                 fread(l.v, sizeof(float), num, fp);
             }
-            if (l.flipped)
+            if (l.Flipped)
             {
-                transpose_matrix(l.weights, l.c * l.size * l.size, l.n);
+                transpose_matrix(l.Weights, l.C * l.Size * l.Size, l.N);
             }
-            if (gpu_index >= 0)
+            if (CudaUtils.UseGpu)
             {
                 push_convolutional_layer(l);
             }
         }
 
-
-        void load_weights_upto(network* net, string filename, int cutoff)
+        public static void load_weights_upto(Network net, string filename, int cutoff)
         {
-            if (net->gpu_index >= 0)
-            {
-                cuda_set_device(net->gpu_index);
-            }
-            fprintf(stderr, "Loading weights from %s...", filename);
+            Console.Error.Write($"Loading weights from {filename}...");
             fflush(stdout);
-            FILE* fp = fopen(filename, "rb");
-            if (!fp) file_error(filename);
+            if (!File.Exists(filename))
+            {
+                Utils.file_error(filename);
+            }
+
+            FileStream fread = fopen(filename, "rb");
 
             int major;
             int minor;
@@ -1062,67 +1066,72 @@ namespace Yolo_V2.Data
             fread(&major, sizeof(int), 1, fp);
             fread(&minor, sizeof(int), 1, fp);
             fread(&revision, sizeof(int), 1, fp);
-            fread(net->seen, sizeof(int), 1, fp);
-            int transpose = (major > 1000) || (minor > 1000);
+            fread(net.seen, sizeof(int), 1, fp);
+            int transpose = (major > 1000) || (minor > 1000) ? 1 : 0;
 
             int i;
-            for (i = 0; i < net->n && i < cutoff; ++i)
+            for (i = 0; i < net.N && i < cutoff; ++i)
             {
-                layer l = net->layers[i];
-                if (l.dontload) continue;
-                if (l.type == CONVOLUTIONAL)
+                Layer l = net.Layers[i];
+                if (l.Dontload) continue;
+                if (l.LayerType == LayerType.Convolutional)
                 {
                     load_convolutional_weights(l, fp);
                 }
-                if (l.type == CONNECTED)
+
+                if (l.LayerType == LayerType.Connected)
                 {
                     load_connected_weights(l, fp, transpose);
                 }
-                if (l.type == BATCHNORM)
+
+                if (l.LayerType == LayerType.Batchnorm)
                 {
-                    load_batchnorm_weights(l, fp);
+                    load_batchnorm_weights(l, fstream);
                 }
-                if (l.type == CRNN)
+
+                if (l.LayerType == LayerType.Crnn)
                 {
-                    load_convolutional_weights(*(l.input_layer), fp);
-                    load_convolutional_weights(*(l.self_layer), fp);
-                    load_convolutional_weights(*(l.output_layer), fp);
+                    load_convolutional_weights((l.InputLayer), fp);
+                    load_convolutional_weights((l.SelfLayer), fp);
+                    load_convolutional_weights((l.OutputLayer), fp);
                 }
-                if (l.type == RNN)
+
+                if (l.LayerType == LayerType.Rnn)
                 {
-                    load_connected_weights(*(l.input_layer), fp, transpose);
-                    load_connected_weights(*(l.self_layer), fp, transpose);
-                    load_connected_weights(*(l.output_layer), fp, transpose);
+                    load_connected_weights((l.InputLayer), fp, transpose);
+                    load_connected_weights((l.SelfLayer), fp, transpose);
+                    load_connected_weights((l.OutputLayer), fp, transpose);
                 }
-                if (l.type == GRU)
+
+                if (l.LayerType == LayerType.Gru)
                 {
-                    load_connected_weights(*(l.input_z_layer), fp, transpose);
-                    load_connected_weights(*(l.input_r_layer), fp, transpose);
-                    load_connected_weights(*(l.input_h_layer), fp, transpose);
-                    load_connected_weights(*(l.state_z_layer), fp, transpose);
-                    load_connected_weights(*(l.state_r_layer), fp, transpose);
-                    load_connected_weights(*(l.state_h_layer), fp, transpose);
+                    load_connected_weights((l.InputZLayer), fp, transpose);
+                    load_connected_weights((l.InputRLayer), fp, transpose);
+                    load_connected_weights((l.InputHLayer), fp, transpose);
+                    load_connected_weights((l.StateZLayer), fp, transpose);
+                    load_connected_weights((l.StateRLayer), fp, transpose);
+                    load_connected_weights((l.StateHLayer), fp, transpose);
                 }
-                if (l.type == LOCAL)
+
+                if (l.LayerType == LayerType.Local)
                 {
-                    int locations = l.out_w * l.out_h;
-                    int size = l.size * l.size * l.c * l.n * locations;
-                    fread(l.biases, sizeof(float), l.outputs, fp);
-                    fread(l.weights, sizeof(float), size, fp);
-                    if (gpu_index >= 0)
+                    int locations = l.OutW * l.OutH;
+                    int size = l.Size * l.Size * l.C * l.N * locations;
+                    fread(l.Biases, sizeof(float), l.outputs, fp);
+                    fread(l.Weights, sizeof(float), size, fp);
+                    if (CudaUtils.UseGpu)
                     {
                         push_local_layer(l);
                     }
                 }
             }
-            fprintf(stderr, "Done!\n");
-            fclose(fp);
+
+            Console.Error.Write("Done!\n");
         }
 
-        void load_weights(network* net, string filename)
+        public static void load_weights(Network net, string filename)
         {
-            load_weights_upto(net, filename, net->n);
+            load_weights_upto(net, filename, net.N);
         }
-
     }
 }
