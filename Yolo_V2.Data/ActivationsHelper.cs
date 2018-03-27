@@ -266,14 +266,14 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void activate_array_ongpu(float[] x, int n, Activation a)
         {
-            var lp = new LaunchParam(Cuda.cuda_gridsize(n), new dim3(Cuda.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(activate_array_kernel, lp, x, n, a);
         }
 
         [GpuManaged]
         public static void gradient_array_ongpu(float[] x, int n, Activation a, float[] delta)
         {
-            var lp = new LaunchParam(Cuda.cuda_gridsize(n), new dim3(Cuda.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(gradient_array_kernel, lp, x, n, a, delta);
         }
     }

@@ -9,7 +9,7 @@ namespace Yolo_V2.Data
 {
     public class Layer
     {
-        public LayerType Type;
+        public LayerType LayerType;
         public Activation Activation;
         public CostType CostType;
         public Action<Layer, NetworkState> Forward;
@@ -255,7 +255,7 @@ namespace Yolo_V2.Data
         {
             int i;
             Layer l = new Layer();
-            l.Type = LayerType.Local;
+            l.LayerType = LayerType.Local;
 
             l.H = h;
             l.W = w;
@@ -485,43 +485,57 @@ namespace Yolo_V2.Data
             for (i = 0; i < l.Batch; ++i)
             {
                 var tmp = l.DeltaGpu.Skip(i * l.Outputs).ToArray();
-                Blas.Axpy_gpu(l.Outputs, 1, tmp, 1, l.BiasUpdatesGpu, 1);
+                Blas.axpy_ongpu(l.Outputs, 1, tmp, 1, l.BiasUpdatesGpu, 1);
             }
 
             for (i = 0; i < l.Batch; ++i)
             {
-                float[] input = state.Input + i * l.W * l.H * l.C;
-                im2col_ongpu(input, l.C, l.H, l.W,
+                int index = i * l.W * l.H * l.C;
+                float[] input = state.Input.Skip(index).ToArray();
+                Im2Col.im2col_ongpu(input, l.C, l.H, l.W,
                         l.Size, l.Stride, l.Pad, l.ColImageGpu);
-
+                CombineLists(state.Input, index, input);
                 for (j = 0; j < locations; ++j)
                 {
-                    float[] a = l.DeltaGpu + i * l.Outputs + j;
-                    float[] b = l.ColImageGpu + j;
-                    float[] c = l.WeightUpdatesGpu + j * l.Size * l.Size * l.C * l.N;
+                    int aIndex = i * l.Outputs + j;
+                    int cIndex = j * l.Size * l.Size * l.C * l.N;
+                    float[] a = l.DeltaGpu.Skip(aIndex).ToArray();
+                    float[] b = l.ColImageGpu.Skip(j).ToArray();
+                    float[] c = l.WeightUpdatesGpu.Skip(cIndex).ToArray();
                     int m = l.N;
                     int n = l.Size * l.Size * l.C;
                     int k = 1;
 
                     Gemm.gemm_ongpu(0, 1, m, n, k, 1, a, locations, b, locations, 1, c, n);
+                    CombineLists(l.DeltaGpu, aIndex, a);
+                    CombineLists(l.ColImageGpu, j, b);
+                    CombineLists(l.WeightUpdatesGpu, cIndex, c);
                 }
 
-                if (state.Delta)
+                if (state.Delta.Any())
                 {
                     for (j = 0; j < locations; ++j)
                     {
-                        float[] a = l.WeightsGpu + j * l.Size * l.Size * l.C * l.N;
-                        float[] b = l.DeltaGpu + i * l.Outputs + j;
-                        float[] c = l.ColImageGpu + j;
+                        int aIndex = j * l.Size * l.Size * l.C * l.N;
+                        int bIndex = i * l.Outputs + j;
+                        float[] a = l.WeightsGpu.Skip(aIndex).ToArray();
+                        float[] b = l.DeltaGpu.Skip(bIndex).ToArray();
+                        float[] c = l.ColImageGpu.Skip(j).ToArray();
 
                         int m = l.Size * l.Size * l.C;
                         int n = 1;
                         int k = l.N;
 
-                        gemm_ongpu(1, 0, m, n, k, 1, a, m, b, locations, 0, c, locations);
+                        Gemm.gemm_ongpu(1, 0, m, n, k, 1, a, m, b, locations, 0, c, locations);
+                        CombineLists(l.WeightsGpu, aIndex, a);
+                        CombineLists(l.DeltaGpu, bIndex, b);
+                        CombineLists(l.ColImageGpu, j, c);
                     }
 
-                    col2im_ongpu(l.ColImageGpu, l.C, l.H, l.W, l.Size, l.Stride, l.Pad, state.Delta + i * l.C * l.H * l.W);
+                    var dIndex = i * l.C * l.H * l.W;
+                    var delta = state.Delta.Skip(dIndex).ToArray();
+                    Im2Col.col2im_ongpu(l.ColImageGpu, l.C, l.H, l.W, l.Size, l.Stride, l.Pad, delta);
+                    CombineLists(state.Delta, dIndex, delta);
                 }
             }
         }
@@ -530,28 +544,12 @@ namespace Yolo_V2.Data
         {
             int locations = l.OutW * l.OutH;
             int size = l.Size * l.Size * l.C * l.N * locations;
-            axpy_ongpu(l.Outputs, learning_rate / batch, l.BiasUpdatesGpu, 1, l.BiasesGpu, 1);
-            scal_ongpu(l.Outputs, momentum, l.BiasUpdatesGpu, 1);
+            Blas.axpy_ongpu(l.Outputs, learning_rate / batch, l.BiasUpdatesGpu, 1, l.BiasesGpu, 1);
+            Blas.scal_ongpu(l.Outputs, momentum, l.BiasUpdatesGpu, 1);
 
-            axpy_ongpu(size, -decay * batch, l.WeightsGpu, 1, l.WeightUpdatesGpu, 1);
-            axpy_ongpu(size, learning_rate / batch, l.WeightUpdatesGpu, 1, l.WeightsGpu, 1);
-            scal_ongpu(size, momentum, l.WeightUpdatesGpu, 1);
-        }
-
-        void pull_local_layer(Layer l)
-        {
-            int locations = l.OutW * l.OutH;
-            int size = l.Size * l.Size * l.C * l.N * locations;
-            cuda_pull_array(l.WeightsGpu, l.Weights, size);
-            cuda_pull_array(l.BiasesGpu, l.Biases, l.Outputs);
-        }
-
-        void push_local_layer(Layer l)
-        {
-            int locations = l.OutW * l.OutH;
-            int size = l.Size * l.Size * l.C * l.N * locations;
-            cuda_push_array(l.WeightsGpu, l.Weights, size);
-            cuda_push_array(l.BiasesGpu, l.Biases, l.Outputs);
+            Blas.axpy_ongpu(size, -decay * batch, l.WeightsGpu, 1, l.WeightUpdatesGpu, 1);
+            Blas.axpy_ongpu(size, learning_rate / batch, l.WeightUpdatesGpu, 1, l.WeightsGpu, 1);
+            Blas.scal_ongpu(size, momentum, l.WeightUpdatesGpu, 1);
         }
     }
 }

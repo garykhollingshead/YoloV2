@@ -264,22 +264,22 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void scale_bias_gpu(float[] output, float[] biases, int batch, int n, int size)
         {
-            var dimGrid = new Alea.dim3((size - 1) / Cuda.BlockSize + 1, n, batch);
-            var dimBlock = new Alea.dim3(Cuda.BlockSize, 1, 1);
+            var dimGrid = new Alea.dim3((size - 1) / CudaUtils.BlockSize + 1, n, batch);
+            var dimBlock = new Alea.dim3(CudaUtils.BlockSize, 1, 1);
             var lp = new Alea.LaunchParam(dimGrid, dimBlock);
             Gpu.Default.Launch(scale_bias_kernel, lp, output, biases, n, size);
         }
 
         private static void backward_scale_kernel(float[] x_norm, float[] delta, int batch, int n, int size, float[] scale_updates)
         {
-            var part = __shared__.Array<float>(Cuda.BlockSize);
+            var part = __shared__.Array<float>(CudaUtils.BlockSize);
             int i, b;
             int filter = blockIdx.x;
             int p = threadIdx.x;
             float sum = 0;
             for (b = 0; b < batch; ++b)
             {
-                for (i = 0; i < size; i += Cuda.BlockSize)
+                for (i = 0; i < size; i += CudaUtils.BlockSize)
                 {
                     int index = p + i + size * (filter + n * b);
                     sum += (p + i < size) ? delta[index] * x_norm[index] : 0;
@@ -289,14 +289,14 @@ namespace Yolo_V2.Data
             DeviceFunction.SyncThreads();
             if (p == 0)
             {
-                for (i = 0; i < Cuda.BlockSize; ++i) scale_updates[filter] += part[i];
+                for (i = 0; i < CudaUtils.BlockSize; ++i) scale_updates[filter] += part[i];
             }
         }
 
         [GpuManaged]
         public static void backward_scale_gpu(float[] x_norm, float[] delta, int batch, int n, int size, float[] scale_updates)
         {
-            var lp = new LaunchParam(n, Cuda.BlockSize);
+            var lp = new LaunchParam(n, CudaUtils.BlockSize);
             Gpu.Default.Launch(backward_scale_kernel, lp, x_norm, delta, batch, n, size, scale_updates);
         }
 
@@ -312,20 +312,20 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void add_bias_gpu(float[] output, float[] biases, int batch, int n, int size)
         {
-            var lp = new LaunchParam(new Alea.dim3((size - 1) / Cuda.BlockSize + 1, n, batch), new Alea.dim3(Cuda.BlockSize, 1, 1));
+            var lp = new LaunchParam(new Alea.dim3((size - 1) / CudaUtils.BlockSize + 1, n, batch), new Alea.dim3(CudaUtils.BlockSize, 1, 1));
             Gpu.Default.Launch(add_bias_kernel, lp, output, biases, n, size);
         }
 
         private static void backward_bias_kernel(float[] bias_updates, float[] delta, int batch, int n, int size)
         {
-            var part = __shared__.Array<float>(Cuda.BlockSize);
+            var part = __shared__.Array<float>(CudaUtils.BlockSize);
             int i, b;
             int filter = blockIdx.x;
             int p = threadIdx.x;
             float sum = 0;
             for (b = 0; b < batch; ++b)
             {
-                for (i = 0; i < size; i += Cuda.BlockSize)
+                for (i = 0; i < size; i += CudaUtils.BlockSize)
                 {
                     int index = p + i + size * (filter + n * b);
                     sum += (p + i < size) ? delta[index] : 0;
@@ -335,18 +335,17 @@ namespace Yolo_V2.Data
             DeviceFunction.SyncThreads();
             if (p == 0)
             {
-                for (i = 0; i < Cuda.BlockSize; ++i) bias_updates[filter] += part[i];
+                for (i = 0; i < CudaUtils.BlockSize; ++i) bias_updates[filter] += part[i];
             }
         }
 
         [GpuManaged]
         public static void backward_bias_gpu(float[] bias_updates, float[] delta, int batch, int n, int size)
         {
-            var lp = new LaunchParam(n, Cuda.BlockSize);
+            var lp = new LaunchParam(n, CudaUtils.BlockSize);
             Gpu.Default.Launch(backward_bias_kernel, lp, bias_updates, delta, batch, n, size);
         }
-
-
+        
         private static void adam_kernel(int N, float[] x, float[] m, float[] v, float B1, float B2, float rate, float eps, int t)
         {
             int index = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
@@ -358,7 +357,7 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void adam_gpu(int n, float[] x, float[] m, float[] v, float B1, float B2, float rate, float eps, int t)
         {
-            var lp = new LaunchParam(n, Cuda.BlockSize);
+            var lp = new LaunchParam(n, CudaUtils.BlockSize);
             Gpu.Default.Launch(adam_kernel, lp, n, x, m, v, B1, B2, rate, eps, t);
         }
 
@@ -384,7 +383,7 @@ namespace Yolo_V2.Data
         public static void normalize_delta_gpu(float[] x, float[] mean, float[] variance, float[] mean_delta, float[] variance_delta, int batch, int filters, int spatial, float[] delta)
         {
             int N = batch * filters * spatial;
-            var lp = new LaunchParam(Cuda.cuda_gridsize(N), new Alea.dim3(Cuda.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(normalize_delta_kernel, lp, N, x, mean, variance, mean_delta, variance_delta, batch,
                 filters, spatial, delta);
         }
@@ -403,7 +402,7 @@ namespace Yolo_V2.Data
                     variance_delta[i] += delta[index] * (x[index] - mean[i]);
                 }
             }
-            variance_delta[i] *= -.5 * Math.Pow(variance[i] + .000001f, (float)(-3./ 2.));
+            variance_delta[i] *= -.5f * (float)Math.Pow(variance[i] + .000001f, (-3.0f/ 2.0f));
         }
 
         private static void accumulate_kernel(float[] x, int n, int groups, float[] sum)
@@ -420,7 +419,7 @@ namespace Yolo_V2.Data
 
         private static void fast_mean_delta_kernel(float[] delta, float[] variance, int batch, int filters, int spatial, float[] mean_delta)
         {
-            int threads = Cuda.BlockSize;
+            int threads = CudaUtils.BlockSize;
             var local = __shared__.Array<float>(threads);
 
             int id = threadIdx.x;
@@ -451,7 +450,7 @@ namespace Yolo_V2.Data
 
         private static void fast_variance_delta_kernel(float[] x, float[] delta, float[] mean, float[] variance, int batch, int filters, int spatial, float[] variance_delta)
         {
-            int threads = Cuda.BlockSize;
+            int threads = CudaUtils.BlockSize;
             var local = __shared__.Array<float>(threads);
 
             int id = threadIdx.x;
@@ -501,27 +500,28 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void mean_delta_gpu(float[] delta, float[] variance, int batch, int filters, int spatial, float[] mean_delta)
         {
-            mean_delta_kernel <<< cuda_gridsize(filters), Cuda.BlockSize >>> (delta, variance, batch, filters, spatial, mean_delta);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(mean_delta_kernel, lp, delta, variance, batch, filters, spatial, mean_delta);
         }
 
         [GpuManaged]
         public static void fast_mean_delta_gpu(float[] delta, float[] variance, int batch, int filters, int spatial, float[] mean_delta)
         {
-            fast_mean_delta_kernel <<< filters, Cuda.BlockSize >>> (delta, variance, batch, filters, spatial, mean_delta);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(fast_mean_delta_kernel, lp, delta, variance, batch, filters, spatial, mean_delta);
         }
 
         [GpuManaged]
         public static void fast_variance_delta_gpu(float[] x, float[] delta, float[] mean, float[] variance, int batch, int filters, int spatial, float[] variance_delta)
         {
-            fast_variance_delta_kernel <<< filters, Cuda.BlockSize >>> (x, delta, mean, variance, batch, filters, spatial, variance_delta);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(fast_variance_delta_kernel, lp, x, delta, mean, variance, batch, filters, spatial,
+                variance_delta);
         }
 
         private static void mean_kernel(float[] x, int batch, int filters, int spatial, float[] mean)
         {
-            float scale = 1./ (batch * spatial);
+            float scale = 1.0f/ (batch * spatial);
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
             if (i >= filters) return;
             int j, k;
@@ -539,7 +539,7 @@ namespace Yolo_V2.Data
 
         private static void variance_kernel(float[] x, float[] mean, int batch, int filters, int spatial, float[] variance)
         {
-            float scale = 1./ (batch * spatial - 1);
+            float scale = 1.0f/ (batch * spatial - 1);
             int j, k;
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
             if (i >= filters) return;
@@ -549,7 +549,7 @@ namespace Yolo_V2.Data
                 for (k = 0; k < spatial; ++k)
                 {
                     int index = j * filters * spatial + i * spatial + k;
-                    variance[i] += Math.Pow((x[index] - mean[i]), 2);
+                    variance[i] += (float)Math.Pow((x[index] - mean[i]), 2);
                 }
             }
             variance[i] *= scale;
@@ -578,8 +578,6 @@ namespace Yolo_V2.Data
 
             if (forward != 0) output[out_index] = x[in_index];
             else output[in_index] = x[out_index];
-            //if(forward) output[1] = x[1];
-            //else output[0] = x[0];
         }
 
         private static void axpy_kernel(int N, float ALPHA, float[] X, int OFFX, int INCX, float[] Y, int OFFY, int INCY)
@@ -591,7 +589,7 @@ namespace Yolo_V2.Data
         private static void pow_kernel(int N, float ALPHA, float[] X, int INCX, float[] Y, int INCY)
         {
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
-            if (i < N) Y[i * INCY] = Math.Pow(X[i * INCX], ALPHA);
+            if (i < N) Y[i * INCY] = (float)Math.Pow(X[i * INCX], ALPHA);
         }
 
         private static void const_kernel(int N, float ALPHA, float[] X, int INCX)
@@ -603,7 +601,7 @@ namespace Yolo_V2.Data
         private static void constrain_kernel(int N, float ALPHA, float[] X, int INCX)
         {
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
-            if (i < N) X[i * INCX] = fminf(ALPHA, fmaxf(-ALPHA, X[i * INCX]));
+            if (i < N) X[i * INCX] = Math.Min(ALPHA, Math.Max(-ALPHA, X[i * INCX]));
         }
 
         private static void supp_kernel(int N, float ALPHA, float[] X, int INCX)
@@ -644,19 +642,18 @@ namespace Yolo_V2.Data
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
             if (i < N) Y[i * INCY] *= X[i * INCX];
         }
-
-
+        
         [GpuManaged]
         public static void normalize_gpu(float[] x, float[] mean, float[] variance, int batch, int filters, int spatial)
         {
             var N = batch * filters * spatial;
-            normalize_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, x, mean, variance, batch, filters, spatial);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(normalize_kernel, lp, N, x, mean, variance, batch, filters, spatial);
         }
 
         private static void fast_mean_kernel(float[] x, int batch, int filters, int spatial, float[] mean)
         {
-            int threads = Cuda.BlockSize;
+            int threads = CudaUtils.BlockSize;
             var local = __shared__.Array<float>(threads);
 
             int id = threadIdx.x;
@@ -687,7 +684,7 @@ namespace Yolo_V2.Data
 
         private static void fast_variance_kernel(float[] x, float[] mean, int batch, int filters, int spatial, float[] variance)
         {
-            int threads = Cuda.BlockSize;
+            int threads = CudaUtils.BlockSize;
             var local = __shared__.Array<float>(threads);
 
             int id = threadIdx.x;
@@ -720,30 +717,30 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void fast_mean_gpu(float[] x, int batch, int filters, int spatial, float[] mean)
         {
-            fast_mean_kernel <<< filters, Cuda.BlockSize >>> (x, batch, filters, spatial, mean);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(filters, CudaUtils.BlockSize);
+            Gpu.Default.Launch(fast_mean_kernel, lp, x, batch, filters, spatial, mean);
         }
 
         [GpuManaged]
         public static void fast_variance_gpu(float[] x, float[] mean, int batch, int filters, int spatial, float[] variance)
         {
-            fast_variance_kernel <<< filters, Cuda.BlockSize >>> (x, mean, batch, filters, spatial, variance);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(filters, CudaUtils.BlockSize);
+            Gpu.Default.Launch(fast_variance_kernel, lp, x, mean, batch, filters, spatial, variance);
         }
 
 
         [GpuManaged]
         public static void mean_gpu(float[] x, int batch, int filters, int spatial, float[] mean)
         {
-            mean_kernel <<< cuda_gridsize(filters), Cuda.BlockSize >>> (x, batch, filters, spatial, mean);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(mean_kernel, lp, x, batch, filters, spatial, mean);
         }
 
         [GpuManaged]
         public static void variance_gpu(float[] x, float[] mean, int batch, int filters, int spatial, float[] variance)
         {
-            variance_kernel <<< cuda_gridsize(filters), Cuda.BlockSize >>> (x, mean, batch, filters, spatial, variance);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(variance_kernel, lp, x, mean, batch, filters, spatial, variance);
         }
 
         [GpuManaged]
@@ -755,15 +752,15 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void pow_ongpu(int N, float ALPHA, float[] X, int INCX, float[] Y, int INCY)
         {
-            pow_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, ALPHA, X, INCX, Y, INCY);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(pow_kernel, lp, N, ALPHA, X, INCX, Y, INCY);
         }
 
         [GpuManaged]
         public static void axpy_ongpu_offset(int N, float ALPHA, float[] X, int OFFX, int INCX, float[] Y, int OFFY, int INCY)
         {
-            axpy_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, ALPHA, X, OFFX, INCX, Y, OFFY, INCY);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(axpy_kernel, lp, N, ALPHA, X, OFFX, INCX, Y, OFFY, INCY);
         }
 
         [GpuManaged]
@@ -775,15 +772,15 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void mul_ongpu(int N, float[] X, int INCX, float[] Y, int INCY)
         {
-            mul_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, X, INCX, Y, INCY);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(mul_kernel, lp, N, X, INCX, Y, INCY);
         }
 
         [GpuManaged]
         public static void copy_ongpu_offset(int N, float[] X, int OFFX, int INCX, float[] Y, int OFFY, int INCY)
         {
-            copy_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, X, OFFX, INCX, Y, OFFY, INCY);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(copy_kernel, lp, N, X, OFFX, INCX, Y, OFFY, INCY);
         }
 
         private static void flatten_kernel(int N, float[] x, int spatial, int layers, int batch, int forward, float[] output)
@@ -807,59 +804,58 @@ namespace Yolo_V2.Data
         public static void flatten_ongpu(float[] x, int spatial, int layers, int batch, int forward, float[] output)
         {
             int size = spatial * batch * layers;
-            flatten_kernel <<< cuda_gridsize(size), Cuda.BlockSize >>> (size, x, spatial, layers, batch, forward, output);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(flatten_kernel, lp, size, x, spatial, layers, batch, forward, output);
         }
 
         [GpuManaged]
         public static void reorg_ongpu(float[] x, int w, int h, int c, int batch, int stride, int forward, float[] output)
         {
             int size = w * h * c * batch;
-            reorg_kernel <<< cuda_gridsize(size), Cuda.BlockSize >>> (size, x, w, h, c, batch, stride, forward, output);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(reorg_kernel, lp, size, x, w, h, c, batch, stride, forward, output);
         }
 
         [GpuManaged]
         public static void mask_ongpu(int N, float[] X, float mask_num, float[] mask)
         {
-            mask_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, X, mask_num, mask);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(mask_kernel, lp, N, X, mask_num, mask);
         }
 
         [GpuManaged]
         public static void const_ongpu(int N, float ALPHA, float[] X, int INCX)
         {
-            const_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, ALPHA, X, INCX);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(const_kernel, lp, N, ALPHA, X, INCX);
         }
 
         [GpuManaged]
         public static void constrain_ongpu(int N, float ALPHA, float[] X, int INCX)
         {
-            constrain_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, ALPHA, X, INCX);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(constrain_kernel, lp, N, ALPHA, X, INCX);
         }
-
-
+        
         [GpuManaged]
         public static void scal_ongpu(int N, float ALPHA, float[] X, int INCX)
         {
-            scal_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, ALPHA, X, INCX);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(scal_kernel, lp, N, ALPHA, X, INCX);
         }
 
         [GpuManaged]
         public static void supp_ongpu(int N, float ALPHA, float[] X, int INCX)
         {
-            supp_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, ALPHA, X, INCX);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(supp_kernel, lp, N, ALPHA, X, INCX);
         }
 
         [GpuManaged]
         public static void fill_ongpu(int N, float ALPHA, float[] X, int INCX)
         {
-            fill_kernel <<< cuda_gridsize(N), Cuda.BlockSize >>> (N, ALPHA, X, INCX);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(N), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(fill_kernel, lp, N, ALPHA, X, INCX);
         }
 
         private static void shortcut_kernel(int size, int minw, int minh, int minc, int stride, int sample, int batch, int w1, int h1, int c1, float[] add, int w2, int h2, int c2, float[] output)
@@ -892,8 +888,9 @@ namespace Yolo_V2.Data
             if (sample < 1) sample = 1;
 
             int size = batch * minw * minh * minc;
-            shortcut_kernel <<< cuda_gridsize(size), Cuda.BlockSize >>> (size, minw, minh, minc, stride, sample, batch, w1, h1, c1, add, w2, h2, c2, output);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(shortcut_kernel, lp, size, minw, minh, minc, stride, sample, batch, w1, h1, c1, add, w2,
+                h2, c2, output);
         }
 
         private static void smooth_l1_kernel(int n, float[] pred, float[] truth, float[] delta, float[] error)
@@ -919,8 +916,8 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void smooth_l1_gpu(int n, float[] pred, float[] truth, float[] delta, float[] error)
         {
-            smooth_l1_kernel <<< cuda_gridsize(n), Cuda.BlockSize >>> (n, pred, truth, delta, error);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(smooth_l1_kernel, lp, n, pred, truth, delta, error);
         }
 
         private static void l2_kernel(int n, float[] pred, float[] truth, float[] delta, float[] error)
@@ -937,8 +934,8 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void l2_gpu(int n, float[] pred, float[] truth, float[] delta, float[] error)
         {
-            l2_kernel <<< cuda_gridsize(n), Cuda.BlockSize >>> (n, pred, truth, delta, error);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(l2_kernel, lp, n, pred, truth, delta, error);
         }
         
         private static void weighted_sum_kernel(int n, float[] a, float[] b, float[] s, float[] c)
@@ -953,8 +950,8 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void weighted_sum_gpu(float[] a, float[] b, float[] s, int num, float[] c)
         {
-            weighted_sum_kernel <<< cuda_gridsize(num), Cuda.BlockSize >>> (num, a, b, s, c);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(weighted_sum_kernel, lp, num, a, b, s, c);
         }
 
         private static void weighted_delta_kernel(int n, float[] a, float[] b, float[] s, float[] da, float[] db, float[] ds, float[] dc)
@@ -971,8 +968,8 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void weighted_delta_gpu(float[] a, float[] b, float[] s, float[] da, float[] db, float[] ds, int num, float[] dc)
         {
-            weighted_delta_kernel <<< cuda_gridsize(num), Cuda.BlockSize >>> (num, a, b, s, da, db, ds, dc);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(weighted_delta_kernel, lp, num, a, b, s, da, db, ds, dc);
         }
 
         private static void mult_add_into_kernel(int n, float[] a, float[] b, float[] c)
@@ -987,8 +984,8 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void mult_add_into_gpu(int num, float[] a, float[] b, float[] c)
         {
-            mult_add_into_kernel <<< cuda_gridsize(num), Cuda.BlockSize >>> (num, a, b, c);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(mult_add_into_kernel, lp, num, a, b, c);
         }
         
         private static void softmax_device(int n, float[] input, float temp, float[] output)
@@ -1029,8 +1026,8 @@ namespace Yolo_V2.Data
         {
             int inputs = n;
             int batch = groups;
-            softmax_kernel <<< cuda_gridsize(batch), Cuda.BlockSize >>> (inputs, offset, batch, input, temp, output);
-            check_error(cudaPeekAtLastError());
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(batch), new Alea.dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(softmax_kernel, lp, inputs, offset, batch, input, temp, output);
         }
     }
 }

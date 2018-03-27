@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Yolo_V2.Data;
 
@@ -6,7 +7,7 @@ namespace Yolo_V2
 {
     class YoloV2
     {
-        static void Main(List<string> args)
+        static void Main(string[] args)
         {
             if (args.Length < 2)
             {
@@ -14,16 +15,12 @@ namespace Yolo_V2
                 return;
             }
 
-            //Cuda.GpuIndex = Utils.find_int_arg(args.ToList(), "-i", 0);
-            //if (Utils.find_arg(args.ToList(), "-nogpu"))
-            //{
-            //    Cuda.GpuIndex = -1;
-            //}
+            CudaUtils.UseGpu = CudaUtils.HaveGpu();
+            if (Utils.find_arg(args.ToList(), "-nogpu"))
+            {
+                CudaUtils.UseGpu = false;
+            }
 
-            //if (Cuda.GpuIndex >= 0)
-            //{
-            //    Cuda.cuda_set_device();
-            //}
 
             switch (args[1])
             {

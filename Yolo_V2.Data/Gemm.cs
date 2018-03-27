@@ -38,15 +38,13 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static Random rand = new Random();
-
         public static float[] random_matrix(int rows, int cols)
         {
             int i;
             float[] m = new float[rows * cols];
             for (i = 0; i < rows * cols; ++i)
             {
-                m[i] = (float)(rand.NextDouble() / double.MaxValue);
+                m[i] = (float)(Utils.Rand.NextDouble() / double.MaxValue);
             }
             return m;
         }
@@ -195,8 +193,8 @@ namespace Yolo_V2.Data
             using (var gpuB = Gpu.Default.AllocateDevice(B.ToArray()))
             using (var gpuC = Gpu.Default.AllocateDevice(C.ToArray()))
             {
-                var handle = Cuda.blas_handle();
-                Cuda.SafeCall(CuBlas.cublasSgemm_v2(handle,
+                var handle = CudaUtils.blas_handle();
+                CudaUtils.SafeCall(CuBlas.cublasSgemm_v2(handle,
                     (TB != 0 ? cublasOperation_t.CUBLAS_OP_T : cublasOperation_t.CUBLAS_OP_N),
                     (TA != 0 ? cublasOperation_t.CUBLAS_OP_T : cublasOperation_t.CUBLAS_OP_N), N, M, K, &ALPHA, (float*)gpuB.Handle, ldb,
                     (float*)gpuA.Handle, lda, &BETA, (float*)gpuC.Handle, ldc));

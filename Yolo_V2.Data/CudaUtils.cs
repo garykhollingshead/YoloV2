@@ -8,8 +8,10 @@ using dim3 = Alea.dim3;
 
 namespace Yolo_V2.Data
 {
-    public static class Cuda
+    public static class CudaUtils
     {
+        public static bool UseGpu = false;
+        private static Gpu gpu;
         public static int BlockSize = 512;
         private static bool cudnnInit = false;
         private static unsafe cudnnContext* cudnnHandle;
@@ -17,6 +19,24 @@ namespace Yolo_V2.Data
         private static unsafe cublasContext* cublasHandle;
         private static bool curandInit = false;
         private static unsafe curandGenerator_st* gen;
+
+        public static bool HaveGpu()
+        {
+            try
+            {
+                if (Alea.Device.Devices.Count() > 0)
+                {
+                    gpu = Gpu.Default;
+                    return true;
+                }
+            }
+            catch 
+            {
+                return false;
+            }
+
+            return false;
+        }
 
         public static dim3 cuda_gridsize(int n)
         {

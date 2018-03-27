@@ -96,7 +96,7 @@
     <Compile Include="ActivationsHelper.cs" />
     <Compile Include="Blas.cs" />
     <Compile Include="Box.cs" />
-    <Compile Include="Cuda.cs" />
+    <Compile Include="CudaUtils.cs" />
     <Compile Include="Data.cs" />
     <Compile Include="Enums\Activation.cs" />
     <Compile Include="Enums\CostType.cs" />
