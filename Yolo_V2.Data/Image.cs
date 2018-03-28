@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Runtime.InteropServices;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 
-namespace Yolo_V2.Data.Enums
+namespace Yolo_V2.Data
 {
     public class Image
     {

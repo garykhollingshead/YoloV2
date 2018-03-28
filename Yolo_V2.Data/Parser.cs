@@ -207,10 +207,10 @@ namespace Yolo_V2.Data
 
             l.Softmax = OptionList.option_find_int(options, "softmax", 0);
             l.MaxBoxes = OptionList.option_find_int_quiet(options, "max", 30);
-            l.Jitter = OptionList.option_find_float(options, "jitter", .2);
+            l.Jitter = OptionList.option_find_float(options, "jitter", .2f);
             l.Rescore = OptionList.option_find_int_quiet(options, "rescore", 0);
 
-            l.Thresh = OptionList.option_find_float(options, "thresh", .5);
+            l.Thresh = OptionList.option_find_float(options, "thresh", .5f);
             l.Classfix = OptionList.option_find_int_quiet(options, "classfix", 0);
             l.Absolute = OptionList.option_find_int_quiet(options, "absolute", 0);
             l.Random = OptionList.option_find_int_quiet(options, "random", 0);
@@ -256,7 +256,7 @@ namespace Yolo_V2.Data
             Layer.ObjectScale = OptionList.option_find_float(options, "object_scale", 1);
             Layer.NoobjectScale = OptionList.option_find_float(options, "noobject_scale", 1);
             Layer.ClassScale = OptionList.option_find_float(options, "class_scale", 1);
-            Layer.Jitter = OptionList.option_find_float(options, "jitter", .2);
+            Layer.Jitter = OptionList.option_find_float(options, "jitter", .2f);
             Layer.Random = OptionList.option_find_int_quiet(options, "random", 0);
             Layer.Reorg = OptionList.option_find_int_quiet(options, "reorg", 0);
             return Layer;
@@ -344,7 +344,7 @@ namespace Yolo_V2.Data
 
         public static Layer parse_dropout(KeyValuePair[] options, SizeParams parameters)
         {
-            float probability = OptionList.option_find_float(options, "probability", .5);
+            float probability = OptionList.option_find_float(options, "probability", .5f);
             Layer Layer = make_dropout_layer(parameters.Batch, parameters.Inputs, probability);
             Layer.OutW = parameters.W;
             Layer.OutH = parameters.H;

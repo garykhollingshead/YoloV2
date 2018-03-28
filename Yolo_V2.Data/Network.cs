@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2.Data
@@ -10,7 +13,7 @@ namespace Yolo_V2.Data
         public float[] Workspace;
         public int N;
         public int Batch;
-        public int[] Seen;
+        public int Seen;
         public float Epoch;
         public int Subdivisions;
         public float Momentum;
@@ -46,20 +49,20 @@ namespace Yolo_V2.Data
         public float Exposure;
         public float Saturation;
         public float Hue;
-        
+
         public Tree Hierarchy;
 
-        public float[][] InputGpu;
-        public float[][] TruthGpu;
+        public float[] InputGpu;
+        public float[] TruthGpu;
 
         public Network()
         {
-            InputGpu = new float[0][];
-            TruthGpu = new float[0][];
+            InputGpu = new float[0];
+            TruthGpu = new float[0];
             Scales = new float[0];
             Steps = new int[0];
             Workspace = new float[0];
-            Seen = new int[0];
+            Seen = 0;
             Layers = new Layer[0];
             Output = new float[0];
         }
@@ -68,18 +71,18 @@ namespace Yolo_V2.Data
         {
             N = n;
             Layers = new Layer[n];
-            Seen = new int[1];
-            InputGpu = new float[1][];
-            TruthGpu = new float[1][];
+            Seen = 0;
+            InputGpu = new float[0];
+            TruthGpu = new float[0];
         }
 
-        int get_current_batch(Network net)
+        public static int get_current_batch(Network net)
         {
-            int batch_num = (net.Seen[0]) / (net.Batch * net.Subdivisions);
+            int batch_num = (net.Seen) / (net.Batch * net.Subdivisions);
             return batch_num;
         }
 
-        void reset_momentum(Network net)
+        public static void reset_momentum(Network net)
         {
             if (net.Momentum == 0) return;
             net.LearningRate = 0;
@@ -87,7 +90,7 @@ namespace Yolo_V2.Data
             net.Decay = 0;
         }
 
-        float get_current_rate(Network net)
+        public static float get_current_rate(Network net)
         {
             int batch_num = get_current_batch(net);
             int i;
@@ -104,7 +107,7 @@ namespace Yolo_V2.Data
                     {
                         if (net.Steps[i] > batch_num) return rate;
                         rate *= net.Scales[i];
-                        //if(net.steps[i] > batch_num - 1 && net.scales[i] > 1) reset_momentum(net);
+                        //if(net.steps[i] > batch_num - 1 && net.Scales[i] > 1) reset_momentum(net);
                     }
                     return rate;
                 case LearningRatePolicy.Exp:
@@ -122,12 +125,12 @@ namespace Yolo_V2.Data
             }
         }
 
-        string get_layer_string(LayerType a)
+        public static string get_layer_string(LayerType a)
         {
             return a.ToString();
         }
 
-        void forward_network(Network net, NetworkState state)
+        public static void forward_network(Network net, NetworkState state)
         {
             state.Workspace = net.Workspace;
             int i;
@@ -139,12 +142,12 @@ namespace Yolo_V2.Data
                 {
                     Blas.Scal_cpu(l.Outputs * l.Batch, 0, l.Delta, 1);
                 }
-                l.Forward(l, state);
+                l.Forward(state);
                 state.Input = l.Output;
             }
         }
 
-        void update_network(Network net)
+        public static void update_network(Network net)
         {
             int i;
             int update_batch = net.Batch * net.Subdivisions;
@@ -152,11 +155,11 @@ namespace Yolo_V2.Data
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                l.Update?.Invoke(l, update_batch, rate, net.Momentum, net.Decay);
+                l.Update?.Invoke(update_batch, rate, net.Momentum, net.Decay);
             }
         }
 
-        float[] get_network_output(Network net)
+        public static float[] get_network_output(Network net)
         {
             if (CudaUtils.UseGpu) return get_network_output_gpu(net);
             int i;
@@ -164,7 +167,7 @@ namespace Yolo_V2.Data
             return net.Layers[i].Output;
         }
 
-        float get_network_cost(Network net)
+        public static float get_network_cost(Network net)
         {
             int i;
             float sum = 0;
@@ -180,14 +183,14 @@ namespace Yolo_V2.Data
             return sum / count;
         }
 
-        int get_predicted_class_network(Network net)
+        public static int get_predicted_class_network(Network net)
         {
             float[] outputF = get_network_output(net);
             int k = get_network_output_size(net);
             return Utils.max_index(outputF, k);
         }
 
-        void backward_network(Network net, NetworkState state)
+        public static void backward_network(Network net, NetworkState state)
         {
             int i;
             float[] original_input = state.Input;
@@ -208,15 +211,15 @@ namespace Yolo_V2.Data
                     state.Delta = prev.Delta;
                 }
                 Layer l = net.Layers[i];
-                l.Backward(l, state);
+                l.Backward(state);
             }
         }
 
-        float train_network_datum(Network net, float[] x, float[] y)
+        public static float train_network_datum(Network net, float[] x, float[] y)
         {
             if (CudaUtils.UseGpu) return train_network_datum_gpu(net, x, y);
             NetworkState state = new NetworkState();
-            net.Seen[0] += net.Batch;
+            net.Seen += net.Batch;
             state.Index = 0;
             state.Net = net;
             state.Input = x;
@@ -226,11 +229,11 @@ namespace Yolo_V2.Data
             forward_network(net, state);
             backward_network(net, state);
             float error = get_network_cost(net);
-            if (((net.Seen[0]) / net.Batch) % net.Subdivisions == 0) update_network(net);
+            if ((net.Seen / net.Batch) % net.Subdivisions == 0) update_network(net);
             return error;
         }
 
-        float train_network_sgd(Network net, Data d, int n)
+        public static float train_network_sgd(Network net, Data d, int n)
         {
             int batch = net.Batch;
             float[] X = new float[batch * d.X.Cols];
@@ -240,14 +243,14 @@ namespace Yolo_V2.Data
             float sum = 0;
             for (i = 0; i < n; ++i)
             {
-                get_random_batch(d, batch, X, y);
+                d.get_random_batch(d, batch, X, y);
                 float err = train_network_datum(net, X, y);
                 sum += err;
             }
             return sum / (n * batch);
         }
 
-        float train_network(Network net, Data d)
+        public static float train_network(Network net, Data d)
         {
             int batch = net.Batch;
             int n = d.X.Rows / batch;
@@ -264,8 +267,8 @@ namespace Yolo_V2.Data
             }
             return (float)sum / (n * batch);
         }
-        
-        float train_network_batch(Network net, Data d, int n)
+
+        public static float train_network_batch(Network net, Data d, int n)
         {
             int i, j;
             NetworkState state = new NetworkState();
@@ -291,7 +294,7 @@ namespace Yolo_V2.Data
             return (float)sum / (n * batch);
         }
 
-        void set_batch_network(Network net, int b)
+        public static void set_batch_network(Network net, int b)
         {
             net.Batch = b;
             int i;
@@ -305,7 +308,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        int resize_network(Network net, int w, int h)
+        public static int resize_network(Network net, int w, int h)
         {
             if (CudaUtils.UseGpu)
             {
@@ -383,19 +386,19 @@ namespace Yolo_V2.Data
             return 0;
         }
 
-        int get_network_output_size(Network net)
+        public static int get_network_output_size(Network net)
         {
             int i;
             for (i = net.N - 1; i > 0; --i) if (net.Layers[i].LayerType != LayerType.Cost) break;
             return net.Layers[i].Outputs;
         }
 
-        int get_network_input_size(Network net)
+        public static int get_network_input_size(Network net)
         {
             return net.Layers[0].Inputs;
         }
 
-        Layer get_network_detection_layer(Network net)
+        public static Layer get_network_detection_layer(Network net)
         {
             int i;
             for (i = 0; i < net.N; ++i)
@@ -409,7 +412,7 @@ namespace Yolo_V2.Data
             return new Layer();
         }
 
-        Image get_network_image_layer(Network net, int i)
+        public static Image get_network_image_layer(Network net, int i)
         {
             Layer l = net.Layers[i];
             if (l.OutW != 0 && l.OutH != 0 && l.OutC != 0)
@@ -419,7 +422,7 @@ namespace Yolo_V2.Data
             return new Image();
         }
 
-        Image get_network_image(Network net)
+        public static Image get_network_image(Network net)
         {
             int i;
             for (i = net.N - 1; i >= 0; --i)
@@ -430,11 +433,11 @@ namespace Yolo_V2.Data
             return new Image();
         }
 
-        void visualize_network(Network net)
+        public static void visualize_network(Network net)
         {
             Image prev = null;
             int i;
-            
+
             for (i = 0; i < net.N; ++i)
             {
                 string buff = $"Layer {i}";
@@ -446,14 +449,14 @@ namespace Yolo_V2.Data
             }
         }
 
-        void top_predictions(Network net, int k, int[] index)
+        public static void top_predictions(Network net, int k, int[] index)
         {
             int size = get_network_output_size(net);
             float[] outputF = get_network_output(net);
             Utils.top_k(outputF, size, k, index);
         }
-        
-        float[] network_predict(Network net, float[] input)
+
+        public static float[] network_predict(Network net, float[] input)
         {
             if (CudaUtils.UseGpu) return network_predict_gpu(net, input);
 
@@ -469,7 +472,7 @@ namespace Yolo_V2.Data
             return outputF;
         }
 
-        Matrix network_predict_data_multi(Network net, Data test, int n)
+        public static Matrix network_predict_data_multi(Network net, Data test, int n)
         {
             int i, j, b, m;
             int k = get_network_output_size(net);
@@ -498,7 +501,7 @@ namespace Yolo_V2.Data
             return pred;
         }
 
-        Matrix network_predict_data(Network net, Data test)
+        public static Matrix network_predict_data(Network net, Data test)
         {
             int i, j, b;
             int k = get_network_output_size(net);
@@ -524,7 +527,7 @@ namespace Yolo_V2.Data
             return pred;
         }
 
-        void print_network(Network net)
+        public static void print_network(Network net)
         {
             int i, j;
             for (i = 0; i < net.N; ++i)
@@ -542,7 +545,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        void compare_networks(Network n1, Network n2, Data test)
+        public static void compare_networks(Network n1, Network n2, Data test)
         {
             Matrix g1 = network_predict_data(n1, test);
             Matrix g2 = network_predict_data(n2, test);
@@ -571,14 +574,14 @@ namespace Yolo_V2.Data
             Console.Write($"{num / den}\n");
         }
 
-        float network_accuracy(Network net, Data d)
+        public static float network_accuracy(Network net, Data d)
         {
             Matrix guess = network_predict_data(net, d);
             float acc = Matrix.matrix_topk_accuracy(d.Y, guess, 1);
             return acc;
         }
 
-        float[] network_accuracies(Network net, Data d, int n)
+        public static float[] network_accuracies(Network net, Data d, int n)
         {
             float[] acc = new float[2];
             Matrix guess = network_predict_data(net, d);
@@ -587,11 +590,397 @@ namespace Yolo_V2.Data
             return acc;
         }
 
-        float network_accuracy_multi(Network net, Data d, int n)
+        public static float network_accuracy_multi(Network net, Data d, int n)
         {
             Matrix guess = network_predict_data_multi(net, d, n);
             float acc = Matrix.matrix_topk_accuracy(d.Y, guess, 1);
             return acc;
         }
+
+        public static void forward_network_gpu(Network net, NetworkState state)
+        {
+            state.Workspace = net.Workspace;
+            int i;
+            for (i = 0; i < net.N; ++i)
+            {
+                state.Index = i;
+                Layer l = net.Layers[i];
+                if (l.DeltaGpu.Any())
+                {
+                    fill_ongpu(l.Outputs * l.Batch, 0, l.DeltaGpu, 1);
+                }
+                l.ForwardGpu(state);
+                state.Input = l.OutputGpu;
+            }
+        }
+        
+        public static void backward_network_gpu(Network net, NetworkState state)
+        {
+            state.Workspace = net.Workspace;
+            int i;
+            float[] original_input = state.Input;
+            float[] original_delta = state.Delta;
+            for (i = net.N - 1; i >= 0; --i)
+            {
+                state.Index = i;
+                Layer l = net.Layers[i];
+                if (i == 0)
+                {
+                    state.Input = original_input;
+                    state.Delta = original_delta;
+                }
+                else
+                {
+                    Layer prev = net.Layers[i - 1];
+                    state.Input = prev.OutputGpu;
+                    state.Delta = prev.DeltaGpu;
+                }
+                l.BackwardGpu(state);
+            }
+        }
+        
+        public static void update_network_gpu(Network net)
+        {
+            int i;
+            int update_batch = net.Batch * net.Subdivisions;
+            float rate = get_current_rate(net);
+            for (i = 0; i < net.N; ++i)
+            {
+                Layer l = net.Layers[i];
+                l.T = get_current_batch(net);
+                l.UpdateGpu?.Invoke(update_batch, rate, net.Momentum, net.Decay);
+            }
+        }
+        
+        public static void forward_backward_network_gpu(Network net, float[] x, float[] y)
+        {
+            NetworkState state = new NetworkState();
+            state.Index = 0;
+            state.Net = net;
+            int x_size = get_network_input_size(net) * net.Batch;
+            int y_size = get_network_output_size(net) * net.Batch;
+            if (net.Layers[net.N - 1].Truths != 0) y_size = net.Layers[net.N - 1].Truths * net.Batch;
+            if (!net.InputGpu.Any())
+            {
+                net.InputGpu = (float[])x.Clone(); 
+                net.TruthGpu = (float[])y.Clone();
+            }
+            else
+            {
+                Array.Copy(x, net.InputGpu, x_size);
+                Array.Copy(y, net.TruthGpu, y_size);
+            }
+            state.Input = net.InputGpu;
+            state.Delta = new float[0];
+            state.Truth = net.TruthGpu;
+            state.Train = 1;
+            forward_network_gpu(net, state);
+            backward_network_gpu(net, state);
+        }
+        
+        public static float train_network_datum_gpu(Network net, float[] x, float[] y)
+        {
+            *net.Seen += net.Batch;
+            forward_backward_network_gpu(net, x, y);
+            float error = get_network_cost(net);
+            if ((net.Seen[0] / net.Batch) % net.Subdivisions == 0) update_network_gpu(net);
+
+            return error;
+        }
+        
+        public static void train_thread(TrainArgs ptr)
+        {
+            ptr.Err[0] = train_network(ptr.Net, ptr.D);
+        }
+        
+        public static Thread train_network_in_thread(Network net, Data d, float[] err)
+        {
+            var ptr = new TrainArgs
+            {
+                Net = net,
+                D = d,
+                Err = err
+            };
+            var thread = new Thread(() => {train_thread(ptr);});
+            thread.Start();
+            return thread;
+        }
+        
+        public static void pull_updates(Layer l)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                cuda_pull_array(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
+                cuda_pull_array(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
+                if (l.ScaleUpdates) cuda_pull_array(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                cuda_pull_array(l.BiasUpdatesGpu, l.BiasUpdates, l.Outputs);
+                cuda_pull_array(l.WeightUpdatesGpu, l.WeightUpdates, l.Outputs * l.Inputs);
+            }
+        }
+        
+        public static void push_updates(Layer l)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                cuda_push_array(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
+                cuda_push_array(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
+                if (l.ScaleUpdates) cuda_push_array(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                cuda_push_array(l.BiasUpdatesGpu, l.BiasUpdates, l.Outputs);
+                cuda_push_array(l.WeightUpdatesGpu, l.WeightUpdates, l.Outputs * l.Inputs);
+            }
+        }
+        
+        public static void update_layer(Layer l, Network net)
+        {
+            int update_batch = net.Batch * net.Subdivisions;
+            float rate = get_current_rate(net);
+            l.T = get_current_batch(net);
+            if (l.UpdateGpu)
+            {
+                l.UpdateGpu(l, update_batch, rate, net.Momentum, net.Decay);
+            }
+        }
+        
+        public static void merge_weights(Layer l, Layer baseLayer)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                axpy_cpu(l.N, 1, l.Biases, 1, baseLayer.Biases, 1);
+                axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.Weights, 1, baseLayer.Weights, 1);
+                if (l.Scales)
+                {
+                    axpy_cpu(l.N, 1, l.Scales, 1, baseLayer.Scales, 1);
+                }
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                axpy_cpu(l.Outputs, 1, l.Biases, 1, baseLayer.Biases, 1);
+                axpy_cpu(l.Outputs * l.Inputs, 1, l.Weights, 1, baseLayer.Weights, 1);
+            }
+        }
+        
+        public static void scale_weights(Layer l, float s)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                scal_cpu(l.N, s, l.Biases, 1);
+                scal_cpu(l.N * l.Size * l.Size * l.C, s, l.Weights, 1);
+                if (l.Scales)
+                {
+                    scal_cpu(l.N, s, l.Scales, 1);
+                }
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                scal_cpu(l.Outputs, s, l.Biases, 1);
+                scal_cpu(l.Outputs * l.Inputs, s, l.Weights, 1);
+            }
+        }
+        
+        public static void pull_weights(Layer l)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                cuda_pull_array(l.BiasesGpu, l.Biases, l.N);
+                cuda_pull_array(l.WeightsGpu, l.Weights, l.N * l.Size * l.Size * l.C);
+                if (l.Scales) cuda_pull_array(l.ScalesGpu, l.Scales, l.N);
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                cuda_pull_array(l.BiasesGpu, l.Biases, l.Outputs);
+                cuda_pull_array(l.WeightsGpu, l.Weights, l.Outputs * l.Inputs);
+            }
+        }
+        
+        public static void push_weights(Layer l)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                cuda_push_array(l.BiasesGpu, l.Biases, l.N);
+                cuda_push_array(l.WeightsGpu, l.Weights, l.N * l.Size * l.Size * l.C);
+                if (l.Scales) cuda_push_array(l.ScalesGpu, l.Scales, l.N);
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                cuda_push_array(l.BiasesGpu, l.Biases, l.Outputs);
+                cuda_push_array(l.WeightsGpu, l.Weights, l.Outputs * l.Inputs);
+            }
+        }
+        
+        public static void distribute_weights(Layer l, Layer baseLayer)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                cuda_push_array(l.BiasesGpu, baseLayer.Biases, l.N);
+                cuda_push_array(l.WeightsGpu, baseLayer.Weights, l.N * l.Size * l.Size * l.C);
+                if (baseLayer.Scales) cuda_push_array(l.ScalesGpu, baseLayer.Scales, l.N);
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                cuda_push_array(l.BiasesGpu, baseLayer.Biases, l.Outputs);
+                cuda_push_array(l.WeightsGpu, baseLayer.Weights, l.Outputs * l.Inputs);
+            }
+        }
+        
+        public static void merge_updates(Layer l, Layer baseLayer)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                axpy_cpu(l.N, 1, l.BiasUpdates, 1, baseLayer.BiasUpdates, 1);
+                axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.WeightUpdates, 1, baseLayer.WeightUpdates, 1);
+                if (l.ScaleUpdates)
+                {
+                    axpy_cpu(l.N, 1, l.ScaleUpdates, 1, baseLayer.ScaleUpdates, 1);
+                }
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                axpy_cpu(l.Outputs, 1, l.BiasUpdates, 1, baseLayer.BiasUpdates, 1);
+                axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightUpdates, 1, baseLayer.WeightUpdates, 1);
+            }
+        }
+        
+        public static void distribute_updates(Layer l, Layer baseLayer)
+        {
+            if (l.LayerType == LayerType.Convolutional)
+            {
+                cuda_push_array(l.BiasUpdatesGpu, baseLayer.BiasUpdates, l.N);
+                cuda_push_array(l.WeightUpdatesGpu, baseLayer.WeightUpdates, l.N * l.Size * l.Size * l.C);
+                if (baseLayer.ScaleUpdates) cuda_push_array(l.ScaleUpdatesGpu, baseLayer.ScaleUpdates, l.N);
+            }
+            else if (l.LayerType == LayerType.Connected)
+            {
+                cuda_push_array(l.BiasUpdatesGpu, baseLayer.BiasUpdates, l.Outputs);
+                cuda_push_array(l.WeightUpdatesGpu, baseLayer.WeightUpdates, l.Outputs * l.Inputs);
+            }
+        }
+        
+        public static void sync_layer(Network[] nets, int n, int j)
+        {
+            int i;
+            Network net = nets[0];
+            Layer baseLayer = net.Layers[j];
+            pull_weights(baseLayer);
+            for (i = 1; i < n; ++i)
+            {
+                Layer l = nets[i].Layers[j];
+                pull_weights(l);
+                merge_weights(l, baseLayer);
+            }
+            scale_weights(baseLayer, 1.0f/ n);
+            for (i = 0; i < n; ++i)
+            {
+                Layer l = nets[i].Layers[j];
+                distribute_weights(l, baseLayer);
+            }
+        }
+        
+        public static void sync_layer_thread(SyncArgs ptr)
+        {
+            sync_layer(ptr.Nets, ptr.N, ptr.J);
+            return;
+        }
+        
+        public static Thread sync_layer_in_thread(Network[] nets, int n, int j)
+        {
+            Thread thread;
+            SyncArgs ptr = new SyncArgs();
+            ptr.Nets = nets;
+            ptr.N = n;
+            ptr.J = j;
+
+            if (pthread_create(&thread, 0, sync_layer_thread, ptr)) Utils.Error("Thread creation failed");
+            return thread;
+        }
+        
+        public static void sync_nets(Network[] nets, int n, int interval)
+        {
+            int j;
+            int layers = nets[0].N;
+            Thread[] threads = new Thread[layers];
+
+            nets[0].Seen += interval * (n - 1) * nets[0].Batch * nets[0].Subdivisions;
+            for (j = 0; j < n; ++j)
+            {
+                nets[j].Seen = *nets[0].Seen;
+            }
+            for (j = 0; j < layers; ++j)
+            {
+                threads[j] = sync_layer_in_thread(nets, n, j);
+            }
+            for (j = 0; j < layers; ++j)
+            {
+                pthread_join(threads[j], 0);
+            }
+            free(threads);
+        }
+        
+        public static float train_networks(Network[] nets, int n, Data d, int interval)
+        {
+            int i;
+            int batch = nets[0].Batch;
+            int subdivisions = nets[0].Subdivisions;
+            Thread[] threads = new Thread[n];
+            float[] errors = new float[n];
+
+            float sum = 0;
+            for (i = 0; i < n; ++i)
+            {
+                Data p = get_data_part(d, i, n);
+                threads[i] = train_network_in_thread(nets[i], p, errors + i);
+            }
+            for (i = 0; i < n; ++i)
+            {
+                threads[i].Join();
+                sum += errors[i];
+            }
+            //cudaDeviceSynchronize();
+            if (get_current_batch(nets[0]) % interval == 0)
+            {
+                Console.Write("Syncing... ");
+                sync_nets(nets, n, interval);
+                Console.Write("Done!\n");
+            }
+            return (float)sum / (n);
+        }
+        
+        public static float[] get_network_output_layer_gpu(Network net, int i)
+        {
+            Layer l = net.Layers[i];
+            if (l.LayerType != LayerType.Region) Array.Copy(l.Output, l.OutputGpu, l.Outputs * l.Batch);
+            return l.Output;
+        }
+        
+        public static float[] get_network_output_gpu(Network net)
+        {
+            int i;
+            for (i = net.N - 1; i > 0; --i) if (net.Layers[i].LayerType != LayerType.Cost) break;
+            return get_network_output_layer_gpu(net, i);
+        }
+        
+        public static float[] network_predict_gpu(Network net, float[] input)
+        {
+            int size = get_network_input_size(net) * net.Batch;
+            NetworkState state = new NetworkState
+            {
+                Index = 0,
+                Net = net,
+                Input = new float[size],
+                Truth = new float[0],
+                Train = 0,
+                Delta = new float[0]
+            };
+            Array.Copy(input, 0, state.Input, 0, size);
+            forward_network_gpu(net, state);
+            float[] output = get_network_output_gpu(net);
+            return output;
+        }
+
     }
 }
