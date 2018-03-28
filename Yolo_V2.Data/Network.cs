@@ -243,7 +243,7 @@ namespace Yolo_V2.Data
             float sum = 0;
             for (i = 0; i < n; ++i)
             {
-                d.get_random_batch(d, batch, X, y);
+                d.get_random_batch(batch, X, y);
                 float err = train_network_datum(net, X, y);
                 sum += err;
             }
@@ -680,10 +680,10 @@ namespace Yolo_V2.Data
         
         public static float train_network_datum_gpu(Network net, float[] x, float[] y)
         {
-            *net.Seen += net.Batch;
+            net.Seen += net.Batch;
             forward_backward_network_gpu(net, x, y);
             float error = get_network_cost(net);
-            if ((net.Seen[0] / net.Batch) % net.Subdivisions == 0) update_network_gpu(net);
+            if ((net.Seen / net.Batch) % net.Subdivisions == 0) update_network_gpu(net);
 
             return error;
         }
@@ -725,14 +725,14 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                cuda_push_array(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
-                cuda_push_array(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
-                if (l.ScaleUpdates) cuda_push_array(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
+                Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
+                Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
+                if (l.ScaleUpdates) Array.Copy(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                cuda_push_array(l.BiasUpdatesGpu, l.BiasUpdates, l.Outputs);
-                cuda_push_array(l.WeightUpdatesGpu, l.WeightUpdates, l.Outputs * l.Inputs);
+                Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.Outputs);
+                Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.Outputs * l.Inputs);
             }
         }
         
@@ -751,17 +751,17 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                axpy_cpu(l.N, 1, l.Biases, 1, baseLayer.Biases, 1);
-                axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.Weights, 1, baseLayer.Weights, 1);
+                Blas.Axpy_cpu(l.N, 1, l.Biases, 1, baseLayer.Biases, 1);
+                Blas.Axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.Weights, 1, baseLayer.Weights, 1);
                 if (l.Scales)
                 {
-                    axpy_cpu(l.N, 1, l.Scales, 1, baseLayer.Scales, 1);
+                    Blas.Axpy_cpu(l.N, 1, l.Scales, 1, baseLayer.Scales, 1);
                 }
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                axpy_cpu(l.Outputs, 1, l.Biases, 1, baseLayer.Biases, 1);
-                axpy_cpu(l.Outputs * l.Inputs, 1, l.Weights, 1, baseLayer.Weights, 1);
+                Blas.Axpy_cpu(l.Outputs, 1, l.Biases, 1, baseLayer.Biases, 1);
+                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.Weights, 1, baseLayer.Weights, 1);
             }
         }
         
@@ -802,14 +802,14 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                cuda_push_array(l.BiasesGpu, l.Biases, l.N);
-                cuda_push_array(l.WeightsGpu, l.Weights, l.N * l.Size * l.Size * l.C);
-                if (l.Scales) cuda_push_array(l.ScalesGpu, l.Scales, l.N);
+                Array.Copy(l.BiasesGpu, l.Biases, l.N);
+                Array.Copy(l.WeightsGpu, l.Weights, l.N * l.Size * l.Size * l.C);
+                if (l.Scales.Any()) Array.Copy(l.ScalesGpu, l.Scales, l.N);
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                cuda_push_array(l.BiasesGpu, l.Biases, l.Outputs);
-                cuda_push_array(l.WeightsGpu, l.Weights, l.Outputs * l.Inputs);
+                Array.Copy(l.BiasesGpu, l.Biases, l.Outputs);
+                Array.Copy(l.WeightsGpu, l.Weights, l.Outputs * l.Inputs);
             }
         }
         
@@ -817,14 +817,14 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                cuda_push_array(l.BiasesGpu, baseLayer.Biases, l.N);
-                cuda_push_array(l.WeightsGpu, baseLayer.Weights, l.N * l.Size * l.Size * l.C);
-                if (baseLayer.Scales) cuda_push_array(l.ScalesGpu, baseLayer.Scales, l.N);
+                Array.Copy(baseLayer.Biases, l.BiasesGpu, l.N);
+                Array.Copy(baseLayer.Weights, l.WeightsGpu, l.N * l.Size * l.Size * l.C);
+                if (baseLayer.Scales.Any()) Array.Copy(l.ScalesGpu, baseLayer.Scales, l.N);
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                cuda_push_array(l.BiasesGpu, baseLayer.Biases, l.Outputs);
-                cuda_push_array(l.WeightsGpu, baseLayer.Weights, l.Outputs * l.Inputs);
+                Array.Copy(l.BiasesGpu, baseLayer.Biases, l.Outputs);
+                Array.Copy(l.WeightsGpu, baseLayer.Weights, l.Outputs * l.Inputs);
             }
         }
         
@@ -832,17 +832,17 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                axpy_cpu(l.N, 1, l.BiasUpdates, 1, baseLayer.BiasUpdates, 1);
-                axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.WeightUpdates, 1, baseLayer.WeightUpdates, 1);
-                if (l.ScaleUpdates)
+                Blas.Axpy_cpu(l.N, 1, l.BiasUpdates, 1, baseLayer.BiasUpdates, 1);
+                Blas.Axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.WeightUpdates, 1, baseLayer.WeightUpdates, 1);
+                if (l.ScaleUpdates.Any())
                 {
-                    axpy_cpu(l.N, 1, l.ScaleUpdates, 1, baseLayer.ScaleUpdates, 1);
+                    Blas.Axpy_cpu(l.N, 1, l.ScaleUpdates, 1, baseLayer.ScaleUpdates, 1);
                 }
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                axpy_cpu(l.Outputs, 1, l.BiasUpdates, 1, baseLayer.BiasUpdates, 1);
-                axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightUpdates, 1, baseLayer.WeightUpdates, 1);
+                Blas.Axpy_cpu(l.Outputs, 1, l.BiasUpdates, 1, baseLayer.BiasUpdates, 1);
+                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightUpdates, 1, baseLayer.WeightUpdates, 1);
             }
         }
         
@@ -850,14 +850,14 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                cuda_push_array(l.BiasUpdatesGpu, baseLayer.BiasUpdates, l.N);
-                cuda_push_array(l.WeightUpdatesGpu, baseLayer.WeightUpdates, l.N * l.Size * l.Size * l.C);
-                if (baseLayer.ScaleUpdates) cuda_push_array(l.ScaleUpdatesGpu, baseLayer.ScaleUpdates, l.N);
+                Array.Copy(l.BiasUpdatesGpu, baseLayer.BiasUpdates, l.N);
+                Array.Copy(l.WeightUpdatesGpu, baseLayer.WeightUpdates, l.N * l.Size * l.Size * l.C);
+                if (baseLayer.ScaleUpdates.Any()) Array.Copy(l.ScaleUpdatesGpu, baseLayer.ScaleUpdates, l.N);
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                cuda_push_array(l.BiasUpdatesGpu, baseLayer.BiasUpdates, l.Outputs);
-                cuda_push_array(l.WeightUpdatesGpu, baseLayer.WeightUpdates, l.Outputs * l.Inputs);
+                Array.Copy(l.BiasUpdatesGpu, baseLayer.BiasUpdates, l.Outputs);
+                Array.Copy(l.WeightUpdatesGpu, baseLayer.WeightUpdates, l.Outputs * l.Inputs);
             }
         }
         
@@ -889,13 +889,13 @@ namespace Yolo_V2.Data
         
         public static Thread sync_layer_in_thread(Network[] nets, int n, int j)
         {
-            Thread thread;
             SyncArgs ptr = new SyncArgs();
             ptr.Nets = nets;
             ptr.N = n;
             ptr.J = j;
 
-            if (pthread_create(&thread, 0, sync_layer_thread, ptr)) Utils.Error("Thread creation failed");
+            Thread thread = new Thread(() => sync_layer_thread(ptr));
+            thread.Start();
             return thread;
         }
         
@@ -908,7 +908,7 @@ namespace Yolo_V2.Data
             nets[0].Seen += interval * (n - 1) * nets[0].Batch * nets[0].Subdivisions;
             for (j = 0; j < n; ++j)
             {
-                nets[j].Seen = *nets[0].Seen;
+                nets[j].Seen = nets[0].Seen;
             }
             for (j = 0; j < layers; ++j)
             {
@@ -916,9 +916,8 @@ namespace Yolo_V2.Data
             }
             for (j = 0; j < layers; ++j)
             {
-                pthread_join(threads[j], 0);
+                threads[j].Join();
             }
-            free(threads);
         }
         
         public static float train_networks(Network[] nets, int n, Data d, int interval)
@@ -927,18 +926,19 @@ namespace Yolo_V2.Data
             int batch = nets[0].Batch;
             int subdivisions = nets[0].Subdivisions;
             Thread[] threads = new Thread[n];
-            float[] errors = new float[n];
+            float[][] errors = new float[n][];
 
             float sum = 0;
             for (i = 0; i < n; ++i)
             {
-                Data p = get_data_part(d, i, n);
-                threads[i] = train_network_in_thread(nets[i], p, errors + i);
+                Data p = Data.get_data_part(d, i, n);
+                errors[i] = new float[1];
+                threads[i] = train_network_in_thread(nets[i], p, errors[i]);
             }
             for (i = 0; i < n; ++i)
             {
                 threads[i].Join();
-                sum += errors[i];
+                sum += errors[i][0];
             }
             //cudaDeviceSynchronize();
             if (get_current_batch(nets[0]) % interval == 0)

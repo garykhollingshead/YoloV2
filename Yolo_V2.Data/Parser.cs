@@ -118,7 +118,7 @@ namespace Yolo_V2.Data
             int binary = OptionList.option_find_int_quiet(options, "binary", 0);
             int xnor = OptionList.option_find_int_quiet(options, "xnor", 0);
 
-            Layer Layer = make_convolutional_layer(batch, h, w, c, n, size, stride, padding, activation, batch_normalize, binary, xnor, parameters.Net.Adam);
+            Layer Layer = Yolo_V2.Data.Layer.make_convolutional_layer(batch, h, w, c, n, size, stride, padding, activation, batch_normalize, binary, xnor, parameters.Net.Adam);
             Layer.Flipped = OptionList.option_find_int_quiet(options, "flipped", 0);
             Layer.Dot = OptionList.option_find_float_quiet(options, "dot", 0);
             if (parameters.Net.Adam != 0)
@@ -188,9 +188,9 @@ namespace Yolo_V2.Data
         {
             int groups = OptionList.option_find_int_quiet(options, "groups", 1);
             Layer Layer = make_softmax_layer(parameters.Batch, parameters.Inputs, groups);
-            Layer.temperature = OptionList.option_find_float_quiet(options, "temperature", 1);
+            Layer.Temperature = OptionList.option_find_float_quiet(options, "temperature", 1);
             string tree_file = OptionList.option_find_str(options, "tree", "");
-            if (!string.IsNullOrEmpty(tree_file)) Layer.softmax_tree = new Tree(tree_file);
+            if (!string.IsNullOrEmpty(tree_file)) Layer.SoftmaxTree = new Tree(tree_file);
             return Layer;
         }
 
@@ -265,7 +265,7 @@ namespace Yolo_V2.Data
         public static Layer parse_cost(KeyValuePair[] options, SizeParams parameters)
         {
             string type_s = OptionList.option_find_str(options, "type", "sse");
-            CostType type = get_cost_type(type_s);
+            CostType type = (CostType)Enum.Parse(typeof(CostType), type_s);
             float scale = OptionList.option_find_float_quiet(options, "scale", 1);
             Layer Layer = make_cost_layer(parameters.Batch, parameters.Inputs, type, scale);
             Layer.Ratio = OptionList.option_find_float_quiet(options, "ratio", 0);
@@ -364,7 +364,7 @@ namespace Yolo_V2.Data
 
         public static Layer parse_batchnorm(KeyValuePair[] options, SizeParams parameters)
         {
-            Layer l = make_batchnorm_layer(parameters.Batch, parameters.W, parameters.H, parameters.C);
+            Layer l = Layer.make_batchnorm_layer(parameters.Batch, parameters.W, parameters.H, parameters.C);
             return l;
         }
 
@@ -538,23 +538,22 @@ namespace Yolo_V2.Data
             net.MaxBatches = OptionList.option_find_int(options, "max_batches", 0);
         }
 
-        public static int is_network(section s)
+        public static bool is_network(Section s)
         {
-            return (s.type, "[net]") == 0
-                    || s.type, "[Network]") == 0);
+            return s.Type == "[net]" || s.Type == "[Network]";
         }
 
         public static Network parse_network_cfg(string filename)
         {
-            KeyValuePair[] sections = read_cfg(filename);
-            if (sections.Length < 1) Utils.Error("Config file has no sections");
+            Section[] sections = read_cfg(filename);
+            if (sections.Length < 1) Utils.Error("Config file has no Sections");
             var n = sections[0];
-            Network net = make_network(sections.Length - 1);
+            Network net = new Network(sections.Length - 1);
             SizeParams parameters = new SizeParams();
 
-            var s = new section(n.Val);
-            KeyValuePair[] options = s.Options;
-            if (!is_network(s)) Utils.Error("First section must be [net] or [Network]");
+            var s = new Section(n);
+            var options = s.Options;
+            if (is_network(s)) Utils.Error("First Section must be [net] or [Network]");
             parse_net_options(options, net);
 
             parameters.H = net.H;
@@ -575,10 +574,10 @@ namespace Yolo_V2.Data
                 index++;
                 parameters.Index = count;
                 Console.Error.Write($"{count:5} ");
-                s = new section(n.Val);
-                options = s.options;
+                s = new Section(n);
+                options = s.Options;
                 Layer l = new Layer();
-                LayerType lt = string_to_layer_type(s.type);
+                LayerType lt = string_to_layer_type(s.Type);
                 if (lt == LayerType.Convolutional)
                 {
                     l = parse_convolutional(options, parameters);
@@ -666,10 +665,10 @@ namespace Yolo_V2.Data
                 }
                 else
                 {
-                    Console.Error.Write($"LayerType not recognized: {s.type}\n");
+                    Console.Error.Write($"LayerType not recognized: {s.Type}\n");
                 }
-                l.Dontload = OptionList.option_find_int_quiet(options, "dontload", 0);
-                l.Dontloadscales = OptionList.option_find_int_quiet(options, "dontloadscales", 0);
+                l.Dontload = OptionList.option_find_int_quiet(options, "dontload", 0) != 0;
+                l.Dontloadscales = OptionList.option_find_int_quiet(options, "dontloadscales", 0) != 0;
                 OptionList.option_unused(options);
                 net.Layers[count] = l;
                 if (l.WorkspaceSize > workspace_size) workspace_size = l.WorkspaceSize;
@@ -682,13 +681,13 @@ namespace Yolo_V2.Data
                     parameters.Inputs = l.Outputs;
                 }
             }
-            net.Outputs = get_network_output_size(net);
-            net.Output = get_network_output(net);
+            net.Outputs = Network.get_network_output_size(net);
+            net.Output = Network.get_network_output(net);
             if (workspace_size != 0)
             {
                 if (CudaUtils.UseGpu)
                 {
-                    net.Workspace = cuda_make_array(0, (workspace_size - 1) / sizeof(float) + 1);
+                    net.Workspace = new float[(workspace_size - 1) / sizeof(float) + 1];
                 }
                 else
                 {
@@ -698,42 +697,36 @@ namespace Yolo_V2.Data
             return net;
         }
 
-        public static KeyValuePair[] read_cfg(string filename)
+        public static Section[] read_cfg(string filename)
         {
-            FILE* file = fopen(filename, "r");
-            if (file == 0) file_error(filename);
-            string line;
+            if (!File.Exists(filename)) Utils.file_error(filename);
             int nu = 0;
-            KeyValuePair[] sections = make_list();
-            section* current = 0;
-            while ((line = fgetl(file)) != 0)
+            List<Section> Sections = new List<Section>();
+            var lines = File.ReadAllLines(filename);
+            Section current = null;
+            foreach (var line in lines)
             {
                 ++nu;
-                strip(line);
+                Utils.Strip(line);
                 switch (line[0])
                 {
                     case '[':
-                        current = malloc(sizeof(section));
-                        list_insert(sections, current);
-                        current.options = make_list();
-                        current.type = line;
+                        current = new Section(line);
+                        Sections.Add(current);
                         break;
                     case '\0':
                     case '#':
                     case ';':
-                        free(line);
                         break;
                     default:
-                        if (!read_option(line, current.options))
+                        if (!OptionList.read_option(line, current?.Options.ToList()))
                         {
                             Console.Error.Write("Config file Utils.Error line %d, could parse: %s\n", nu, line);
-                            free(line);
                         }
                         break;
                 }
             }
-            fclose(file);
-            return sections;
+            return Sections.ToArray();
         }
 
         public static void save_convolutional_weights_binary(Layer l, string filename)
@@ -742,7 +735,7 @@ namespace Yolo_V2.Data
             {
                 pull_convolutional_layer(l);
             }
-            binarize_weights(l.Weights, l.N, l.C * l.Size * l.Size, l.BinaryWeights);
+            Layer.binarize_weights(l.Weights, l.N, l.C * l.Size * l.Size, l.BinaryWeights);
             int size = l.C * l.Size * l.Size;
             int i, j;
             using (var fstream = File.OpenWrite(filename))
@@ -787,7 +780,7 @@ namespace Yolo_V2.Data
             return bytes;
         }
 
-        public static void save_convolutional_weights(Layer l, string filename)
+        public static void save_convolutional_weights(Layer l, FileStream fstream)
         {
             if (CudaUtils.UseGpu)
             {
@@ -795,31 +788,28 @@ namespace Yolo_V2.Data
             }
 
             int num = l.N * l.C * l.Size * l.Size;
-            using (var fstream = File.OpenWrite(filename))
+            var biases = FloatArrayToByteArray(l.Biases);
+            fstream.Write(biases, 0, biases.Length);
+
+            if (l.BatchNormalize != 0)
             {
-                var biases = FloatArrayToByteArray(l.Biases);
-                fstream.Write(biases, 0, biases.Length);
+                var scales = FloatArrayToByteArray(l.Scales);
+                var mean = FloatArrayToByteArray(l.RollingMean);
+                var variance = FloatArrayToByteArray(l.RollingVariance);
+                fstream.Write(scales, 0, scales.Length);
+                fstream.Write(mean, 0, mean.Length);
+                fstream.Write(variance, 0, variance.Length);
+            }
 
-                if (l.BatchNormalize != 0)
-                {
-                    var scales = FloatArrayToByteArray(l.Scales);
-                    var mean = FloatArrayToByteArray(l.RollingMean);
-                    var variance = FloatArrayToByteArray(l.RollingVariance);
-                    fstream.Write(scales, 0, scales.Length);
-                    fstream.Write(mean, 0, mean.Length);
-                    fstream.Write(variance, 0, variance.Length);
-                }
+            var weights = FloatArrayToByteArray(l.Weights);
+            fstream.Write(weights, 0, weights.Length);
 
-                var weights = FloatArrayToByteArray(l.Weights);
-                fstream.Write(weights, 0, weights.Length);
-
-                if (l.Adam != 0)
-                {
-                    var m = FloatArrayToByteArray(l.M);
-                    var v = FloatArrayToByteArray(l.V);
-                    fstream.Write(m, 0, m.Length);
-                    fstream.Write(v, 0, v.Length);
-                }
+            if (l.Adam != 0)
+            {
+                var m = FloatArrayToByteArray(l.M);
+                var v = FloatArrayToByteArray(l.V);
+                fstream.Write(m, 0, m.Length);
+                fstream.Write(v, 0, v.Length);
             }
         }
 
@@ -829,9 +819,15 @@ namespace Yolo_V2.Data
             {
                 pull_batchnorm_layer(l);
             }
-            fwrite(l.Scales, sizeof(float), l.C, fp);
-            fwrite(l.RollingMean, sizeof(float), l.C, fp);
-            fwrite(l.RollingVariance, sizeof(float), l.C, fp);
+
+            var scales = FloatArrayToByteArray(l.Scales);
+            fread.Write(scales, 0, scales.Length);
+
+            var mean = FloatArrayToByteArray(l.RollingMean);
+            fread.Write(mean, 0, mean.Length);
+
+            var variance = FloatArrayToByteArray(l.RollingVariance);
+            fread.Write(variance, 0, variance.Length);
         }
 
         public static void save_connected_weights(Layer l, FileStream fread)
@@ -840,84 +836,103 @@ namespace Yolo_V2.Data
             {
                 pull_connected_layer(l);
             }
-            fwrite(l.Biases, sizeof(float), l.outputs, fp);
-            fwrite(l.Weights, sizeof(float), l.outputs * l.Inputs, fp);
-            if (l.BatchNormalize)
+
+            var biases = FloatArrayToByteArray(l.Biases);
+            fread.Write(biases, 0, biases.Length);
+
+            var weights = FloatArrayToByteArray(l.Weights);
+            fread.Write(weights, 0, weights.Length);
+            if (l.BatchNormalize != 0)
             {
-                fwrite(l.Scales, sizeof(float), l.outputs, fp);
-                fwrite(l.RollingMean, sizeof(float), l.outputs, fp);
-                fwrite(l.RollingVariance, sizeof(float), l.outputs, fp);
+                var scales = FloatArrayToByteArray(l.Scales);
+                fread.Write(scales, 0, scales.Length);
+
+                var mean = FloatArrayToByteArray(l.RollingMean);
+                fread.Write(mean, 0, mean.Length);
+
+                var variance = FloatArrayToByteArray(l.RollingVariance);
+                fread.Write(variance, 0, variance.Length);
             }
         }
 
         public static void save_weights_upto(Network net, string filename, int cutoff)
         {
-            if (net.CudaUtils.UseGpu)
-            {
-                cuda_set_device(net.gpu_index);
-            }
-            Console.Error.Write("Saving weights to %s\n", filename);
-            FileStream fread = fopen(filename, "wb");
-            if (!fp) file_error(filename);
+            Console.Error.Write($"Saving weights to {filename}\n");
+            if (!File.Exists(filename)) Utils.file_error(filename);
 
-            int major = 0;
-            int minor = 1;
-            int revision = 0;
-            fwrite(&major, sizeof(int), 1, fp);
-            fwrite(&minor, sizeof(int), 1, fp);
-            fwrite(&revision, sizeof(int), 1, fp);
-            fwrite(net.seen, sizeof(int), 1, fp);
-
-            int i;
-            for (i = 0; i < net.N && i < cutoff; ++i)
+            using (var fstream = File.OpenWrite(filename))
             {
-                Layer l = net.layers[i];
-                if (l.type == CONVOLUTIONAL)
+                var major = BitConverter.GetBytes(0);
+                var minor = BitConverter.GetBytes(1);
+                var revision = BitConverter.GetBytes(0);
+                var seen = BitConverter.GetBytes(net.Seen);
+                fstream.Write(major, 0, major.Length);
+                fstream.Write(minor, 0, minor.Length);
+                fstream.Write(revision, 0, revision.Length);
+                fstream.Write(seen, 0, seen.Length);
+
+                int i;
+                for (i = 0; i < net.N && i < cutoff; ++i)
                 {
-                    save_convolutional_weights(l, fp);
-                }
-                if (l.type == CONNECTED)
-                {
-                    save_connected_weights(l, fp);
-                }
-                if (l.type == BATCHNORM)
-                {
-                    save_batchnorm_weights(l, fp);
-                }
-                if (l.type == RNN)
-                {
-                    save_connected_weights(*(l.InputLayer), fp);
-                    save_connected_weights(*(l.SelfLayer), fp);
-                    save_connected_weights(*(l.OutputLayer), fp);
-                }
-                if (l.type == GRU)
-                {
-                    save_connected_weights(*(l.InputZLayer), fp);
-                    save_connected_weights(*(l.InputRLayer), fp);
-                    save_connected_weights(*(l.InputHLayer), fp);
-                    save_connected_weights(*(l.StateZLayer), fp);
-                    save_connected_weights(*(l.StateRLayer), fp);
-                    save_connected_weights(*(l.StateHLayer), fp);
-                }
-                if (l.type == CRNN)
-                {
-                    save_convolutional_weights(*(l.InputLayer), fp);
-                    save_convolutional_weights(*(l.SelfLayer), fp);
-                    save_convolutional_weights(*(l.OutputLayer), fp);
-                }
-                if (l.type == LOCAL)
-                {
-                    if (CudaUtils.UseGpu)
+                    Layer l = net.Layers[i];
+                    if (l.LayerType == LayerType.Convolutional)
                     {
-                        pull_local_layer(l);
+                        save_convolutional_weights(l, fstream);
                     }
-                    int locations = l.OutW * l.OutH;
-                    int size = l.Size * l.Size * l.C * l.N * locations;
-                    fwrite(l.Biases, sizeof(float), l.outputs, fp);
-                    fwrite(l.Weights, sizeof(float), size, fp);
+
+                    if (l.LayerType == LayerType.Connected)
+                    {
+                        save_connected_weights(l, fstream);
+                    }
+
+                    if (l.LayerType == LayerType.Batchnorm)
+                    {
+                        save_batchnorm_weights(l, fstream);
+                    }
+
+                    if (l.LayerType == LayerType.Rnn)
+                    {
+                        save_connected_weights((l.InputLayer), fstream);
+                        save_connected_weights((l.SelfLayer), fstream);
+                        save_connected_weights((l.OutputLayer), fstream);
+                    }
+
+                    if (l.LayerType == LayerType.Gru)
+                    {
+                        save_connected_weights((l.InputZLayer), fstream);
+                        save_connected_weights((l.InputRLayer), fstream);
+                        save_connected_weights((l.InputHLayer), fstream);
+                        save_connected_weights((l.StateZLayer), fstream);
+                        save_connected_weights((l.StateRLayer), fstream);
+                        save_connected_weights((l.StateHLayer), fstream);
+                    }
+
+                    if (l.LayerType == LayerType.Crnn)
+                    {
+                        save_convolutional_weights((l.InputLayer), fstream);
+                        save_convolutional_weights((l.SelfLayer), fstream);
+                        save_convolutional_weights((l.OutputLayer), fstream);
+                    }
+
+                    if (l.LayerType == LayerType.Local)
+                    {
+                        if (CudaUtils.UseGpu)
+                        {
+                            pull_local_layer(l);
+                        }
+
+                        int locations = l.OutW * l.OutH;
+                        int size = l.Size * l.Size * l.C * l.N * locations;
+
+                        var biases = FloatArrayToByteArray(l.Biases);
+
+                        var weights = FloatArrayToByteArray(l.Weights);
+
+                        fstream.Write(biases, 0, biases.Length);
+                        fstream.Write(weights, 0, weights.Length);
+                    }
                 }
             }
-            fclose(fp);
         }
 
         public static void save_weights(Network net, string filename)
@@ -927,7 +942,7 @@ namespace Yolo_V2.Data
 
         public static void transpose_matrix(float[] a, int rows, int cols)
         {
-            float[] transpose = calloc(rows * cols, sizeof(float));
+            float[] transpose = new float[rows * cols];
             int x, y;
             for (x = 0; x < rows; ++x)
             {
@@ -936,23 +951,23 @@ namespace Yolo_V2.Data
                     transpose[y * rows + x] = a[x * cols + y];
                 }
             }
-            memcpy(a, transpose, rows * cols * sizeof(float));
-            free(transpose);
+            Array.Copy(transpose, a, rows * cols);
         }
 
         public static void load_connected_weights(Layer l, FileStream fread, int transpose)
         {
-            fread(l.Biases, sizeof(float), l.outputs, fp);
-            fread(l.Weights, sizeof(float), l.outputs * l.Inputs, fp);
-            if (transpose)
+            l.Biases = ReadFloat(fread, l.Outputs);
+            l.Weights = ReadFloat(fread, l.Outputs * l.Inputs);
+
+            if (transpose != 0)
             {
-                transpose_matrix(l.Weights, l.Inputs, l.outputs);
+                transpose_matrix(l.Weights, l.Inputs, l.Outputs);
             }
-            if (l.BatchNormalize && (!l.dontloadscales))
+            if (l.BatchNormalize != 0 && !l.Dontloadscales)
             {
-                fread(l.Scales, sizeof(float), l.outputs, fp);
-                fread(l.RollingMean, sizeof(float), l.outputs, fp);
-                fread(l.RollingVariance, sizeof(float), l.outputs, fp);
+                l.Scales = ReadFloat(fread, l.Outputs);
+                l.RollingMean = ReadFloat(fread, l.Outputs);
+                l.RollingVariance = ReadFloat(fread, l.Outputs);
             }
             if (CudaUtils.UseGpu)
             {
@@ -960,11 +975,29 @@ namespace Yolo_V2.Data
             }
         }
 
+        private static float[] ReadFloat(FileStream fstream, int size)
+        {
+            var bytes = new byte[size * sizeof(float)];
+            fstream.Read(bytes, 0, bytes.Length);
+            var floats = new float[size];
+            Buffer.BlockCopy(bytes, 0, floats, 0, floats.Length);
+            return floats;
+        }
+
+        private static int[] ReadInt(FileStream fstream, int size)
+        {
+            var bytes = new byte[size * sizeof(int)];
+            fstream.Read(bytes, 0, bytes.Length);
+            var ints = new int[size];
+            Buffer.BlockCopy(bytes, 0, ints, 0, ints.Length);
+            return ints;
+        }
+
         public static void load_batchnorm_weights(Layer l, FileStream fread)
         {
-            fread(l.Scales, sizeof(float), l.C, fp);
-            fread(l.RollingMean, sizeof(float), l.C, fp);
-            fread(l.RollingVariance, sizeof(float), l.C, fp);
+            l.Scales = ReadFloat(fread, l.C);
+            l.RollingMean = ReadFloat(fread, l.C);
+            l.RollingVariance = ReadFloat(fread, l.C);
             if (CudaUtils.UseGpu)
             {
                 push_batchnorm_layer(l);
@@ -973,28 +1006,26 @@ namespace Yolo_V2.Data
 
         public static void load_convolutional_weights_binary(Layer l, FileStream fread)
         {
-            fread(l.Biases, sizeof(float), l.N, fp);
-            if (l.BatchNormalize && (!l.dontloadscales))
+            l.Biases = ReadFloat(fread, l.N);
+            if (l.BatchNormalize != 0 && (!l.Dontloadscales))
             {
-                fread(l.Scales, sizeof(float), l.N, fp);
-                fread(l.RollingMean, sizeof(float), l.N, fp);
-                fread(l.RollingVariance, sizeof(float), l.N, fp);
+                l.Scales = ReadFloat(fread, l.N);
+                l.RollingMean = ReadFloat(fread, l.N);
+                l.RollingVariance = ReadFloat(fread, l.N);
             }
             int size = l.C * l.Size * l.Size;
             int i, j, k;
             for (i = 0; i < l.N; ++i)
             {
-                float mean = 0;
-                fread(&mean, sizeof(float), 1, fp);
+                float mean = ReadFloat(fread, 1)[0];
                 for (j = 0; j < size / 8; ++j)
                 {
                     int index = i * size + j * 8;
-                    unsigned char c = 0;
-                    fread(&c, sizeof(char), 1, fp);
+                    var c = fread.ReadByte();
                     for (k = 0; k < 8; ++k)
                     {
                         if (j * 8 + k >= size) break;
-                        l.Weights[index + k] = (c & 1 << k) ? mean : -mean;
+                        l.Weights[index + k] = (c & 1 << k) != 0 ? mean : -mean;
                     }
                 }
             }
@@ -1007,39 +1038,21 @@ namespace Yolo_V2.Data
         public static void load_convolutional_weights(Layer l, FileStream fread)
         {
             int num = l.N * l.C * l.Size * l.Size;
-            fread(l.Biases, sizeof(float), l.N, fp);
+            l.Biases = ReadFloat(fread, l.N);
             if (l.BatchNormalize != 0 && (!l.Dontloadscales))
             {
-                fread(l.Scales, sizeof(float), l.N, fp);
-                fread(l.RollingMean, sizeof(float), l.N, fp);
-                fread(l.RollingVariance, sizeof(float), l.N, fp);
-                if (0)
-                {
-                    int i;
-                    for (i = 0; i < l.N; ++i)
-                    {
-                        printf("%g, ", l.RollingMean[i]);
-                    }
-                    printf("\n");
-                    for (i = 0; i < l.N; ++i)
-                    {
-                        printf("%g, ", l.RollingVariance[i]);
-                    }
-                    printf("\n");
-                }
-                if (0)
-                {
-                    fill_cpu(l.N, 0, l.RollingMean, 1);
-                    fill_cpu(l.N, 0, l.RollingVariance, 1);
-                }
+                l.Scales = ReadFloat(fread, l.N);
+                l.RollingMean = ReadFloat(fread, l.N);
+                l.RollingVariance = ReadFloat(fread, l.N);
             }
-            fread(l.Weights, sizeof(float), num, fp);
-            if (l.Adam)
+
+            l.Weights = ReadFloat(fread, num);
+            if (l.Adam != 0)
             {
-                fread(l.m, sizeof(float), num, fp);
-                fread(l.v, sizeof(float), num, fp);
+                l.M = ReadFloat(fread, num);
+                l.V = ReadFloat(fread, num);
             }
-            if (l.Flipped)
+            if (l.Flipped != 0)
             {
                 transpose_matrix(l.Weights, l.C * l.Size * l.Size, l.N);
             }
@@ -1052,76 +1065,74 @@ namespace Yolo_V2.Data
         public static void load_weights_upto(Network net, string filename, int cutoff)
         {
             Console.Error.Write($"Loading weights from {filename}...");
-            fflush(stdout);
             if (!File.Exists(filename))
             {
                 Utils.file_error(filename);
             }
 
-            FileStream fread = fopen(filename, "rb");
-
-            int major;
-            int minor;
-            int revision;
-            fread(&major, sizeof(int), 1, fp);
-            fread(&minor, sizeof(int), 1, fp);
-            fread(&revision, sizeof(int), 1, fp);
-            fread(net.seen, sizeof(int), 1, fp);
-            int transpose = (major > 1000) || (minor > 1000) ? 1 : 0;
-
-            int i;
-            for (i = 0; i < net.N && i < cutoff; ++i)
+            using (var fread = File.OpenRead(filename))
             {
-                Layer l = net.Layers[i];
-                if (l.Dontload) continue;
-                if (l.LayerType == LayerType.Convolutional)
-                {
-                    load_convolutional_weights(l, fp);
-                }
+                int major = ReadInt(fread, 1)[0];
+                int minor = ReadInt(fread, 1)[0];
+                int revision = ReadInt(fread, 1)[0];
+                net.Seen = ReadInt(fread, 1)[0];
 
-                if (l.LayerType == LayerType.Connected)
-                {
-                    load_connected_weights(l, fp, transpose);
-                }
+                int transpose = (major > 1000) || (minor > 1000) ? 1 : 0;
 
-                if (l.LayerType == LayerType.Batchnorm)
+                int i;
+                for (i = 0; i < net.N && i < cutoff; ++i)
                 {
-                    load_batchnorm_weights(l, fstream);
-                }
-
-                if (l.LayerType == LayerType.Crnn)
-                {
-                    load_convolutional_weights((l.InputLayer), fp);
-                    load_convolutional_weights((l.SelfLayer), fp);
-                    load_convolutional_weights((l.OutputLayer), fp);
-                }
-
-                if (l.LayerType == LayerType.Rnn)
-                {
-                    load_connected_weights((l.InputLayer), fp, transpose);
-                    load_connected_weights((l.SelfLayer), fp, transpose);
-                    load_connected_weights((l.OutputLayer), fp, transpose);
-                }
-
-                if (l.LayerType == LayerType.Gru)
-                {
-                    load_connected_weights((l.InputZLayer), fp, transpose);
-                    load_connected_weights((l.InputRLayer), fp, transpose);
-                    load_connected_weights((l.InputHLayer), fp, transpose);
-                    load_connected_weights((l.StateZLayer), fp, transpose);
-                    load_connected_weights((l.StateRLayer), fp, transpose);
-                    load_connected_weights((l.StateHLayer), fp, transpose);
-                }
-
-                if (l.LayerType == LayerType.Local)
-                {
-                    int locations = l.OutW * l.OutH;
-                    int size = l.Size * l.Size * l.C * l.N * locations;
-                    fread(l.Biases, sizeof(float), l.outputs, fp);
-                    fread(l.Weights, sizeof(float), size, fp);
-                    if (CudaUtils.UseGpu)
+                    Layer l = net.Layers[i];
+                    if (l.Dontload) continue;
+                    if (l.LayerType == LayerType.Convolutional)
                     {
-                        push_local_layer(l);
+                        load_convolutional_weights(l, fread);
+                    }
+
+                    if (l.LayerType == LayerType.Connected)
+                    {
+                        load_connected_weights(l, fread, transpose);
+                    }
+
+                    if (l.LayerType == LayerType.Batchnorm)
+                    {
+                        load_batchnorm_weights(l, fread);
+                    }
+
+                    if (l.LayerType == LayerType.Crnn)
+                    {
+                        load_convolutional_weights((l.InputLayer), fread);
+                        load_convolutional_weights((l.SelfLayer), fread);
+                        load_convolutional_weights((l.OutputLayer), fread);
+                    }
+
+                    if (l.LayerType == LayerType.Rnn)
+                    {
+                        load_connected_weights((l.InputLayer), fread, transpose);
+                        load_connected_weights((l.SelfLayer), fread, transpose);
+                        load_connected_weights((l.OutputLayer), fread, transpose);
+                    }
+
+                    if (l.LayerType == LayerType.Gru)
+                    {
+                        load_connected_weights((l.InputZLayer), fread, transpose);
+                        load_connected_weights((l.InputRLayer), fread, transpose);
+                        load_connected_weights((l.InputHLayer), fread, transpose);
+                        load_connected_weights((l.StateZLayer), fread, transpose);
+                        load_connected_weights((l.StateRLayer), fread, transpose);
+                        load_connected_weights((l.StateHLayer), fread, transpose);
+                    }
+
+                    if (l.LayerType == LayerType.Local)
+                    {
+                        int locations = l.OutW * l.OutH;
+                        int size = l.Size * l.Size * l.C * l.N * locations;
+                        l.Biases = ReadFloat(fread, l.Outputs);
+                        l.Weights = ReadFloat(fread, size);
+                        if (CudaUtils.UseGpu)
+                        {
+                            push_local_layer(l);
+                        }
                     }
                 }
             }

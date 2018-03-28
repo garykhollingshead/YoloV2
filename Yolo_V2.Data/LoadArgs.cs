@@ -13,11 +13,11 @@ namespace Yolo_V2.Data
     public class LoadArgs
     {
         public int Threads;
-        public List<string> Paths;
+        public string[] Paths;
         public string Path;
         public int N;
         public int M;
-        public List<string> Labels;
+        public string[] Labels;
         public int H;
         public int W;
         public int OutW;
@@ -35,9 +35,9 @@ namespace Yolo_V2.Data
         public float Saturation;
         public float Exposure;
         public float Hue;
-        public Data[] D;
-        public Image[] Im;
-        public Image[] Resized;
+        public Data D;
+        public Image Im;
+        public Image Resized;
         public DataType Type;
         public Tree Hierarchy;
 

@@ -118,6 +118,7 @@
     <Compile Include="OptionList.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Section.cs" />
     <Compile Include="SizeParams.cs" />
     <Compile Include="SyncArgs.cs" />
     <Compile Include="TrainArgs.cs" />

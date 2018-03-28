@@ -7,6 +7,8 @@ namespace Yolo_V2.Data
 {
     public static class Utils
     {
+        public static readonly int SecretNum = -1234;
+
         public static int[] read_map(string filename)
         {
             if (!File.Exists(filename))
@@ -283,47 +285,47 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void translate_array(float[] a, float s)
+        public static void translate_array(float[] a, int n, float s)
         {
             int i;
-            for (i = 0; i < a.Length; ++i)
+            for (i = 0; i < n; ++i)
             {
                 a[i] += s;
             }
         }
 
-        public static float mag_array(float[] a)
+        public static float mag_array(float[] a, int n)
         {
             int i;
             float sum = 0;
-            for (i = 0; i < a.Length; ++i)
+            for (i = 0; i < n; ++i)
             {
                 sum += a[i] * a[i];
             }
             return (float)Math.Sqrt(sum);
         }
 
-        public static void scale_array(float[] a, float s)
+        public static void scale_array(float[] a, int n, float s)
         {
             int i;
-            for (i = 0; i < a.Length; ++i)
+            for (i = 0; i < n; ++i)
             {
                 a[i] *= s;
             }
         }
 
-        public static int sample_array(float[] a)
+        public static int sample_array(float[] a, int n)
         {
             float sum = a.Sum();
-            scale_array(a, 1.0f / sum);
+            scale_array(a, n, 1.0f / sum);
             float r = rand_uniform(0, 1);
             int i;
-            for (i = 0; i < a.Length; ++i)
+            for (i = 0; i < n; ++i)
             {
                 r = r - a[i];
                 if (r <= 0) return i;
             }
-            return a.Length - 1;
+            return n - 1;
         }
 
         public static int max_index(float[] a, int num)

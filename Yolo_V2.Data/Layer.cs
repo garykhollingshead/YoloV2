@@ -226,7 +226,7 @@ namespace Yolo_V2.Data
         public cudnnConvolutionFwdAlgo_t FwAlgo;
         public cudnnConvolutionBwdDataAlgo_t BdAlgo;
         public cudnnConvolutionBwdFilterAlgo_t BfAlgo;
-        
+
         public static void CombineLists(float[] start, int count, float[] end)
         {
             var temp = new float[start.Length + end.Length];
@@ -282,7 +282,7 @@ namespace Yolo_V2.Data
             Biases = new float[Outputs];
             BiasUpdates = new float[Outputs];
 
-            float scale = (float)Math.Sqrt(2.0f/ (size * size * c));
+            float scale = (float)Math.Sqrt(2.0f / (size * size * c));
             for (i = 0; i < c * n * size * size; ++i) Weights[i] = scale * Utils.rand_uniform(-1, 1);
 
             ColImage = new float[out_h * out_w * size * size * c];
@@ -312,7 +312,242 @@ namespace Yolo_V2.Data
             Console.Error.WriteLine($"Local Layer: {h} x {w} x {c} image, {n} filters -> {out_h} x {out_w} x {n} image");
         }
 
-        void forward_local_layer(NetworkState state)
+        public static Layer make_batchnorm_layer(int batch, int w, int h, int c)
+        {
+            Console.Error.Write($"Batch Normalization Layer: {w} x {h} x {c} image\n");
+            Layer Layer = new Layer();
+            Layer.LayerType = LayerType.Batchnorm;
+            Layer.Batch = batch;
+            Layer.H = Layer.OutH = h;
+            Layer.W = Layer.OutW = w;
+            Layer.C = Layer.OutC = c;
+            Layer.Output = new float[h * w * c * batch];
+            Layer.Delta = new float[h * w * c * batch];
+            Layer.Inputs = w * h * c;
+            Layer.Outputs = Layer.Inputs;
+
+            Layer.Scales = new float[c];
+            Layer.ScaleUpdates = new float[c];
+            int i;
+            for (i = 0; i < c; ++i)
+            {
+                Layer.Scales[i] = 1;
+            }
+
+            Layer.Mean = new float[c];
+            Layer.Variance = new float[c];
+
+            Layer.RollingMean = new float[c];
+            Layer.RollingVariance = new float[c];
+
+            Layer.Forward = Layer.forward_batchnorm_layer;
+            Layer.Backward = Layer.backward_batchnorm_layer;
+            Layer.ForwardGpu = Layer.forward_batchnorm_layer_gpu;
+            Layer.BackwardGpu = Layer.backward_batchnorm_layer_gpu;
+
+            Layer.OutputGpu = new float[h * w * c * batch];
+            Layer.DeltaGpu = new float[h * w * c * batch];
+
+            Layer.ScalesGpu = new float[c];
+            Layer.ScaleUpdatesGpu = new float[c];
+
+            Layer.MeanGpu = new float[c];
+            Layer.VarianceGpu = new float[c];
+
+            Layer.RollingMeanGpu = new float[c];
+            Layer.RollingVarianceGpu = new float[c];
+
+            Layer.MeanDeltaGpu = new float[c];
+            Layer.VarianceDeltaGpu = new float[c];
+
+            Layer.XGpu = new float[Layer.Batch * Layer.Outputs];
+            Layer.XNormGpu = new float[Layer.Batch * Layer.Outputs];
+            return Layer;
+        }
+        
+        public static void backward_scale_cpu(float[] x_norm, float[] delta, int batch, int n, int size, float[] scale_updates)
+        {
+            int i, b, f;
+            for (f = 0; f < n; ++f)
+            {
+                float sum = 0;
+                for (b = 0; b < batch; ++b)
+                {
+                    for (i = 0; i < size; ++i)
+                    {
+                        int index = i + size * (f + n * b);
+                        sum += delta[index] * x_norm[index];
+                    }
+                }
+                scale_updates[f] += sum;
+            }
+        }
+        
+        public static void mean_delta_cpu(float[] delta, float[] variance, int batch, int filters, int spatial, float[] mean_delta)
+        {
+
+            int i, j, k;
+            for (i = 0; i < filters; ++i)
+            {
+                mean_delta[i] = 0;
+                for (j = 0; j < batch; ++j)
+                {
+                    for (k = 0; k < spatial; ++k)
+                    {
+                        int index = j * filters * spatial + i * spatial + k;
+                        mean_delta[i] += delta[index];
+                    }
+                }
+                mean_delta[i] *= (-1.0f / (float)Math.Sqrt(variance[i] + .00001f));
+            }
+        }
+        
+        public static void variance_delta_cpu(float[] x, float[] delta, float[] mean, float[] variance, int batch, int filters, int spatial, float[] variance_delta)
+        {
+
+            int i, j, k;
+            for (i = 0; i < filters; ++i)
+            {
+                variance_delta[i] = 0;
+                for (j = 0; j < batch; ++j)
+                {
+                    for (k = 0; k < spatial; ++k)
+                    {
+                        int index = j * filters * spatial + i * spatial + k;
+                        variance_delta[i] += delta[index] * (x[index] - mean[i]);
+                    }
+                }
+                variance_delta[i] *= -.5f * (float)Math.Pow(variance[i] + .00001f, (-3.0f / 2.0f));
+            }
+        }
+        
+        public static void normalize_delta_cpu(float[] x, float[] mean, float[] variance, float[] mean_delta, float[] variance_delta, int batch, int filters, int spatial, float[] delta)
+        {
+            int f, j, k;
+            for (j = 0; j < batch; ++j)
+            {
+                for (f = 0; f < filters; ++f)
+                {
+                    for (k = 0; k < spatial; ++k)
+                    {
+                        int index = j * filters * spatial + f * spatial + k;
+                        delta[index] = delta[index] * 1.0f / ((float)Math.Sqrt(variance[f]) + .00001f)
+                                       + variance_delta[f] * 2.0f * (x[index] - mean[f]) / (spatial * batch)
+                                       + mean_delta[f] / (spatial * batch);
+                    }
+                }
+            }
+        }
+        
+        public static void resize_batchnorm_layer(Layer Layer, int w, int h)
+        {
+            Console.Error.Write($"Not implemented\n");
+        }
+
+        public void forward_batchnorm_layer(NetworkState state)
+        {
+            if (LayerType == LayerType.Batchnorm)
+            {
+                Blas.Copy_cpu(Outputs * Batch, state.Input, 1, Output, 1);
+            }
+            if (LayerType == LayerType.Connected)
+            {
+                OutC = Outputs;
+                OutH = OutW = 1;
+            }
+            if (state.Train != 0)
+            {
+                Blas.Mean_cpu(Output, Batch, OutC, OutH * OutW, Mean);
+                Blas.Variance_cpu(Output, Mean, Batch, OutC, OutH * OutW, Variance);
+
+                Blas.Scal_cpu(OutC, .9f, RollingMean, 1);
+               Blas.Axpy_cpu(OutC, .1f, Mean, 1, RollingMean, 1);
+                Blas.Scal_cpu(OutC, .9f, RollingVariance, 1);
+                Blas.Axpy_cpu(OutC, .1f, Variance, 1, RollingVariance, 1);
+
+                Blas.Copy_cpu(Outputs * Batch, Output, 1, X, 1);
+                Blas.Normalize_cpu(Output, Mean, Variance, Batch, OutC, OutH * OutW);
+                Blas.Copy_cpu(Outputs * Batch, Output, 1, XNorm, 1);
+            }
+            else
+            {
+                Blas.Normalize_cpu(Output, RollingMean, RollingVariance, Batch, OutC, OutH * OutW);
+            }
+            Blas.Scale_bias(Output, Scales, Batch, OutC, OutH * OutW);
+        }
+
+        public void backward_batchnorm_layer(NetworkState state)
+        {
+            backward_scale_cpu(XNorm, Delta, Batch, OutC, OutW * OutH, ScaleUpdates);
+
+            Blas.Scale_bias(Delta, Scales, Batch, OutC, OutH * OutW);
+
+            mean_delta_cpu(Delta, Variance, Batch, OutC, OutW * OutH, MeanDelta);
+            variance_delta_cpu(X, Delta, Mean, Variance, Batch, OutC, OutW * OutH, VarianceDelta);
+            normalize_delta_cpu(X, Mean, Variance, MeanDelta, VarianceDelta, Batch, OutC, OutW * OutH, Delta);
+            if (LayerType == LayerType.Batchnorm) Blas.Copy_cpu(Outputs * Batch, Delta, 1, state.Delta, 1);
+        }
+
+        public static void pull_batchnorm_layer(Layer l)
+        {
+            Array.Copy(l.ScalesGpu, l.Scales, l.C);
+            Array.Copy(l.RollingMeanGpu, l.RollingMean, l.C);
+            Array.Copy(l.RollingVarianceGpu, l.RollingVariance, l.C);
+        }
+
+        public static void push_batchnorm_layer(Layer l)
+        {
+            Array.Copy(l.Scales, l.ScalesGpu, l.C);
+            Array.Copy(l.RollingMean, l.RollingMeanGpu, l.C);
+            Array.Copy(l.RollingVariance, l.RollingVarianceGpu, l.C);
+        }
+
+        public void forward_batchnorm_layer_gpu(NetworkState state)
+        {
+            if (LayerType == LayerType.Batchnorm)
+            {
+                Blas.copy_ongpu(Outputs * Batch, state.Input, 1, OutputGpu, 1);
+            }
+            if (LayerType == LayerType.Connected)
+            {
+                OutC = Outputs;
+                OutH = OutW = 1;
+            }
+            if (state.Train != 0)
+            {
+                Blas.fast_mean_gpu(OutputGpu, Batch, OutC, OutH * OutW, MeanGpu);
+                Blas.fast_variance_gpu(OutputGpu, MeanGpu, Batch, OutC, OutH * OutW, VarianceGpu);
+
+                Blas.scal_ongpu(OutC, .99f, RollingMeanGpu, 1);
+                Blas.axpy_ongpu(OutC, .01f, MeanGpu, 1, RollingMeanGpu, 1);
+                Blas.scal_ongpu(OutC, .99f, RollingVarianceGpu, 1);
+                Blas.axpy_ongpu(OutC, .01f, VarianceGpu, 1, RollingVarianceGpu, 1);
+
+                Blas.copy_ongpu(Outputs * Batch, OutputGpu, 1, XGpu, 1);
+                Blas.normalize_gpu(OutputGpu, MeanGpu, VarianceGpu, Batch, OutC, OutH * OutW);
+                Blas.copy_ongpu(Outputs * Batch, OutputGpu, 1, XNormGpu, 1);
+            }
+            else
+            {
+                Blas.normalize_gpu(OutputGpu, RollingMeanGpu, RollingVarianceGpu, Batch, OutC, OutH * OutW);
+            }
+
+            Blas.scale_bias_gpu(OutputGpu, ScalesGpu, Batch, OutC, OutH * OutW);
+        }
+
+        public void backward_batchnorm_layer_gpu(NetworkState state)
+        {
+            Blas.backward_scale_gpu(XNormGpu, DeltaGpu, Batch, OutC, OutW * OutH, ScaleUpdatesGpu);
+
+            Blas.scale_bias_gpu(DeltaGpu, ScalesGpu, Batch, OutC, OutH * OutW);
+
+            Blas.fast_mean_delta_gpu(DeltaGpu, VarianceGpu, Batch, OutC, OutW * OutH, MeanDeltaGpu);
+            Blas.fast_variance_delta_gpu(XGpu, DeltaGpu, MeanGpu, VarianceGpu, Batch, OutC, OutW * OutH, VarianceDeltaGpu);
+            Blas.normalize_delta_gpu(XGpu, MeanGpu, VarianceGpu, MeanDeltaGpu, VarianceDeltaGpu, Batch, OutC, OutW * OutH, DeltaGpu);
+            if (LayerType == LayerType.Batchnorm) Blas.copy_ongpu(Outputs * Batch, DeltaGpu, 1, state.Delta, 1);
+        }
+
+        private void forward_local_layer(NetworkState state)
         {
             int out_h = local_out_height();
             int out_w = local_out_width();
@@ -356,7 +591,7 @@ namespace Yolo_V2.Data
             ActivationsHelper.Activate_array(Output, Outputs * Batch, Activation);
         }
 
-        void backward_local_layer(NetworkState state)
+        private void backward_local_layer(NetworkState state)
         {
             int i, j;
             int locations = OutW * OutH;
@@ -421,7 +656,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        void update_local_layer(int batch, float learning_rate, float momentum, float decay)
+        private void update_local_layer(int batch, float learning_rate, float momentum, float decay)
         {
             int locations = OutW * OutH;
             int size = Size * Size * C * N * locations;
@@ -432,8 +667,8 @@ namespace Yolo_V2.Data
             Blas.Axpy_cpu(size, learning_rate / batch, WeightUpdates, 1, Weights, 1);
             Blas.Scal_cpu(size, momentum, WeightUpdates, 1);
         }
-        
-        void forward_local_layer_gpu(NetworkState state)
+
+        private void forward_local_layer_gpu(NetworkState state)
         {
             int out_h = local_out_height();
             int out_w = local_out_width();
@@ -475,7 +710,7 @@ namespace Yolo_V2.Data
             ActivationsHelper.activate_array_ongpu(OutputGpu, Outputs * Batch, Activation);
         }
 
-        void backward_local_layer_gpu(NetworkState state)
+        private void backward_local_layer_gpu(NetworkState state)
         {
             int i, j;
             int locations = OutW * OutH;
@@ -539,7 +774,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        void update_local_layer_gpu(int batch, float learning_rate, float momentum, float decay)
+        private void update_local_layer_gpu(int batch, float learning_rate, float momentum, float decay)
         {
             int locations = OutW * OutH;
             int size = Size * Size * C * N * locations;

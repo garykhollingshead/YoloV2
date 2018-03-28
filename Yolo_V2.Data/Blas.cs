@@ -114,6 +114,21 @@ namespace Yolo_V2.Data
             }
         }
 
+        public static void Scale_bias(float[] output, float[] scales, int batch, int n, int size)
+        {
+            int i, j, b;
+            for (b = 0; b < batch; ++b)
+            {
+                for (i = 0; i < n; ++i)
+                {
+                    for (j = 0; j < size; ++j)
+                    {
+                        output[(b * n + i) * size + j] *= scales[i];
+                    }
+                }
+            }
+        }
+
         public static void Variance_cpu(float[] x, float[] mean, int batch, int filters, int spatial, float[] variance)
         {
             float scale = 1.0f / (batch * spatial - 1);
