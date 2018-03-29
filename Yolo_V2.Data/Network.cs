@@ -261,7 +261,7 @@ namespace Yolo_V2.Data
             float sum = 0;
             for (i = 0; i < n; ++i)
             {
-                get_next_batch(d, batch, i * batch, X, y);
+                d.get_next_batch(batch, i * batch, X, y);
                 float err = train_network_datum(net, X, y);
                 sum += err;
             }
