@@ -8,7 +8,7 @@ namespace Yolo_V2.Data
         public float[] Input;
         public float[] Delta;
         public float[] Workspace;
-        public int Train;
+        public bool Train;
         public int Index;
         public Network Net;
     }

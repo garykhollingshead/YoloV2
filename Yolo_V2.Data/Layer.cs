@@ -19,7 +19,7 @@ namespace Yolo_V2.Data
         public Action<NetworkState> ForwardGpu;
         public Action<NetworkState> BackwardGpu;
         public Action<int, float, float, float> UpdateGpu;
-        public int BatchNormalize;
+        public bool BatchNormalize;
         public int Shortcut;
         public int Batch;
         public int Forced;
@@ -40,10 +40,10 @@ namespace Yolo_V2.Data
         public int Reverse;
         public int Pad;
         public int Sqrt;
-        public int Flip;
+        public bool Flip;
         public int Index;
-        public int Binary;
-        public int Xnor;
+        public bool Binary;
+        public bool Xnor;
         public int Steps;
         public int Hidden;
         public float Dot;
@@ -61,7 +61,7 @@ namespace Yolo_V2.Data
         public int Objectness;
         public int DoesCost;
         public int Joint;
-        public int Noadjust;
+        public bool Noadjust;
         public int Reorg;
         public int Log;
 
@@ -971,7 +971,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        Layer make_convolutional_layer(int batch, int h, int w, int c, int n, int size, int stride, int padding, Activation activation, int batch_normalize, int binary, int xnor, int adam)
+        Layer make_convolutional_layer(int batch, int h, int w, int c, int n, int size, int stride, int padding, Activation activation, bool batch_normalize, bool binary, bool xnor, int adam)
         {
             int i;
             Layer l = new Layer();
@@ -1012,18 +1012,18 @@ namespace Yolo_V2.Data
             l.Forward = forward_convolutional_layer;
             l.Backward = backward_convolutional_layer;
             l.Update = update_convolutional_layer;
-            if (binary != 0)
+            if (binary)
             {
                 l.BinaryWeights = new float[c * n * size * size];
                 l.Scales = new float[n];
             }
-            if (xnor != 0)
+            if (xnor)
             {
                 l.BinaryWeights = new float[c * n * size * size];
                 l.BinaryInput = new float[l.Inputs * l.Batch];
             }
 
-            if (batch_normalize != 0)
+            if (batch_normalize)
             {
                 l.Scales = new float[n];
                 l.ScaleUpdates = new float[n];
@@ -1147,8 +1147,8 @@ namespace Yolo_V2.Data
 
         void test_convolutional_layer()
         {
-            Layer l = make_convolutional_layer(1, 5, 5, 3, 2, 5, 2, 1, Activation.Leaky, 1, 0, 0, 0);
-            l.BatchNormalize = 1;
+            Layer l = make_convolutional_layer(1, 5, 5, 3, 2, 5, 2, 1, Activation.Leaky, true, false, false, 0);
+            l.BatchNormalize = true;
             float[] data = {1f,1f,1f,1f,1f,
                 1f,1f,1f,1f,1f,
                 1f,1f,1f,1f,1f,
@@ -1182,18 +1182,18 @@ namespace Yolo_V2.Data
             l.Outputs = l.OutH * l.OutW * l.OutC;
             l.Inputs = l.W * l.H * l.C;
 
-            l.Output = realloc(l.Output, l.Batch * l.Outputs * sizeof(float));
-            l.Delta = realloc(l.Delta, l.Batch * l.Outputs * sizeof(float));
-            if (l.BatchNormalize != 0)
+             Array.Resize(ref l.Output, l.Batch * l.Outputs );
+             Array.Resize(ref l.Delta, l.Batch * l.Outputs );
+            if (l.BatchNormalize)
             {
-                l.X = realloc(l.X, l.Batch * l.Outputs * sizeof(float));
-                l.XNorm = realloc(l.XNorm, l.Batch * l.Outputs * sizeof(float));
+                 Array.Resize(ref l.X, l.Batch * l.Outputs );
+                 Array.Resize(ref l.XNorm, l.Batch * l.Outputs );
             }
 
             l.DeltaGpu = (float[])l.Delta.Clone();
             l.OutputGpu = (float[])l.Output.Clone();
 
-            if (l.BatchNormalize != 0)
+            if (l.BatchNormalize )
             {
                 l.XGpu = (float[])l.Output.Clone();
                 l.XNormGpu = (float[])l.Output.Clone();
@@ -1254,7 +1254,7 @@ namespace Yolo_V2.Data
 
             Blas.Fill_cpu(Outputs * Batch, 0, Output, 1);
 
-            if (Xnor != 0)
+            if (Xnor )
             {
                 binarize_weights(Weights, N, C * Size * Size, BinaryWeights);
                 swap_binary(this);
@@ -1280,14 +1280,14 @@ namespace Yolo_V2.Data
                 state.Input[i] += C * H * W;
             }
 
-            if (BatchNormalize != 0)
+            if (BatchNormalize )
             {
                 forward_batchnorm_layer(state);
             }
             add_bias(Output, Biases, Batch, N, out_h * out_w);
 
             ActivationsHelper.Activate_array(Output, m * n * Batch, Activation);
-            if (Binary != 0 || Xnor != 0) swap_binary(this);
+            if (Binary  || Xnor ) swap_binary(this);
         }
 
         void backward_convolutional_layer(NetworkState state)
@@ -1301,7 +1301,7 @@ namespace Yolo_V2.Data
             ActivationsHelper.Gradient_array(Output, m * k * Batch, Activation, Delta);
             backward_bias(BiasUpdates, Delta, Batch, N, k);
 
-            if (BatchNormalize != 0)
+            if (BatchNormalize )
             {
                 backward_batchnorm_layer(state);
             }
@@ -1526,7 +1526,7 @@ namespace Yolo_V2.Data
                 }
             }
         }
-        Layer make_connected_layer(int batch, int inputs, int outputs, Activation activation, int batch_normalize)
+        Layer make_connected_layer(int batch, int inputs, int outputs, Activation activation, bool batch_normalize)
         {
             int i;
             Layer l = new Layer();
@@ -1847,7 +1847,7 @@ namespace Yolo_V2.Data
             b = WeightsGpu;
             c = state.Delta;
 
-            if (c) Gemm.gemm_ongpu(0, 0, m, n, k, 1, a, k, b, n, 1, c, n);
+            if (c.Any()) Gemm.gemm_ongpu(0, 0, m, n, k, 1, a, k, b, n, 1, c, n);
         }
         CostType get_cost_type(string s)
         {
@@ -1885,7 +1885,7 @@ namespace Yolo_V2.Data
             l.CostType = cost_type;
             l.Delta = new float[inputs * batch];
             l.Output = new float[inputs * batch];
-            l.Cost = new float[1];
+            l.Cost = 0;
 
             l.Forward = forward_cost_layer;
             l.Backward = backward_cost_layer;
@@ -1903,8 +1903,8 @@ namespace Yolo_V2.Data
         {
             Inputs = inputs;
             Outputs = inputs;
-            Delta = realloc(Delta, inputs * Batch * sizeof(float));
-            Output = realloc(Output, inputs * Batch * sizeof(float));
+            Array.Resize(ref Delta, inputs * Batch );
+            Array.Resize(ref Output, inputs * Batch );
 
             DeltaGpu = (float[])Delta.Clone();
             OutputGpu = (float[])Output.Clone();
@@ -1952,7 +1952,7 @@ namespace Yolo_V2.Data
 
         void forward_cost_layer_gpu(NetworkState state)
         {
-            if (!state.Truth) return;
+            if (!state.Truth.Any()) return;
             if (CostType == CostType.Masked)
             {
                 Blas.mask_ongpu(Batch * Inputs, state.Input, Utils.SecretNum, state.Truth);
@@ -1967,11 +1967,11 @@ namespace Yolo_V2.Data
                 Blas.l2_gpu(Batch * Inputs, state.Input, state.Truth, DeltaGpu, OutputGpu);
             }
 
-            if (Ratio)
+            if (Ratio != 0)
             {
                 Array.Copy(DeltaGpu, Delta, Batch * Inputs);
                 Delta = Delta.OrderBy(f => Math.Abs(f)).ToArray();
-                int n = (1 - Ratio) * Batch * Inputs;
+                int n = (int)((1 - Ratio) * Batch * Inputs);
                 float thresh = Delta[n];
                 thresh = 0;
                 Console.Write($"%f\n", thresh);
@@ -2302,69 +2302,70 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        void resize_crop_layer(Layer l, int w, int h)
+        void resize_crop_layer( int w, int h)
         {
-            l.W = w;
-            l.H = h;
+            W = w;
+            H = h;
 
-            l.OutW = l.Scale * w;
-            l.OutH = l.Scale * h;
+            OutW = Scale * w;
+            OutH = Scale * h;
 
-            l.Inputs = l.W * l.H * l.C;
-            l.Outputs = l.OutH * l.OutW * l.OutC;
+            Inputs = W * H * C;
+            Outputs = OutH * OutW * OutC;
 
-            l.Output = realloc(l.Output, l.Batch * l.Outputs * sizeof(float));
+             Array.Resize(ref Output, Batch * Outputs );
 
-            l.OutputGpu = (float[])l.Output.Clone();
+            OutputGpu = (float[])Output.Clone();
 
         }
 
 
-        void forward_crop_layer(Layer l, NetworkState state)
+        void forward_crop_layer( NetworkState state)
         {
             int i, j, c, b, row, col;
             int index;
             int count = 0;
-            int flip = (l.Flip && Utils.Rand.Next() % 2);
-            int dh = Utils.Rand.Next() % (l.H - l.OutH + 1);
-            int dw = Utils.Rand.Next() % (l.W - l.OutW + 1);
+            bool flip = (Flip && Utils.Rand.Next() % 2 != 0);
+            int dh = Utils.Rand.Next() % (H - OutH + 1);
+            int dw = Utils.Rand.Next() % (W - OutW + 1);
             float scale = 2;
             float trans = -1;
-            if (l.Noadjust)
+            if (Noadjust)
             {
                 scale = 1;
                 trans = 0;
             }
             if (!state.Train)
             {
-                flip = 0;
-                dh = (l.H - l.OutH) / 2;
-                dw = (l.W - l.OutW) / 2;
+                flip = false;
+                dh = (H - OutH) / 2;
+                dw = (W - OutW) / 2;
             }
-            for (b = 0; b < l.Batch; ++b)
+            for (b = 0; b < Batch; ++b)
             {
-                for (c = 0; c < l.C; ++c)
+                for (c = 0; c < C; ++c)
                 {
-                    for (i = 0; i < l.OutH; ++i)
+                    for (i = 0; i < OutH; ++i)
                     {
-                        for (j = 0; j < l.OutW; ++j)
+                        for (j = 0; j < OutW; ++j)
                         {
                             if (flip)
                             {
-                                col = l.W - dw - j - 1;
+                                col = W - dw - j - 1;
                             }
                             else
                             {
                                 col = j + dw;
                             }
                             row = i + dh;
-                            index = col + l.W * (row + l.H * (c + l.C * b));
-                            l.Output[count++] = state.Input[index] * scale + trans;
+                            index = col + W * (row + H * (c + C * b));
+                            Output[count++] = state.Input[index] * scale + trans;
                         }
                     }
                 }
             }
         }
+
         int deconvolutional_out_height(Layer l)
         {
             int h = l.Stride * (l.H - 1) + l.Size;
@@ -2468,12 +2469,9 @@ namespace Yolo_V2.Data
             int out_h = deconvolutional_out_height(this);
             int out_w = deconvolutional_out_width(this);
 
-            ColImage = realloc(ColImage,
-                                        out_h * out_w * Size * Size * C * sizeof(float));
-            Output = realloc(Output,
-                                        Batch * out_h * out_w * N * sizeof(float));
-            Delta = realloc(Delta,
-                                        Batch * out_h * out_w * N * sizeof(float));
+            Array.Resize(ref ColImage, out_h * out_w * Size * Size * C );
+            Array.Resize(ref Output, Batch * out_h * out_w * N );
+            Array.Resize(ref Delta, Batch * out_h * out_w * N );
 
             ColImageGpu = (float[])ColImage.Clone();
             DeltaGpu = (float[])Delta.Clone();
@@ -2573,7 +2571,7 @@ namespace Yolo_V2.Data
             l.Side = side;
             l.W = side;
             l.H = side;
-            l.Cost = new float[1];
+            l.Cost = 0;
             l.Outputs = l.Inputs;
             l.Truths = l.Side * l.Side * (1 + l.Coords + l.Classes);
             l.Output = new float[batch * l.Outputs];
@@ -2725,10 +2723,10 @@ namespace Yolo_V2.Data
 
                         //Console.Write($"%d,", best_index);
                         int p_index = index + locations * Classes + i * N + best_index;
-                        *(Cost) -= NoobjectScale * (float)Math.Pow(Output[p_index], 2);
-                        *(Cost) += ObjectScale * (float)Math.Pow(1 - Output[p_index], 2);
+                        (Cost) -= NoobjectScale * (float)Math.Pow(Output[p_index], 2);
+                        (Cost) += ObjectScale * (float)Math.Pow(1 - Output[p_index], 2);
                         avg_obj += Output[p_index];
-                        Delta[p_index] = ObjectScale * (1.- Output[p_index]);
+                        Delta[p_index] = ObjectScale * (1.0f- Output[p_index]);
 
                         if (Rescore)
                         {
@@ -2763,7 +2761,7 @@ namespace Yolo_V2.Data
             Blas.Axpy_cpu(Batch * Inputs, 1, Delta, 1, state.Delta, 1);
         }
 
-        void get_detection_boxes( int w, int h, float thresh, float[][] probs, Box[] boxes, int only_objectness)
+        void get_detection_boxes( int w, int h, float thresh, float[][] probs, Box[] boxes, bool only_objectness)
         {
             int i, j, n;
             float[] predictions = Output;
@@ -2852,9 +2850,9 @@ namespace Yolo_V2.Data
 
         void resize_dropout_layer( int inputs)
         {
-            Rand = realloc(Rand, Inputs * Batch * sizeof(float));
+            Array.Resize(ref Rand, Inputs * Batch );
 
-            RandGpu = (float[])Rand.Clone()
+            RandGpu = (float[]) Rand.Clone();
         }
 
         void forward_dropout_layer( NetworkState state)
@@ -2882,7 +2880,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        Layer make_gru_layer(int batch, int inputs, int outputs, int steps, int batch_normalize)
+        Layer make_gru_layer(int batch, int inputs, int outputs, int steps, bool batch_normalize)
         {
             Console.Error.Write($"GRU Layer: %d inputs, %d outputs\n", inputs, outputs);
             batch = batch / steps;
@@ -3405,9 +3403,9 @@ namespace Yolo_V2.Data
             Outputs = OutW * OutH * C;
             int output_size = Outputs * Batch;
 
-            Indexes = realloc(Indexes, output_size * sizeof(int));
-            Output = realloc(Output, output_size * sizeof(float));
-            Delta = realloc(Delta, output_size * sizeof(float));
+            Array.Resize(ref Indexes, output_size );
+            Array.Resize(ref Output, output_size );
+             Array.Resize(ref Delta, output_size );
 
             IndexesGpu = cuda_make_int_array(output_size);
             OutputGpu = (float[])Output.Clone();
@@ -3515,10 +3513,10 @@ namespace Yolo_V2.Data
             OutW = w;
             Inputs = w * h * c;
             Outputs = Inputs;
-            Output = realloc(Output, h * w * c * batch * sizeof(float));
-            Delta = realloc(Delta, h * w * c * batch * sizeof(float));
-            Squared = realloc(Squared, h * w * c * batch * sizeof(float));
-            Norms = realloc(Norms, h * w * c * batch * sizeof(float));
+             Array.Resize(ref Output, h * w * c * batch );
+             Array.Resize(ref Delta, h * w * c * batch );
+             Array.Resize(ref Squared, h * w * c * batch );
+             Array.Resize(ref Norms, h * w * c * batch );
 
             OutputGpu = (float[])Output.Clone();
             DeltaGpu = (float[])Delta.Clone();
