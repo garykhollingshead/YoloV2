@@ -182,10 +182,10 @@ namespace Yolo_V2.Data
             for (i = 0; i < n; ++i) y[i * incy] = (float)Math.Pow(x[i * incx], alpha);
         }
 
-        public static void Axpy_cpu(int n, float alpha, float[] x, int incx, float[] y, int incy)
+        public static void Axpy_cpu(int n, float alpha, float[] x, float[] y)
         {
             int i;
-            for (i = 0; i < n; ++i) y[i * incy] += alpha * x[i * incx];
+            for (i = 0; i < n; ++i) y[i] += alpha * x[i];
         }
 
         public static void Scal_cpu(int n, float alpha, float[] x, int incx)

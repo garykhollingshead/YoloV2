@@ -35,7 +35,7 @@ namespace Yolo_V2.Data
         public int NumSteps;
         public int BurnIn;
 
-        public int Adam;
+        public bool Adam;
         public float B1;
         public float B2;
         public float Eps;
@@ -176,7 +176,7 @@ namespace Yolo_V2.Data
             {
                 if (net.Layers.Length > i)
                 {
-                    sum += net.Layers[i].Cost[0];
+                    sum += net.Layers[i].Cost ?? 0;
                     ++count;
                 }
             }
@@ -225,7 +225,7 @@ namespace Yolo_V2.Data
             state.Input = x;
             state.Delta = new float[0];
             state.Truth = y;
-            state.Train = 1;
+            state.Train = true;
             forward_network(net, state);
             backward_network(net, state);
             float error = get_network_cost(net);
@@ -274,7 +274,7 @@ namespace Yolo_V2.Data
             NetworkState state = new NetworkState();
             state.Index = 0;
             state.Net = net;
-            state.Train = 1;
+            state.Train = true;
             state.Delta = new float[0];
             float sum = 0;
             int batch = 2;
@@ -325,39 +325,39 @@ namespace Yolo_V2.Data
                 Layer l = net.Layers[i];
                 if (l.LayerType == LayerType.Convolutional)
                 {
-                    resize_convolutional_layer(l, w, h);
+                    l.resize_convolutional_layer( w, h);
                 }
                 else if (l.LayerType == LayerType.Crop)
                 {
-                    resize_crop_layer(l, w, h);
+                    l.resize_crop_layer(w, h);
                 }
                 else if (l.LayerType == LayerType.Maxpool)
                 {
-                    resize_maxpool_layer(l, w, h);
+                    l.resize_maxpool_layer( w, h);
                 }
                 else if (l.LayerType == LayerType.Region)
                 {
-                    resize_region_layer(l, w, h);
+                    l.resize_region_layer( w, h);
                 }
                 else if (l.LayerType == LayerType.Route)
                 {
-                    resize_route_layer(l, net);
+                    l.resize_route_layer( net);
                 }
                 else if (l.LayerType == LayerType.Reorg)
                 {
-                    resize_reorg_layer(l, w, h);
+                    l.resize_reorg_layer( w, h);
                 }
                 else if (l.LayerType == LayerType.Avgpool)
                 {
-                    resize_avgpool_layer(l, w, h);
+                    l.resize_avgpool_layer( w, h);
                 }
                 else if (l.LayerType == LayerType.Normalization)
                 {
-                    resize_normalization_layer(l, w, h);
+                    l.resize_normalization_layer( w, h);
                 }
                 else if (l.LayerType == LayerType.Cost)
                 {
-                    resize_cost_layer(l, inputs);
+                    l.resize_cost_layer( inputs);
                 }
                 else
                 {
@@ -435,7 +435,6 @@ namespace Yolo_V2.Data
 
         public static void visualize_network(Network net)
         {
-            Image prev = null;
             int i;
 
             for (i = 0; i < net.N; ++i)
@@ -444,7 +443,7 @@ namespace Yolo_V2.Data
                 Layer l = net.Layers[i];
                 if (l.LayerType == LayerType.Convolutional)
                 {
-                    prev = visualize_convolutional_layer(l, buff, prev);
+                    l.visualize_convolutional_layer( buff);
                 }
             }
         }
@@ -465,7 +464,7 @@ namespace Yolo_V2.Data
             state.Index = 0;
             state.Input = input;
             state.Truth = null;
-            state.Train = 0;
+            state.Train = false;
             state.Delta = null;
             forward_network(net, state);
             float[] outputF = get_network_output(net);
@@ -607,7 +606,7 @@ namespace Yolo_V2.Data
                 Layer l = net.Layers[i];
                 if (l.DeltaGpu.Any())
                 {
-                    fill_ongpu(l.Outputs * l.Batch, 0, l.DeltaGpu, 1);
+                    Blas.fill_ongpu(l.Outputs * l.Batch, 0, l.DeltaGpu, 1);
                 }
                 l.ForwardGpu(state);
                 state.Input = l.OutputGpu;
@@ -673,7 +672,7 @@ namespace Yolo_V2.Data
             state.Input = net.InputGpu;
             state.Delta = new float[0];
             state.Truth = net.TruthGpu;
-            state.Train = 1;
+            state.Train = true;
             forward_network_gpu(net, state);
             backward_network_gpu(net, state);
         }
@@ -727,7 +726,7 @@ namespace Yolo_V2.Data
             {
                 Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
                 Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
-                if (l.ScaleUpdates) Array.Copy(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
+                if (l.ScaleUpdates.Any()) Array.Copy(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
             }
             else if (l.LayerType == LayerType.Connected)
             {
@@ -741,27 +740,24 @@ namespace Yolo_V2.Data
             int update_batch = net.Batch * net.Subdivisions;
             float rate = get_current_rate(net);
             l.T = get_current_batch(net);
-            if (l.UpdateGpu)
-            {
-                l.UpdateGpu(l, update_batch, rate, net.Momentum, net.Decay);
-            }
+            l.UpdateGpu?.Invoke(update_batch, rate, net.Momentum, net.Decay);
         }
         
         public static void merge_weights(Layer l, Layer baseLayer)
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                Blas.Axpy_cpu(l.N, 1, l.Biases, 1, baseLayer.Biases, 1);
-                Blas.Axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.Weights, 1, baseLayer.Weights, 1);
-                if (l.Scales)
+                Blas.Axpy_cpu(l.N, 1, l.Biases, baseLayer.Biases);
+                Blas.Axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.Weights, baseLayer.Weights);
+                if (l.Scales.Any())
                 {
-                    Blas.Axpy_cpu(l.N, 1, l.Scales, 1, baseLayer.Scales, 1);
+                    Blas.Axpy_cpu(l.N, 1, l.Scales, baseLayer.Scales);
                 }
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                Blas.Axpy_cpu(l.Outputs, 1, l.Biases, 1, baseLayer.Biases, 1);
-                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.Weights, 1, baseLayer.Weights, 1);
+                Blas.Axpy_cpu(l.Outputs, 1, l.Biases, baseLayer.Biases);
+                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.Weights, baseLayer.Weights);
             }
         }
         
@@ -769,17 +765,17 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                scal_cpu(l.N, s, l.Biases, 1);
-                scal_cpu(l.N * l.Size * l.Size * l.C, s, l.Weights, 1);
-                if (l.Scales)
+                Blas.Scal_cpu(l.N, s, l.Biases, 1);
+                Blas.Scal_cpu(l.N * l.Size * l.Size * l.C, s, l.Weights, 1);
+                if (l.Scales.Any())
                 {
-                    scal_cpu(l.N, s, l.Scales, 1);
+                    Blas.Scal_cpu(l.N, s, l.Scales, 1);
                 }
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                scal_cpu(l.Outputs, s, l.Biases, 1);
-                scal_cpu(l.Outputs * l.Inputs, s, l.Weights, 1);
+                Blas.Scal_cpu(l.Outputs, s, l.Biases, 1);
+                Blas.Scal_cpu(l.Outputs * l.Inputs, s, l.Weights, 1);
             }
         }
         
@@ -789,7 +785,7 @@ namespace Yolo_V2.Data
             {
                 cuda_pull_array(l.BiasesGpu, l.Biases, l.N);
                 cuda_pull_array(l.WeightsGpu, l.Weights, l.N * l.Size * l.Size * l.C);
-                if (l.Scales) cuda_pull_array(l.ScalesGpu, l.Scales, l.N);
+                if (l.Scales.Any()) cuda_pull_array(l.ScalesGpu, l.Scales, l.N);
             }
             else if (l.LayerType == LayerType.Connected)
             {
@@ -832,17 +828,17 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                Blas.Axpy_cpu(l.N, 1, l.BiasUpdates, 1, baseLayer.BiasUpdates, 1);
-                Blas.Axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.WeightUpdates, 1, baseLayer.WeightUpdates, 1);
+                Blas.Axpy_cpu(l.N, 1, l.BiasUpdates, baseLayer.BiasUpdates);
+                Blas.Axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.WeightUpdates, baseLayer.WeightUpdates);
                 if (l.ScaleUpdates.Any())
                 {
-                    Blas.Axpy_cpu(l.N, 1, l.ScaleUpdates, 1, baseLayer.ScaleUpdates, 1);
+                    Blas.Axpy_cpu(l.N, 1, l.ScaleUpdates, baseLayer.ScaleUpdates);
                 }
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                Blas.Axpy_cpu(l.Outputs, 1, l.BiasUpdates, 1, baseLayer.BiasUpdates, 1);
-                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightUpdates, 1, baseLayer.WeightUpdates, 1);
+                Blas.Axpy_cpu(l.Outputs, 1, l.BiasUpdates, baseLayer.BiasUpdates);
+                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightUpdates, baseLayer.WeightUpdates);
             }
         }
         
@@ -973,7 +969,7 @@ namespace Yolo_V2.Data
                 Net = net,
                 Input = new float[size],
                 Truth = new float[0],
-                Train = 0,
+                Train = false,
                 Delta = new float[0]
             };
             Array.Copy(input, 0, state.Input, 0, size);

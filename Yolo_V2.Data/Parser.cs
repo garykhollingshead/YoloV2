@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
 using Yolo_V2.Data.Enums;
@@ -114,14 +115,14 @@ namespace Yolo_V2.Data
             c = parameters.C;
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before convolutional Layer must output image.");
-            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
-            int binary = OptionList.option_find_int_quiet(options, "binary", 0);
-            int xnor = OptionList.option_find_int_quiet(options, "xnor", 0);
+            bool batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
+            bool binary = OptionList.option_find_int_quiet(options, "binary", 0) != 0;
+            bool xnor = OptionList.option_find_int_quiet(options, "xnor", 0) != 0;
 
             Layer Layer = Yolo_V2.Data.Layer.make_convolutional_layer(batch, h, w, c, n, size, stride, padding, activation, batch_normalize, binary, xnor, parameters.Net.Adam);
             Layer.Flipped = OptionList.option_find_int_quiet(options, "flipped", 0);
             Layer.Dot = OptionList.option_find_float_quiet(options, "dot", 0);
-            if (parameters.Net.Adam != 0)
+            if (parameters.Net.Adam)
             {
                 Layer.B1 = parameters.Net.B1;
                 Layer.B2 = parameters.Net.B2;
@@ -139,7 +140,7 @@ namespace Yolo_V2.Data
             Activation activation = ActivationsHelper.Get_activation(activation_s);
             int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
 
-            Layer l = make_crnn_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, hidden_filters, output_filters, parameters.TimeSteps, activation, batch_normalize);
+            Layer l = Layer.make_crnn_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, hidden_filters, output_filters, parameters.TimeSteps, activation, batch_normalize);
 
             l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0);
 
@@ -155,7 +156,7 @@ namespace Yolo_V2.Data
             int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
             int logistic = OptionList.option_find_int_quiet(options, "logistic", 0);
 
-            Layer l = make_rnn_layer(parameters.Batch, parameters.Inputs, hidden, output, parameters.TimeSteps, activation, batch_normalize, logistic);
+            Layer l = Layer.make_rnn_layer(parameters.Batch, parameters.Inputs, hidden, output, parameters.TimeSteps, activation, batch_normalize, logistic);
 
             l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0);
 
@@ -165,9 +166,9 @@ namespace Yolo_V2.Data
         public static Layer parse_gru(KeyValuePair[] options, SizeParams parameters)
         {
             int output = OptionList.option_find_int(options, "output", 1);
-            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+            bool batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
 
-            Layer l = make_gru_layer(parameters.Batch, parameters.Inputs, output, parameters.TimeSteps, batch_normalize);
+            Layer l = Layer.make_gru_layer(parameters.Batch, parameters.Inputs, output, parameters.TimeSteps, batch_normalize);
 
             return l;
         }
@@ -177,21 +178,19 @@ namespace Yolo_V2.Data
             int output = OptionList.option_find_int(options, "output", 1);
             string activation_s = OptionList.option_find_str(options, "activation", "logistic");
             Activation activation = ActivationsHelper.Get_activation(activation_s);
-            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+            bool batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
 
-            Layer Layer = make_connected_layer(parameters.Batch, parameters.Inputs, output, activation, batch_normalize);
-
-            return Layer;
+            return Layer.make_connected_layer(parameters.Batch, parameters.Inputs, output, activation, batch_normalize);
         }
 
         public static Layer parse_softmax(KeyValuePair[] options, SizeParams parameters)
         {
             int groups = OptionList.option_find_int_quiet(options, "groups", 1);
-            Layer Layer = make_softmax_layer(parameters.Batch, parameters.Inputs, groups);
-            Layer.Temperature = OptionList.option_find_float_quiet(options, "temperature", 1);
+            Layer layer = Layer.make_softmax_layer(parameters.Batch, parameters.Inputs, groups);
+            layer.Temperature = OptionList.option_find_float_quiet(options, "temperature", 1);
             string tree_file = OptionList.option_find_str(options, "tree", "");
-            if (!string.IsNullOrEmpty(tree_file)) Layer.SoftmaxTree = new Tree(tree_file);
-            return Layer;
+            if (!string.IsNullOrEmpty(tree_file)) layer.SoftmaxTree = new Tree(tree_file);
+            return layer;
         }
 
         public static Layer parse_region(KeyValuePair[] options, SizeParams parameters)
@@ -200,7 +199,7 @@ namespace Yolo_V2.Data
             int classes = OptionList.option_find_int(options, "classes", 20);
             int num = OptionList.option_find_int(options, "num", 1);
 
-            Layer l = make_region_layer(parameters.Batch, parameters.W, parameters.H, num, classes, coords);
+            Layer l = Layer.make_region_layer(parameters.Batch, parameters.W, parameters.H, num, classes, coords);
 
             l.Log = OptionList.option_find_int_quiet(options, "log", 0);
             l.Sqrt = OptionList.option_find_int_quiet(options, "sqrt", 0);
@@ -208,7 +207,7 @@ namespace Yolo_V2.Data
             l.Softmax = OptionList.option_find_int(options, "softmax", 0);
             l.MaxBoxes = OptionList.option_find_int_quiet(options, "max", 30);
             l.Jitter = OptionList.option_find_float(options, "jitter", .2f);
-            l.Rescore = OptionList.option_find_int_quiet(options, "rescore", 0);
+            l.Rescore = OptionList.option_find_int_quiet(options, "rescore", 0) != 0;
 
             l.Thresh = OptionList.option_find_float(options, "thresh", .5f);
             l.Classfix = OptionList.option_find_int_quiet(options, "classfix", 0);
@@ -245,21 +244,21 @@ namespace Yolo_V2.Data
             int rescore = OptionList.option_find_int(options, "rescore", 0);
             int num = OptionList.option_find_int(options, "num", 1);
             int side = OptionList.option_find_int(options, "side", 7);
-            Layer Layer = make_detection_layer(parameters.Batch, parameters.Inputs, num, side, classes, coords, rescore);
+            Layer layer = Layer.make_detection_layer(parameters.Batch, parameters.Inputs, num, side, classes, coords, rescore);
 
-            Layer.Softmax = OptionList.option_find_int(options, "softmax", 0);
-            Layer.Sqrt = OptionList.option_find_int(options, "sqrt", 0);
+            layer.Softmax = OptionList.option_find_int(options, "softmax", 0);
+            layer.Sqrt = OptionList.option_find_int(options, "sqrt", 0);
 
-            Layer.MaxBoxes = OptionList.option_find_int_quiet(options, "max", 30);
-            Layer.CoordScale = OptionList.option_find_float(options, "coord_scale", 1);
-            Layer.Forced = OptionList.option_find_int(options, "forced", 0);
-            Layer.ObjectScale = OptionList.option_find_float(options, "object_scale", 1);
-            Layer.NoobjectScale = OptionList.option_find_float(options, "noobject_scale", 1);
-            Layer.ClassScale = OptionList.option_find_float(options, "class_scale", 1);
-            Layer.Jitter = OptionList.option_find_float(options, "jitter", .2f);
-            Layer.Random = OptionList.option_find_int_quiet(options, "random", 0);
-            Layer.Reorg = OptionList.option_find_int_quiet(options, "reorg", 0);
-            return Layer;
+            layer.MaxBoxes = OptionList.option_find_int_quiet(options, "max", 30);
+            layer.CoordScale = OptionList.option_find_float(options, "coord_scale", 1);
+            layer.Forced = OptionList.option_find_int(options, "forced", 0);
+            layer.ObjectScale = OptionList.option_find_float(options, "object_scale", 1);
+            layer.NoobjectScale = OptionList.option_find_float(options, "noobject_scale", 1);
+            layer.ClassScale = OptionList.option_find_float(options, "class_scale", 1);
+            layer.Jitter = OptionList.option_find_float(options, "jitter", .2f);
+            layer.Random = OptionList.option_find_int_quiet(options, "random", 0);
+            layer.Reorg = OptionList.option_find_int_quiet(options, "reorg", 0);
+            return layer;
         }
 
         public static Layer parse_cost(KeyValuePair[] options, SizeParams parameters)
@@ -267,16 +266,16 @@ namespace Yolo_V2.Data
             string type_s = OptionList.option_find_str(options, "type", "sse");
             CostType type = (CostType)Enum.Parse(typeof(CostType), type_s);
             float scale = OptionList.option_find_float_quiet(options, "scale", 1);
-            Layer Layer = make_cost_layer(parameters.Batch, parameters.Inputs, type, scale);
-            Layer.Ratio = OptionList.option_find_float_quiet(options, "ratio", 0);
-            return Layer;
+            Layer layer = Layer.make_cost_layer(parameters.Batch, parameters.Inputs, type, scale);
+            layer.Ratio = OptionList.option_find_float_quiet(options, "ratio", 0);
+            return layer;
         }
 
         public static Layer parse_crop(KeyValuePair[] options, SizeParams parameters)
         {
             int crop_height = OptionList.option_find_int(options, "crop_height", 1);
             int crop_width = OptionList.option_find_int(options, "crop_width", 1);
-            int flip = OptionList.option_find_int(options, "flip", 0);
+            bool flip = OptionList.option_find_int(options, "flip", 0) != 0;
             float angle = OptionList.option_find_float(options, "angle", 0);
             float saturation = OptionList.option_find_float(options, "saturation", 1);
             float exposure = OptionList.option_find_float(options, "exposure", 1);
@@ -288,9 +287,9 @@ namespace Yolo_V2.Data
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before crop Layer must output image.");
 
-            int noadjust = OptionList.option_find_int_quiet(options, "noadjust", 0);
+            bool noadjust = OptionList.option_find_int_quiet(options, "noadjust", 0) != 0;
 
-            Layer l = make_crop_layer(batch, h, w, c, crop_height, crop_width, flip, angle, saturation, exposure);
+            Layer l = Layer.make_crop_layer(batch, h, w, c, crop_height, crop_width, flip, angle, saturation, exposure);
             l.Shift = OptionList.option_find_float(options, "shift", 0);
             l.Noadjust = noadjust;
             return l;
@@ -308,8 +307,7 @@ namespace Yolo_V2.Data
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before reorg Layer must output image.");
 
-            Layer Layer = make_reorg_layer(batch, w, h, c, stride, reverse);
-            return Layer;
+            return Layer.make_reorg_layer(batch, w, h, c, stride, reverse);
         }
 
         public static Layer parse_maxpool(KeyValuePair[] options, SizeParams parameters)
@@ -325,8 +323,7 @@ namespace Yolo_V2.Data
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before maxpool Layer must output image.");
 
-            Layer Layer = make_maxpool_layer(batch, h, w, c, size, stride, padding);
-            return Layer;
+            return Layer.make_maxpool_layer(batch, h, w, c, size, stride, padding);
         }
 
         public static Layer parse_avgpool(KeyValuePair[] options, SizeParams parameters)
@@ -338,18 +335,17 @@ namespace Yolo_V2.Data
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before avgpool Layer must output image.");
 
-            Layer Layer = make_avgpool_layer(batch, w, h, c);
-            return Layer;
+            return Layer.make_avgpool_layer(batch, w, h, c);
         }
 
         public static Layer parse_dropout(KeyValuePair[] options, SizeParams parameters)
         {
             float probability = OptionList.option_find_float(options, "probability", .5f);
-            Layer Layer = make_dropout_layer(parameters.Batch, parameters.Inputs, probability);
-            Layer.OutW = parameters.W;
-            Layer.OutH = parameters.H;
-            Layer.OutC = parameters.C;
-            return Layer;
+            Layer layer = Layer.make_dropout_layer(parameters.Batch, parameters.Inputs, probability);
+            layer.OutW = parameters.W;
+            layer.OutH = parameters.H;
+            layer.OutC = parameters.C;
+            return layer;
         }
 
         public static Layer parse_normalization(KeyValuePair[] options, SizeParams parameters)
@@ -358,14 +354,12 @@ namespace Yolo_V2.Data
             float beta = OptionList.option_find_float(options, "beta", .75f);
             float kappa = OptionList.option_find_float(options, "kappa", 1);
             int size = OptionList.option_find_int(options, "size", 5);
-            Layer l = make_normalization_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, size, alpha, beta, kappa);
-            return l;
+            return Layer.make_normalization_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, size, alpha, beta, kappa);
         }
 
         public static Layer parse_batchnorm(KeyValuePair[] options, SizeParams parameters)
         {
-            Layer l = Layer.make_batchnorm_layer(parameters.Batch, parameters.W, parameters.H, parameters.C);
-            return l;
+            return Layer.make_batchnorm_layer(parameters.Batch, parameters.W, parameters.H, parameters.C);
         }
 
         public static Layer parse_shortcut(KeyValuePair[] options, SizeParams parameters, Network net)
@@ -377,7 +371,7 @@ namespace Yolo_V2.Data
             int batch = parameters.Batch;
             Layer from = net.Layers[index];
 
-            Layer s = make_shortcut_layer(batch, index, parameters.W, parameters.H, parameters.C, from.OutW, from.OutH, from.OutC);
+            Layer s = Layer.make_shortcut_layer(batch, index, parameters.W, parameters.H, parameters.C, from.OutW, from.OutH, from.OutC);
 
             string activation_s = OptionList.option_find_str(options, "activation", "linear");
             Activation activation = ActivationsHelper.Get_activation(activation_s);
@@ -390,7 +384,7 @@ namespace Yolo_V2.Data
             string activation_s = OptionList.option_find_str(options, "activation", "linear");
             Activation activation = ActivationsHelper.Get_activation(activation_s);
 
-            Layer l = make_activation_layer(parameters.Batch, parameters.Inputs, activation);
+            Layer l = Layer.make_activation_layer(parameters.Batch, parameters.Inputs, activation);
 
             l.OutH = parameters.H;
             l.OutW = parameters.W;
@@ -423,27 +417,27 @@ namespace Yolo_V2.Data
 
             int batch = parameters.Batch;
 
-            Layer Layer = make_route_layer(batch, n, layers, sizes);
+            Layer layer = Layer.make_route_layer(batch, n, layers, sizes);
 
-            Layer first = net.Layers[layers[0]];
-            Layer.OutW = first.OutW;
-            Layer.OutH = first.OutH;
-            Layer.OutC = first.OutC;
+            var first = net.Layers[layers[0]];
+            layer.OutW = first.OutW;
+            layer.OutH = first.OutH;
+            layer.OutC = first.OutC;
             for (var i = 1; i < n; ++i)
             {
                 int index = layers[i];
-                Layer next = net.Layers[index];
+                var next = net.Layers[index];
                 if (next.OutW == first.OutW && next.OutH == first.OutH)
                 {
-                    Layer.OutC += next.OutC;
+                    layer.OutC += next.OutC;
                 }
                 else
                 {
-                    Layer.OutH = Layer.OutW = Layer.OutC = 0;
+                    layer.OutH = layer.OutW = layer.OutC = 0;
                 }
             }
 
-            return Layer;
+            return layer;
         }
 
         public static LearningRatePolicy get_policy(string s)
@@ -472,8 +466,8 @@ namespace Yolo_V2.Data
             net.Batch *= net.TimeSteps;
             net.Subdivisions = subdivs;
 
-            net.Adam = OptionList.option_find_int_quiet(options, "adam", 0);
-            if (net.Adam != 0)
+            net.Adam = OptionList.option_find_int_quiet(options, "adam", 0) != 0;
+            if (net.Adam )
             {
                 net.B1 = OptionList.option_find_float(options, "B1", .9f);
                 net.B2 = OptionList.option_find_float(options, "B2", .999f);
@@ -733,7 +727,7 @@ namespace Yolo_V2.Data
         {
             if (CudaUtils.UseGpu)
             {
-                pull_convolutional_layer(l);
+                l.pull_convolutional_layer();
             }
             Layer.binarize_weights(l.Weights, l.N, l.C * l.Size * l.Size, l.BinaryWeights);
             int size = l.C * l.Size * l.Size;
@@ -742,7 +736,7 @@ namespace Yolo_V2.Data
             {
                 var biases = FloatArrayToByteArray(l.Biases);
                 fstream.Write(biases, 0, biases.Length);
-                if (l.BatchNormalize != 0)
+                if (l.BatchNormalize )
                 {
                     var scales = FloatArrayToByteArray(l.Scales);
                     var mean = FloatArrayToByteArray(l.RollingMean);
@@ -784,14 +778,14 @@ namespace Yolo_V2.Data
         {
             if (CudaUtils.UseGpu)
             {
-                pull_convolutional_layer(l);
+                l.pull_convolutional_layer();
             }
 
             int num = l.N * l.C * l.Size * l.Size;
             var biases = FloatArrayToByteArray(l.Biases);
             fstream.Write(biases, 0, biases.Length);
 
-            if (l.BatchNormalize != 0)
+            if (l.BatchNormalize)
             {
                 var scales = FloatArrayToByteArray(l.Scales);
                 var mean = FloatArrayToByteArray(l.RollingMean);
@@ -804,7 +798,7 @@ namespace Yolo_V2.Data
             var weights = FloatArrayToByteArray(l.Weights);
             fstream.Write(weights, 0, weights.Length);
 
-            if (l.Adam != 0)
+            if (l.Adam )
             {
                 var m = FloatArrayToByteArray(l.M);
                 var v = FloatArrayToByteArray(l.V);
@@ -817,7 +811,7 @@ namespace Yolo_V2.Data
         {
             if (CudaUtils.UseGpu)
             {
-                pull_batchnorm_layer(l);
+                l.pull_batchnorm_layer();
             }
 
             var scales = FloatArrayToByteArray(l.Scales);
@@ -834,7 +828,7 @@ namespace Yolo_V2.Data
         {
             if (CudaUtils.UseGpu)
             {
-                pull_connected_layer(l);
+                l.pull_connected_layer();
             }
 
             var biases = FloatArrayToByteArray(l.Biases);
@@ -842,7 +836,7 @@ namespace Yolo_V2.Data
 
             var weights = FloatArrayToByteArray(l.Weights);
             fread.Write(weights, 0, weights.Length);
-            if (l.BatchNormalize != 0)
+            if (l.BatchNormalize )
             {
                 var scales = FloatArrayToByteArray(l.Scales);
                 fread.Write(scales, 0, scales.Length);
@@ -918,7 +912,7 @@ namespace Yolo_V2.Data
                     {
                         if (CudaUtils.UseGpu)
                         {
-                            pull_local_layer(l);
+                            l.pull_local_layer();
                         }
 
                         int locations = l.OutW * l.OutH;
@@ -963,7 +957,7 @@ namespace Yolo_V2.Data
             {
                 transpose_matrix(l.Weights, l.Inputs, l.Outputs);
             }
-            if (l.BatchNormalize != 0 && !l.Dontloadscales)
+            if (l.BatchNormalize  && !l.Dontloadscales)
             {
                 l.Scales = ReadFloat(fread, l.Outputs);
                 l.RollingMean = ReadFloat(fread, l.Outputs);
@@ -971,7 +965,7 @@ namespace Yolo_V2.Data
             }
             if (CudaUtils.UseGpu)
             {
-                push_connected_layer(l);
+                l.push_connected_layer();
             }
         }
 
@@ -1000,14 +994,14 @@ namespace Yolo_V2.Data
             l.RollingVariance = ReadFloat(fread, l.C);
             if (CudaUtils.UseGpu)
             {
-                push_batchnorm_layer(l);
+                l.push_batchnorm_layer();
             }
         }
 
         public static void load_convolutional_weights_binary(Layer l, FileStream fread)
         {
             l.Biases = ReadFloat(fread, l.N);
-            if (l.BatchNormalize != 0 && (!l.Dontloadscales))
+            if (l.BatchNormalize && (!l.Dontloadscales))
             {
                 l.Scales = ReadFloat(fread, l.N);
                 l.RollingMean = ReadFloat(fread, l.N);
@@ -1031,7 +1025,7 @@ namespace Yolo_V2.Data
             }
             if (CudaUtils.UseGpu)
             {
-                push_convolutional_layer(l);
+                l.push_convolutional_layer();
             }
         }
 
@@ -1039,7 +1033,7 @@ namespace Yolo_V2.Data
         {
             int num = l.N * l.C * l.Size * l.Size;
             l.Biases = ReadFloat(fread, l.N);
-            if (l.BatchNormalize != 0 && (!l.Dontloadscales))
+            if (l.BatchNormalize  && (!l.Dontloadscales))
             {
                 l.Scales = ReadFloat(fread, l.N);
                 l.RollingMean = ReadFloat(fread, l.N);
@@ -1047,7 +1041,7 @@ namespace Yolo_V2.Data
             }
 
             l.Weights = ReadFloat(fread, num);
-            if (l.Adam != 0)
+            if (l.Adam )
             {
                 l.M = ReadFloat(fread, num);
                 l.V = ReadFloat(fread, num);
@@ -1058,7 +1052,7 @@ namespace Yolo_V2.Data
             }
             if (CudaUtils.UseGpu)
             {
-                push_convolutional_layer(l);
+                l.push_convolutional_layer();
             }
         }
 
@@ -1131,7 +1125,7 @@ namespace Yolo_V2.Data
                         l.Weights = ReadFloat(fread, size);
                         if (CudaUtils.UseGpu)
                         {
-                            push_local_layer(l);
+                            l.push_local_layer();
                         }
                     }
                 }

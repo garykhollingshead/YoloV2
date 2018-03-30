@@ -101,7 +101,7 @@ namespace Yolo_V2.Data
         public static float cuda_compare(DeviceMemory<float> gpuX, float[] x, int n, string s)
         {
             float[] tmp = Gpu.CopyToHost(gpuX);
-            Blas.Axpy_cpu(n, -1, x, 1, tmp, 1);
+            Blas.Axpy_cpu(n, -1, x, tmp);
             float err = Blas.Dot_cpu(n, tmp, 1, tmp, 1);
             Console.Error.WriteLine($"Error {s}: {Math.Sqrt(err/n)}");
             return err;
