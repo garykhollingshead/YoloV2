@@ -377,7 +377,7 @@ namespace Yolo_V2.Data
                     net.InputGpu = null;
                     net.TruthGpu = null;
                 }
-                net.Workspace = cuda_make_array(0, (workspace_size - 1) / sizeof(float) + 1);
+                net.Workspace = new float[workspace_size];
             }
             else
             {
@@ -709,14 +709,14 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                cuda_pull_array(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
-                cuda_pull_array(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
-                if (l.ScaleUpdates) cuda_pull_array(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
+                Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
+                Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
+                if (l.ScaleUpdates.Any()) Array.Copy(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                cuda_pull_array(l.BiasUpdatesGpu, l.BiasUpdates, l.Outputs);
-                cuda_pull_array(l.WeightUpdatesGpu, l.WeightUpdates, l.Outputs * l.Inputs);
+                Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.Outputs);
+                Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.Outputs * l.Inputs);
             }
         }
         
@@ -783,14 +783,14 @@ namespace Yolo_V2.Data
         {
             if (l.LayerType == LayerType.Convolutional)
             {
-                cuda_pull_array(l.BiasesGpu, l.Biases, l.N);
-                cuda_pull_array(l.WeightsGpu, l.Weights, l.N * l.Size * l.Size * l.C);
-                if (l.Scales.Any()) cuda_pull_array(l.ScalesGpu, l.Scales, l.N);
+                Array.Copy(l.BiasesGpu, l.Biases, l.N);
+                Array.Copy(l.WeightsGpu, l.Weights, l.N * l.Size * l.Size * l.C);
+                if (l.Scales.Any()) Array.Copy(l.ScalesGpu, l.Scales, l.N);
             }
             else if (l.LayerType == LayerType.Connected)
             {
-                cuda_pull_array(l.BiasesGpu, l.Biases, l.Outputs);
-                cuda_pull_array(l.WeightsGpu, l.Weights, l.Outputs * l.Inputs);
+                Array.Copy(l.BiasesGpu, l.Biases, l.Outputs);
+                Array.Copy(l.WeightsGpu, l.Weights, l.Outputs * l.Inputs);
             }
         }
         

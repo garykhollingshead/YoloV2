@@ -16,12 +16,12 @@ namespace Yolo_V2.Data
         public LayerType LayerType;
         public Activation Activation;
         public CostType CostType;
-        public Action<NetworkState> Forward;
-        public Action<NetworkState> Backward;
-        public Action<int, float, float, float> Update;
-        public Action<NetworkState> ForwardGpu;
-        public Action<NetworkState> BackwardGpu;
-        public Action<int, float, float, float> UpdateGpu;
+        public Action<Layer, NetworkState> Forward;
+        public Action<Layer, NetworkState> Backward;
+        public Action<Layer, int, float, float, float> Update;
+        public Action<Layer, NetworkState> ForwardGpu;
+        public Action<Layer, NetworkState> BackwardGpu;
+        public Action<Layer, int, float, float, float> UpdateGpu;
         public bool BatchNormalize;
         public int Shortcut;
         public int Batch;
@@ -859,8 +859,8 @@ namespace Yolo_V2.Data
         public Image get_convolutional_image()
         {
             int h, w, c;
-            h = convolutional_out_height(l);
-            w = convolutional_out_width(l);
+            h = convolutional_out_height();
+            w = convolutional_out_width();
             c = N;
             return new Image(w, h, c, Output);
         }
@@ -868,8 +868,8 @@ namespace Yolo_V2.Data
         public Image get_convolutional_delta()
         {
             int h, w, c;
-            h = convolutional_out_height(l);
-            w = convolutional_out_width(l);
+            h = convolutional_out_height();
+            w = convolutional_out_width();
             c = N;
             return new Image(w, h, c, Delta);
         }
@@ -880,35 +880,35 @@ namespace Yolo_V2.Data
             {
                 ulong most = 0;
                 ulong s = 0;
-                using (var SrcTensorDesc = Alea.Interop.MarshaAlign(SrcTensorDesc))
-                using (var WeightDesc = Alea.Interop.MarshaAlign(WeightDesc))
-                using (var ConvDesc = Alea.Interop.MarshaAlign(ConvDesc))
-                using (var DstTensorDesc = Alea.Interop.MarshaAlign(DstTensorDesc))
-                using (var DdstTensorDesc = Alea.Interop.MarshaAlign(DdstTensorDesc))
-                using (var DweightDesc = Alea.Interop.MarshaAlign(DweightDesc))
-                using (var DsrcTensorDesc = Alea.Interop.MarshaAlign(DsrcTensorDesc))
+                using (var gpuSrcTensorDesc = Alea.Interop.Marshal.Align(SrcTensorDesc))
+                using (var gpuWeightDesc = Alea.Interop.Marshal.Align(WeightDesc))
+                using (var gpuConvDesc = Alea.Interop.Marshal.Align(ConvDesc))
+                using (var gpuDstTensorDesc = Alea.Interop.Marshal.Align(DstTensorDesc))
+                using (var gpuDdstTensorDesc = Alea.Interop.Marshal.Align(DdstTensorDesc))
+                using (var gpuDweightDesc = Alea.Interop.Marshal.Align(DweightDesc))
+                using (var gpuDsrcTensorDesc = Alea.Interop.Marshal.Align(DsrcTensorDesc))
                 {
                     CuDnn.cudnnGetConvolutionForwardWorkspaceSize(CudaUtils.cudnn_handle(),
-                        (cudnnTensorStruct*)SrcTensorDesc.Handle,
-                        (cudnnFilterStruct*)WeightDesc.Handle,
-                        (cudnnConvolutionStruct*)ConvDesc.Handle,
-                        (cudnnTensorStruct*)DstTensorDesc.Handle,
+                        (cudnnTensorStruct*)gpuSrcTensorDesc.Handle,
+                        (cudnnFilterStruct*)gpuWeightDesc.Handle,
+                        (cudnnConvolutionStruct*)gpuConvDesc.Handle,
+                        (cudnnTensorStruct*)gpuDstTensorDesc.Handle,
                         FwAlgo,
                         &s);
                     if (s > most) most = s;
                     CuDnn.cudnnGetConvolutionBackwardFilterWorkspaceSize(CudaUtils.cudnn_handle(),
-                        (cudnnTensorStruct*)SrcTensorDesc.Handle,
-                        (cudnnTensorStruct*)DdstTensorDesc.Handle,
-                        (cudnnConvolutionStruct*)ConvDesc.Handle,
-                        (cudnnFilterStruct*)DweightDesc.Handle,
+                        (cudnnTensorStruct*)gpuSrcTensorDesc.Handle,
+                        (cudnnTensorStruct*)gpuDdstTensorDesc.Handle,
+                        (cudnnConvolutionStruct*)gpuConvDesc.Handle,
+                        (cudnnFilterStruct*)gpuDweightDesc.Handle,
                         BfAlgo,
                         &s);
                     if (s > most) most = s;
                     CuDnn.cudnnGetConvolutionBackwardDataWorkspaceSize(CudaUtils.cudnn_handle(),
-                        (cudnnFilterStruct*)WeightDesc.Handle,
-                        (cudnnTensorStruct*)DdstTensorDesc.Handle,
-                        (cudnnConvolutionStruct*)ConvDesc.Handle,
-                        (cudnnTensorStruct*)DsrcTensorDesc.Handle,
+                        (cudnnFilterStruct*)gpuWeightDesc.Handle,
+                        (cudnnTensorStruct*)gpuDdstTensorDesc.Handle,
+                        (cudnnConvolutionStruct*)gpuConvDesc.Handle,
+                        (cudnnTensorStruct*)gpuDsrcTensorDesc.Handle,
                         BdAlgo,
                         &s);
                 }
@@ -920,60 +920,61 @@ namespace Yolo_V2.Data
         
         public unsafe void cudnn_convolutional_setup()
         {
-            using (var DsrcTensorDesc = Alea.Interop.MarshaAlign(DsrcTensorDesc))
-            using (var DdstTensorDesc = Alea.Interop.MarshaAlign(DdstTensorDesc))
-            using (var DweightDesc = Alea.Interop.MarshaAlign(DweightDesc))
-            using (var SrcTensorDesc = Alea.Interop.MarshaAlign(SrcTensorDesc))
-            using (var DstTensorDesc = Alea.Interop.MarshaAlign(DstTensorDesc))
-            using (var WeightDesc = Alea.Interop.MarshaAlign(WeightDesc))
-            using (var ConvDesc = Alea.Interop.MarshaAlign(ConvDesc))
-            using (var FwAlgo = Alea.Interop.MarshaAlign(FwAlgo))
-            using (var BdAlgo = Alea.Interop.MarshaAlign(BdAlgo))
-            using (var BfAlgo = Alea.Interop.MarshaAlign(BfAlgo))
+            using (var gpuDsrcTensorDesc = Alea.Interop.Marshal.Align(DsrcTensorDesc))
+            using (var gpuDdstTensorDesc = Alea.Interop.Marshal.Align(DdstTensorDesc))
+            using (var gpuDweightDesc = Alea.Interop.Marshal.Align(DweightDesc))
+            using (var gpuSrcTensorDesc = Alea.Interop.Marshal.Align(SrcTensorDesc))
+            using (var gpuDstTensorDesc = Alea.Interop.Marshal.Align(DstTensorDesc))
+            using (var gpuWeightDesc = Alea.Interop.Marshal.Align(WeightDesc))
+            using (var gpuConvDesc = Alea.Interop.Marshal.Align(ConvDesc))
+            using (var gpuFwAlgo = Alea.Interop.Marshal.Align(FwAlgo))
+            using (var gpuBdAlgo = Alea.Interop.Marshal.Align(BdAlgo))
+            using (var gpuBfAlgo = Alea.Interop.Marshal.Align(BfAlgo))
             {
-                CuDnn.cudnnSetTensor4dDescriptor((cudnnTensorStruct*)DsrcTensorDesc.Handle, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, cudnnDataType_t.CUDNN_DATA_FLOAT, Batch, C,
+                CuDnn.cudnnSetTensor4dDescriptor((cudnnTensorStruct*)gpuDsrcTensorDesc.Handle, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, cudnnDataType_t.CUDNN_DATA_FLOAT, Batch, C,
                     H, W);
-                CuDnn.cudnnSetTensor4dDescriptor((cudnnTensorStruct*)DdstTensorDesc.Handle, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, cudnnDataType_t.CUDNN_DATA_FLOAT, Batch, OutC,
+                CuDnn.cudnnSetTensor4dDescriptor((cudnnTensorStruct*)gpuDdstTensorDesc.Handle, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, cudnnDataType_t.CUDNN_DATA_FLOAT, Batch, OutC,
                     OutH, OutW);
-                CuDnn.cudnnSetFilter4dDescriptor((cudnnFilterStruct*)DweightDesc.Handle, cudnnDataType_t.CUDNN_DATA_FLOAT, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, N, C, Size,
+                CuDnn.cudnnSetFilter4dDescriptor((cudnnFilterStruct*)gpuDweightDesc.Handle, cudnnDataType_t.CUDNN_DATA_FLOAT, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, N, C, Size,
                     Size);
 
-                CuDnn.cudnnSetTensor4dDescriptor((cudnnTensorStruct*)SrcTensorDesc.Handle, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, cudnnDataType_t.CUDNN_DATA_FLOAT, Batch, C,
+                CuDnn.cudnnSetTensor4dDescriptor((cudnnTensorStruct*)gpuSrcTensorDesc.Handle, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, cudnnDataType_t.CUDNN_DATA_FLOAT, Batch, C,
                     H, W);
-                CuDnn.cudnnSetTensor4dDescriptor((cudnnTensorStruct*)DstTensorDesc.Handle, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, cudnnDataType_t.CUDNN_DATA_FLOAT, Batch, OutC,
+                CuDnn.cudnnSetTensor4dDescriptor((cudnnTensorStruct*)gpuDstTensorDesc.Handle, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, cudnnDataType_t.CUDNN_DATA_FLOAT, Batch, OutC,
                     OutH, OutW);
-                CuDnn.cudnnSetFilter4dDescriptor((cudnnFilterStruct*)WeightDesc.Handle, cudnnDataType_t.CUDNN_DATA_FLOAT, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, N, C, Size,
+                CuDnn.cudnnSetFilter4dDescriptor((cudnnFilterStruct*)gpuWeightDesc.Handle, cudnnDataType_t.CUDNN_DATA_FLOAT, cudnnTensorFormat_t.CUDNN_TENSOR_NCHW, N, C, Size,
                     Size);
-                CuDnn.cudnnSetConvolution2dDescriptor((cudnnConvolutionStruct*)ConvDesc.Handle, Pad, Pad, Stride, Stride, 1, 1,
+                CuDnn.cudnnSetConvolution2dDescriptor((cudnnConvolutionStruct*)gpuConvDesc.Handle, Pad, Pad, Stride, Stride, 1, 1,
                     cudnnConvolutionMode_t.CUDNN_CROSS_CORRELATION, cudnnDataType_t.CUDNN_DATA_FLOAT);
                 CuDnn.cudnnGetConvolutionForwardAlgorithm(CudaUtils.cudnn_handle(),
-                    (cudnnTensorStruct*)SrcTensorDesc.Handle,
-                    (cudnnFilterStruct*)WeightDesc.Handle,
-                    (cudnnConvolutionStruct*)ConvDesc.Handle,
-                    (cudnnTensorStruct*)DstTensorDesc.Handle,
+                    (cudnnTensorStruct*)gpuSrcTensorDesc.Handle,
+                    (cudnnFilterStruct*)gpuWeightDesc.Handle,
+                    (cudnnConvolutionStruct*)gpuConvDesc.Handle,
+                    (cudnnTensorStruct*)gpuDstTensorDesc.Handle,
                     cudnnConvolutionFwdPreference_t.CUDNN_CONVOLUTION_FWD_PREFER_FASTEST,
                     0,
-                    (cudnnConvolutionFwdAlgo_t*)FwAlgo.Handle);
+                    (cudnnConvolutionFwdAlgo_t*)gpuFwAlgo.Handle);
                 CuDnn.cudnnGetConvolutionBackwardDataAlgorithm(CudaUtils.cudnn_handle(),
-                    (cudnnFilterStruct*)WeightDesc.Handle,
-                    (cudnnTensorStruct*)DdstTensorDesc.Handle,
-                    (cudnnConvolutionStruct*)ConvDesc.Handle,
-                    (cudnnTensorStruct*)DsrcTensorDesc.Handle,
+                    (cudnnFilterStruct*)gpuWeightDesc.Handle,
+                    (cudnnTensorStruct*)gpuDdstTensorDesc.Handle,
+                    (cudnnConvolutionStruct*)gpuConvDesc.Handle,
+                    (cudnnTensorStruct*)gpuDsrcTensorDesc.Handle,
                     cudnnConvolutionBwdDataPreference_t.CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST,
                     0,
-                    (cudnnConvolutionBwdDataAlgo_t*)BdAlgo.Handle);
+                    (cudnnConvolutionBwdDataAlgo_t*)gpuBdAlgo.Handle);
                 CuDnn.cudnnGetConvolutionBackwardFilterAlgorithm(CudaUtils.cudnn_handle(),
-                    (cudnnTensorStruct*)SrcTensorDesc.Handle,
-                    (cudnnTensorStruct*)DdstTensorDesc.Handle,
-                    (cudnnConvolutionStruct*)ConvDesc.Handle,
-                    (cudnnFilterStruct*)DweightDesc.Handle,
+                    (cudnnTensorStruct*)gpuSrcTensorDesc.Handle,
+                    (cudnnTensorStruct*)gpuDdstTensorDesc.Handle,
+                    (cudnnConvolutionStruct*)gpuConvDesc.Handle,
+                    (cudnnFilterStruct*)gpuDweightDesc.Handle,
                     cudnnConvolutionBwdFilterPreference_t.CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST,
                     0,
-                    (cudnnConvolutionBwdFilterAlgo_t*)BfAlgo.Handle);
+                    (cudnnConvolutionBwdFilterAlgo_t*)gpuBfAlgo.Handle);
             }
         }
         
-        public static Layer make_convolutional_layer(int batch, int h, int w, int c, int n, int size, int stride, int padding, Activation activation, bool batch_normalize, bool binary, bool xnor, int adam)
+        public static Layer make_convolutional_layer(int batch, int h, int w, int c, int n, int size, int stride, int padding, 
+            Activation activation, bool batch_normalize, bool binary, bool xnor, bool adam)
         {
             int i;
             Layer l = new Layer();
@@ -1000,8 +1001,8 @@ namespace Yolo_V2.Data
             // float scale = 1./(float)Math.Sqrt(size*size*c);
             float scale = (float)Math.Sqrt(2.0 / (size * size * c));
             for (i = 0; i < c * n * size * size; ++i) l.Weights[i] = scale * Utils.rand_uniform(-1, 1);
-            int out_h = convolutional_out_height(l);
-            int out_w = convolutional_out_width(l);
+            int out_h = l.convolutional_out_height();
+            int out_w = l.convolutional_out_width();
             l.OutH = out_h;
             l.OutW = out_w;
             l.OutC = n;
@@ -1248,48 +1249,48 @@ namespace Yolo_V2.Data
             }
         }
         
-        public void forward_convolutional_layer(NetworkState state)
+        public static void forward_convolutional_layer(Layer l, NetworkState state)
         {
-            int out_h = convolutional_out_height(this);
-            int out_w = convolutional_out_width(this);
+            int out_h = l.convolutional_out_height();
+            int out_w = l.convolutional_out_width();
             int i;
 
-            Blas.Fill_cpu(Outputs * Batch, 0, Output, 1);
+            Blas.Fill_cpu(l.Outputs * l.Batch, 0, l.Output, 1);
 
-            if (Xnor)
+            if (l.Xnor)
             {
-                binarize_weights(Weights, N, C * Size * Size, BinaryWeights);
-                swap_binary(this);
-                binarize_cpu(state.Input, C * H * W * Batch, BinaryInput);
-                state.Input = BinaryInput;
+                binarize_weights(l.Weights, l.N, l.C * l.Size * l.Size, l.BinaryWeights);
+                l.swap_binary();
+                binarize_cpu(state.Input, l.C * l.H * l.W * l.Batch, l.BinaryInput);
+                state.Input = l.BinaryInput;
             }
 
-            int m = N;
-            int k = Size * Size * C;
+            int m = l.N;
+            int k = l.Size * l.Size * l.C;
             int n = out_h * out_w;
 
 
-            float[] a = Weights;
+            float[] a = l.Weights;
             float[] b = state.Workspace;
-            float[] c = Output;
+            float[] c = l.Output;
 
-            for (i = 0; i < Batch; ++i)
+            for (i = 0; i < l.Batch; ++i)
             {
-                Im2Col.im2col_cpu(state.Input, C, H, W,
-                        Size, Stride, Pad, b);
+                Im2Col.im2col_cpu(state.Input, l.C, l.H, l.W,
+                    l.Size, l.Stride, l.Pad, b);
                 Gemm.gemm(0, 0, m, n, k, 1, a, k, b, n, 1, c, n);
                 c[i] += n * m;
-                state.Input[i] += C * H * W;
+                state.Input[i] += l.C * l.H * l.W;
             }
 
-            if (BatchNormalize)
+            if (l.BatchNormalize)
             {
-                forward_batchnorm_layer(state);
+                l.forward_batchnorm_layer(state);
             }
-            add_bias(Output, Biases, Batch, N, out_h * out_w);
+            add_bias(l.Output, l.Biases, l.Batch, l.N, out_h * out_w);
 
-            ActivationsHelper.Activate_array(Output, m * n * Batch, Activation);
-            if (Binary || Xnor) swap_binary(this);
+            ActivationsHelper.Activate_array(l.Output, m * n * l.Batch, l.Activation);
+            if (l.Binary || l.Xnor) l.swap_binary();
         }
         
         public void backward_convolutional_layer(NetworkState state)
@@ -1771,15 +1772,15 @@ namespace Yolo_V2.Data
         
         public void push_connected_layer()
         {
-            cuda_push_array(WeightsGpu, Weights, Inputs * Outputs);
-            cuda_push_array(BiasesGpu, Biases, Outputs);
-            cuda_push_array(WeightUpdatesGpu, WeightUpdates, Inputs * Outputs);
-            cuda_push_array(BiasUpdatesGpu, BiasUpdates, Outputs);
+            Array.Copy(Weights, WeightsGpu, Inputs * Outputs);
+            Array.Copy(Biases, BiasesGpu, Outputs);
+            Array.Copy(WeightUpdates, WeightUpdatesGpu, Inputs * Outputs);
+            Array.Copy(BiasUpdates, BiasUpdatesGpu, Outputs);
             if (BatchNormalize)
             {
-                cuda_push_array(ScalesGpu, Scales, Outputs);
-                cuda_push_array(RollingMeanGpu, RollingMean, Outputs);
-                cuda_push_array(RollingVarianceGpu, RollingVariance, Outputs);
+                Array.Copy(Scales, ScalesGpu, Outputs);
+                Array.Copy(RollingMean, RollingMeanGpu, Outputs);
+                Array.Copy(RollingVariance, RollingVarianceGpu, Outputs);
             }
         }
         
@@ -1952,7 +1953,7 @@ namespace Yolo_V2.Data
         
         public static void push_cost_layer()
         {
-            cuda_push_array(DeltaGpu, Delta, Batch * Inputs);
+            Array.Copy(Delta, DeltaGpu, Batch * Inputs);
         }
         
         public void forward_cost_layer_gpu(NetworkState state)
@@ -2810,7 +2811,7 @@ namespace Yolo_V2.Data
 
             float[] in_cpu = new float[Batch * Inputs];
             float[] truth_cpu = null;
-            if (state.Truth)
+            if (state.Truth.Any())
             {
                 int num_truth = Batch * Side * Side * (1 + Coords + Classes);
                 truth_cpu = new float[num_truth];
@@ -2822,8 +2823,8 @@ namespace Yolo_V2.Data
             cpu_state.Truth = truth_cpu;
             cpu_state.Input = in_cpu;
             forward_detection_layer(cpu_state);
-            cuda_push_array(OutputGpu, Output, Batch * Outputs);
-            cuda_push_array(DeltaGpu, Delta, Batch * Inputs);
+            Array.Copy(Output, OutputGpu, Batch * Outputs);
+            Array.Copy(Delta, DeltaGpu, Batch * Inputs);
         }
         
         public void backward_detection_layer_gpu(NetworkState state)
@@ -3325,8 +3326,8 @@ namespace Yolo_V2.Data
         {
             int locations = OutW * OutH;
             int size = Size * Size * C * N * locations;
-            cuda_push_array(WeightsGpu, Weights, size);
-            cuda_push_array(BiasesGpu, Biases, Outputs);
+            Array.Copy(Weights, WeightsGpu, size);
+            Array.Copy(Biases, BiasesGpu, Outputs);
         }
         
         public Image get_maxpool_image()
@@ -3757,39 +3758,39 @@ namespace Yolo_V2.Data
 
         public void pull_convolutional_layer()
         {
-            cuda_pull_array(WeightsGpu, Weights, C * N * Size * Size);
-            cuda_pull_array(BiasesGpu, Biases, N);
-            cuda_pull_array(WeightUpdatesGpu, WeightUpdates, C * N * Size * Size);
-            cuda_pull_array(BiasUpdatesGpu, BiasUpdates, N);
+            Array.Copy(WeightsGpu, Weights, C * N * Size * Size);
+            Array.Copy(BiasesGpu, Biases, N);
+            Array.Copy(WeightUpdatesGpu, WeightUpdates, C * N * Size * Size);
+            Array.Copy(BiasUpdatesGpu, BiasUpdates, N);
             if (BatchNormalize)
             {
-                cuda_pull_array(ScalesGpu, Scales, N);
-                cuda_pull_array(RollingMeanGpu, RollingMean, N);
-                cuda_pull_array(RollingVarianceGpu, RollingVariance, N);
+                Array.Copy(ScalesGpu, Scales, N);
+                Array.Copy(RollingMeanGpu, RollingMean, N);
+                Array.Copy(RollingVarianceGpu, RollingVariance, N);
             }
             if (Adam)
             {
-                cuda_pull_array(MGpu, M, C * N * Size * Size);
-                cuda_pull_array(VGpu, V, C * N * Size * Size);
+                Array.Copy(MGpu, M, C * N * Size * Size);
+                Array.Copy(VGpu, V, C * N * Size * Size);
             }
         }
 
         public void push_convolutional_layer()
         {
-            cuda_push_array(WeightsGpu, Weights, C * N * Size * Size);
-            cuda_push_array(BiasesGpu, Biases, N);
-            cuda_push_array(WeightUpdatesGpu, WeightUpdates, C * N * Size * Size);
-            cuda_push_array(BiasUpdatesGpu, BiasUpdates, N);
+            Array.Copy(Weights, WeightsGpu, C * N * Size * Size);
+            Array.Copy(Biases, BiasesGpu, N);
+            Array.Copy(WeightUpdates, WeightUpdatesGpu, C * N * Size * Size);
+            Array.Copy(BiasUpdates, BiasUpdatesGpu, N);
             if (BatchNormalize)
             {
-                cuda_push_array(ScalesGpu, Scales, N);
-                cuda_push_array(RollingMeanGpu, RollingMean, N);
-                cuda_push_array(RollingVarianceGpu, RollingVariance, N);
+                Array.Copy(Scales, ScalesGpu, N);
+                Array.Copy(RollingMean, RollingMeanGpu, N);
+                Array.Copy(RollingVariance, RollingVarianceGpu, N);
             }
             if (Adam)
             {
-                cuda_push_array(MGpu, M, C * N * Size * Size);
-                cuda_push_array(VGpu, V, C * N * Size * Size);
+                Array.Copy(M, MGpu, C * N * Size * Size);
+                Array.Copy(V, VGpu, C * N * Size * Size);
             }
         }
 
