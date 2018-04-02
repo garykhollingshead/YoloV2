@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2.Data

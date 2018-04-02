@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Yolo_V2.Data
+﻿namespace Yolo_V2.Data
 {
     public class NetworkState
     {

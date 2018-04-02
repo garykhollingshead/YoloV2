@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using Yolo_V2.Data.Enums;
-using Image = Yolo_V2.Data.Image;
 
 namespace Yolo_V2.Data
 {

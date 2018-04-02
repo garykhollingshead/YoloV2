@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Alea;
-using Alea.cuDNN;
 using Alea.CSharp;
 using Alea.CudaDnn;
-using Alea.CudaToolkit;
 using Yolo_V2.Data.Enums;
 using dim3 = Alea.dim3;
 

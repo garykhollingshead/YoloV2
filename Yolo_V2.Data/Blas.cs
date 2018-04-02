@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using Alea;
 using Alea.CSharp;
-using Alea.FSharp;
-using dim3 = Alea.CudaToolkit.dim3;
 
 namespace Yolo_V2.Data
 {

@@ -1,5 +1,4 @@
 ﻿using System;
-using Emgu.CV.Cuda;
 
 namespace Yolo_V2.Data
 {
