@@ -42,6 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FloatPair.cs" />
+    <Compile Include="Moves.cs" />
     <Compile Include="YoloV2.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

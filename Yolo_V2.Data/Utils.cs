@@ -19,6 +19,30 @@ namespace Yolo_V2.Data
             return File.ReadAllLines(filename).Select(int.Parse).ToArray();
         }
 
+        public static void IncArray(ref float[] array, ref float[] backup, int oldIndex, int index)
+        {
+            if (backup == null || backup.Length == 0)
+            {
+                backup = (float[])array.Clone();
+            }
+            else
+            {
+                Array.Copy(array, 0, backup, oldIndex, array.Length);
+            }
+            var newSize = backup.Length - index;
+            array = new float[newSize];
+            Array.Copy(backup, index, array, 0, newSize);
+        }
+
+        public static void DecArray(ref float[] array, ref float[] backup, int oldIndex, int index)
+        {
+            Array.Copy(array, 0, backup, oldIndex, array.Length);
+
+            var newSize = array.Length + index;
+            array = new float[newSize];
+            Array.Copy(backup, index, array, 0, newSize);
+        }
+
         public static void sorta_shuffle<T>(T[] arr, int sections)
         {
             int n = 0;

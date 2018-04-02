@@ -62,7 +62,7 @@ namespace Yolo_V2.Data
             for (i = 0; i < n; ++i) if (Parent[i] >= 0) Leaf[Parent[i]] = 0;
         }
 
-        public void Hierarchy_predictions(float[] predictions, int n, int onlyLeaves)
+        public void Hierarchy_predictions(float[] predictions, int predStart, int n, int onlyLeaves)
         {
             int j;
             for (j = 0; j < n; ++j)
@@ -70,14 +70,14 @@ namespace Yolo_V2.Data
                 int parent = Parent[j];
                 if (parent >= 0)
                 {
-                    predictions[j] *= predictions[parent];
+                    predictions[predStart + j] *= predictions[predStart + parent];
                 }
             }
             if (onlyLeaves == 1)
             {
                 for (j = 0; j < n; ++j)
                 {
-                    if (Leaf[j] != 0) predictions[j] = 0;
+                    if (Leaf[j] != 0) predictions[predStart + j] = 0;
                 }
             }
         }
@@ -98,12 +98,12 @@ namespace Yolo_V2.Data
             Console.WriteLine($"Found {found} leaves.");
     }
 
-        public float Get_hierarchy_probability(float[] x, int c)
+        public float Get_hierarchy_probability(float[] x, int xStart, int c)
         {
             float p = 1;
             while (c >= 0)
             {
-                p = p * x[c];
+                p = p * x[c + xStart];
                 c = Parent[c];
             }
             return p;

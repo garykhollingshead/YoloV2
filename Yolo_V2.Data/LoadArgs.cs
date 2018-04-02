@@ -1218,6 +1218,54 @@ namespace Yolo_V2.Data
             return resized;
         }
 
+        public static void test_resize(string filename)
+        {
+            Image im = load_image(filename, 0, 0, 3);
+            float mag = mag_array(im.data, im.w * im.h * im.c);
+            printf("L2 Norm: %f\n", mag);
+            var gray = grayscale_image(im);
+
+            var c1 = copy_image(im);
+            var c2 = copy_image(im);
+            var c3 = copy_image(im);
+            var c4 = copy_image(im);
+            distort_image(c1, .1f, 1.5f, 1.5f);
+            distort_image(c2, -.1f, .66666f, .66666f);
+            distort_image(c3, .1f, 1.5f, .66666f);
+            distort_image(c4, .1f, .66666f, 1.5f);
+
+
+            show_image(im, "Original");
+            show_image(gray, "Gray");
+            show_image(c1, "C1");
+            show_image(c2, "C2");
+            show_image(c3, "C3");
+            show_image(c4, "C4");
+            while (1)
+            {
+                var aug = random_augment_image(im, 0, .75f, 320, 448, 320);
+                show_image(aug, "aug");
+                free_image(aug);
+
+
+                float exposure = 1.15f;
+                float saturation = 1.15f;
+                float hue = .05f;
+
+                var c = copy_image(im);
+
+                float dexp = rand_scale(exposure);
+                float dsat = rand_scale(saturation);
+                float dhue = rand_uniform(-hue, hue);
+
+                distort_image(c, dhue, dsat, dexp);
+                show_image(c, "rand");
+                printf("%f %f %f\n", dhue, dsat, dexp);
+                free_image(c);
+                cvWaitKey(0);
+            }
+        }
+
         public static Image load_image_stb(string filename, int channels)
         {
             Mat mat = new Mat(filename);

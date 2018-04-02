@@ -142,7 +142,7 @@ namespace Yolo_V2.Data
                 {
                     Blas.Scal_cpu(l.Outputs * l.Batch, 0, l.Delta, 1);
                 }
-                l.Forward(state);
+                l.Forward(l, state);
                 state.Input = l.Output;
             }
         }
@@ -155,7 +155,7 @@ namespace Yolo_V2.Data
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                l.Update?.Invoke(update_batch, rate, net.Momentum, net.Decay);
+                l.Update?.Invoke(l, update_batch, rate, net.Momentum, net.Decay);
             }
         }
 
@@ -211,7 +211,7 @@ namespace Yolo_V2.Data
                     state.Delta = prev.Delta;
                 }
                 Layer l = net.Layers[i];
-                l.Backward(state);
+                l.Backward(l, state);
             }
         }
 
@@ -303,7 +303,7 @@ namespace Yolo_V2.Data
                 net.Layers[i].Batch = b;
                 if (net.Layers[i].LayerType == LayerType.Convolutional)
                 {
-                    Ccudnn_convolutional_setup(net.Layers + i);
+                    net.Layers[i].cudnn_convolutional_setup();
                 }
             }
         }
@@ -341,11 +341,11 @@ namespace Yolo_V2.Data
                 }
                 else if (l.LayerType == LayerType.Route)
                 {
-                    l.resize_route_layer( net);
+                    Layer.resize_route_layer(l, net);
                 }
                 else if (l.LayerType == LayerType.Reorg)
                 {
-                    l.resize_reorg_layer( w, h);
+                    Layer.resize_reorg_layer(l, w, h);
                 }
                 else if (l.LayerType == LayerType.Avgpool)
                 {
@@ -608,7 +608,7 @@ namespace Yolo_V2.Data
                 {
                     Blas.fill_ongpu(l.Outputs * l.Batch, 0, l.DeltaGpu, 1);
                 }
-                l.ForwardGpu(state);
+                l.ForwardGpu(l, state);
                 state.Input = l.OutputGpu;
             }
         }
@@ -634,7 +634,7 @@ namespace Yolo_V2.Data
                     state.Input = prev.OutputGpu;
                     state.Delta = prev.DeltaGpu;
                 }
-                l.BackwardGpu(state);
+                l.BackwardGpu(l, state);
             }
         }
         
@@ -647,7 +647,7 @@ namespace Yolo_V2.Data
             {
                 Layer l = net.Layers[i];
                 l.T = get_current_batch(net);
-                l.UpdateGpu?.Invoke(update_batch, rate, net.Momentum, net.Decay);
+                l.UpdateGpu?.Invoke(l, update_batch, rate, net.Momentum, net.Decay);
             }
         }
         
@@ -740,7 +740,7 @@ namespace Yolo_V2.Data
             int update_batch = net.Batch * net.Subdivisions;
             float rate = get_current_rate(net);
             l.T = get_current_batch(net);
-            l.UpdateGpu?.Invoke(update_batch, rate, net.Momentum, net.Decay);
+            l.UpdateGpu?.Invoke(l, update_batch, rate, net.Momentum, net.Decay);
         }
         
         public static void merge_weights(Layer l, Layer baseLayer)

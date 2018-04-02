@@ -119,17 +119,17 @@ namespace Yolo_V2.Data
             bool binary = OptionList.option_find_int_quiet(options, "binary", 0) != 0;
             bool xnor = OptionList.option_find_int_quiet(options, "xnor", 0) != 0;
 
-            Layer Layer = Yolo_V2.Data.Layer.make_convolutional_layer(batch, h, w, c, n, size, stride, padding, activation, batch_normalize, binary, xnor, parameters.Net.Adam);
-            Layer.Flipped = OptionList.option_find_int_quiet(options, "flipped", 0);
-            Layer.Dot = OptionList.option_find_float_quiet(options, "dot", 0);
+            Layer layer = Layer.make_convolutional_layer(batch, h, w, c, n, size, stride, padding, activation, batch_normalize, binary, xnor, parameters.Net.Adam);
+            layer.Flipped = OptionList.option_find_int_quiet(options, "flipped", 0);
+            layer.Dot = OptionList.option_find_float_quiet(options, "dot", 0);
             if (parameters.Net.Adam)
             {
-                Layer.B1 = parameters.Net.B1;
-                Layer.B2 = parameters.Net.B2;
-                Layer.Eps = parameters.Net.Eps;
+                layer.B1 = parameters.Net.B1;
+                layer.B2 = parameters.Net.B2;
+                layer.Eps = parameters.Net.Eps;
             }
 
-            return Layer;
+            return layer;
         }
 
         public static Layer parse_crnn(KeyValuePair[] options, SizeParams parameters)
@@ -138,11 +138,11 @@ namespace Yolo_V2.Data
             int hidden_filters = OptionList.option_find_int(options, "hidden_filters", 1);
             string activation_s = OptionList.option_find_str(options, "activation", "logistic");
             Activation activation = ActivationsHelper.Get_activation(activation_s);
-            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+            bool batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
 
             Layer l = Layer.make_crnn_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, hidden_filters, output_filters, parameters.TimeSteps, activation, batch_normalize);
 
-            l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0);
+            l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0) != 0;
 
             return l;
         }
@@ -153,12 +153,12 @@ namespace Yolo_V2.Data
             int hidden = OptionList.option_find_int(options, "hidden", 1);
             string activation_s = OptionList.option_find_str(options, "activation", "logistic");
             Activation activation = ActivationsHelper.Get_activation(activation_s);
-            int batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0);
+            bool batch_normalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
             int logistic = OptionList.option_find_int_quiet(options, "logistic", 0);
 
             Layer l = Layer.make_rnn_layer(parameters.Batch, parameters.Inputs, hidden, output, parameters.TimeSteps, activation, batch_normalize, logistic);
 
-            l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0);
+            l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0) != 0;
 
             return l;
         }
@@ -202,9 +202,9 @@ namespace Yolo_V2.Data
             Layer l = Layer.make_region_layer(parameters.Batch, parameters.W, parameters.H, num, classes, coords);
 
             l.Log = OptionList.option_find_int_quiet(options, "log", 0);
-            l.Sqrt = OptionList.option_find_int_quiet(options, "sqrt", 0);
+            l.Sqrt = OptionList.option_find_int_quiet(options, "sqrt", 0) != 0;
 
-            l.Softmax = OptionList.option_find_int(options, "softmax", 0);
+            l.Softmax = OptionList.option_find_int(options, "softmax", 0) != 0;
             l.MaxBoxes = OptionList.option_find_int_quiet(options, "max", 30);
             l.Jitter = OptionList.option_find_float(options, "jitter", .2f);
             l.Rescore = OptionList.option_find_int_quiet(options, "rescore", 0) != 0;
@@ -218,7 +218,7 @@ namespace Yolo_V2.Data
             l.ObjectScale = OptionList.option_find_float(options, "object_scale", 1);
             l.NoobjectScale = OptionList.option_find_float(options, "noobject_scale", 1);
             l.ClassScale = OptionList.option_find_float(options, "class_scale", 1);
-            l.BiasMatch = OptionList.option_find_int_quiet(options, "bias_match", 0);
+            l.BiasMatch = OptionList.option_find_int_quiet(options, "bias_match", 0) != 0;
 
             string tree_file = OptionList.option_find_str(options, "tree", "");
             if (!string.IsNullOrEmpty(tree_file)) l.SoftmaxTree = new Tree(tree_file);
@@ -241,13 +241,13 @@ namespace Yolo_V2.Data
         {
             int coords = OptionList.option_find_int(options, "coords", 1);
             int classes = OptionList.option_find_int(options, "classes", 1);
-            int rescore = OptionList.option_find_int(options, "rescore", 0);
+            bool rescore = OptionList.option_find_int(options, "rescore", 0) != 0;
             int num = OptionList.option_find_int(options, "num", 1);
             int side = OptionList.option_find_int(options, "side", 7);
             Layer layer = Layer.make_detection_layer(parameters.Batch, parameters.Inputs, num, side, classes, coords, rescore);
 
-            layer.Softmax = OptionList.option_find_int(options, "softmax", 0);
-            layer.Sqrt = OptionList.option_find_int(options, "sqrt", 0);
+            layer.Softmax = OptionList.option_find_int(options, "softmax", 0) != 0;
+            layer.Sqrt = OptionList.option_find_int(options, "sqrt", 0) != 0;
 
             layer.MaxBoxes = OptionList.option_find_int_quiet(options, "max", 30);
             layer.CoordScale = OptionList.option_find_float(options, "coord_scale", 1);
@@ -298,7 +298,7 @@ namespace Yolo_V2.Data
         public static Layer parse_reorg(KeyValuePair[] options, SizeParams parameters)
         {
             int stride = OptionList.option_find_int(options, "stride", 1);
-            int reverse = OptionList.option_find_int_quiet(options, "reverse", 0);
+            bool reverse = OptionList.option_find_int_quiet(options, "reverse", 0) != 0;
 
             int batch, h, w, c;
             h = parameters.H;

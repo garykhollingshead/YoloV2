@@ -7,19 +7,19 @@ namespace Yolo_V2.Data
     public static class Im2Col
     {
         public static float im2col_get_pixel(float[] im, int height, int width, int channels,
-            int row, int col, int channel, int pad)
+            int row, int col, int channel, int pad, int imStart = 0)
         {
             row -= pad;
             col -= pad;
 
             if (row < 0 || col < 0 ||
                 row >= height || col >= width) return 0;
-            return im[col + width * (row + height * channel)];
+            return im[imStart + col + width * (row + height * channel)];
         }
 
         public static void im2col_cpu(float[] data_im,
             int channels, int height, int width,
-            int ksize, int stride, int pad, float[] data_col)
+            int ksize, int stride, int pad, float[] data_col, int dataImStart = 0)
         {
             int c, h, w;
             int height_col = (height + 2 * pad - ksize) / stride + 1;
@@ -39,26 +39,26 @@ namespace Yolo_V2.Data
                         int im_col = w_offset + w * stride;
                         int col_index = (c * height_col + h) * width_col + w;
                         data_col[col_index] = im2col_get_pixel(data_im, height, width, channels,
-                            im_row, im_col, c_im, pad);
+                            im_row, im_col, c_im, pad, dataImStart);
                     }
                 }
             }
         }
 
         public static void col2im_add_pixel(float[] im, int height, int width, int channels,
-            int row, int col, int channel, int pad, float val)
+            int row, int col, int channel, int pad, float val, int imStart = 0)
         {
             row -= pad;
             col -= pad;
 
             if (row < 0 || col < 0 ||
                 row >= height || col >= width) return;
-            im[col + width * (row + height * channel)] += val;
+            im[imStart + col + width * (row + height * channel)] += val;
         }
 
         public static void col2im_cpu(float[] data_col,
             int channels, int height, int width,
-            int ksize, int stride, int pad, float[] data_im)
+            int ksize, int stride, int pad, float[] data_im, int dataImStart = 0)
         {
             int c, h, w;
             int height_col = (height + 2 * pad - ksize) / stride + 1;
@@ -79,7 +79,7 @@ namespace Yolo_V2.Data
                         int col_index = (c * height_col + h) * width_col + w;
                         float val = data_col[col_index];
                         col2im_add_pixel(data_im, height, width, channels,
-                            im_row, im_col, c_im, pad, val);
+                            im_row, im_col, c_im, pad, val, dataImStart);
                     }
                 }
             }
