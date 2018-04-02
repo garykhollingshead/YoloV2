@@ -213,7 +213,7 @@ namespace Yolo_V2
             Image im = new Image(net.W, net.H, net.C);
             for (i = 0; i < tics; ++i)
             {
-                network_predict(net, im.Data);
+                network_predict(net, im.Data.Data);
             }
             sw.Stop();
             var t = sw.Elapsed.Seconds;
@@ -276,7 +276,7 @@ namespace Yolo_V2
             Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                load_weights_upto(&net, weightfile, max);
+                load_weights_upto(net, weightfile, max);
             }
             net.Seen = 0;
             save_weights_upto(net, outfile, max);
@@ -309,7 +309,7 @@ namespace Yolo_V2
             Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             int i;
             for (i = 0; i < net.N; ++i)
@@ -330,7 +330,7 @@ namespace Yolo_V2
             Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             int i;
             for (i = 0; i < net.N; ++i)
@@ -489,7 +489,7 @@ namespace Yolo_V2
             Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             visualize_network(net);
             cvWaitKey(0);
@@ -501,41 +501,41 @@ namespace Yolo_V2
 
         void train_yolo(string cfgfile, string weightfile)
         {
-            string train_images = "/data/voc/train.txt";
+            string train_images = "/Data.Data/voc/train.txt";
             string backup_directory = "/home/pjreddie/backup/";
-            srand(time(0));
+            
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
             float avg_loss = -1;
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            int imgs = net.batch * net.subdivisions;
-            int i = *net.Seen / imgs;
-            data train, buffer;
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            int imgs = net.Batch * net.Subdivisions;
+            int i = net.Seen / imgs;
+            Data.Data train, buffer;
 
 
-            layer l = net.Layers[net.N - 1];
+            Layer l = net.Layers[net.N - 1];
 
-            int side = l.side;
-            int classes = l.classes;
-            float jitter = l.jitter;
+            int side = l.Side;
+            int classes = l.Classes;
+            float jitter = l.Jitter;
 
             list* plist = get_paths(train_images);
             //int N = plist.Size;
             string[] paths = (string[])list_to_array(plist);
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.paths = paths;
             args.N = imgs;
             args.m = plist.Size;
-            args.classes = classes;
-            args.jitter = jitter;
+            args.Classes = classes;
+            args.Jitter = jitter;
             args.num_boxes = side;
             args.d = &buffer;
             args.LayerType = REGION_DATA;
@@ -602,23 +602,23 @@ namespace Yolo_V2
 
         void validate_yolo(string cfgfile, string weightfile)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            srand(time(0));
+            set_batch_network(net, 1);
+            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            
 
             string basec = "results/comp4_det_test_";
-            //list *plist = get_paths("data/voc.2007.test");
-            list* plist = get_paths("/home/pjreddie/data/voc/2007_test.txt");
-            //list *plist = get_paths("data/voc.2012.test");
+            //list *plist = get_paths("Data.Data/voc.2007.test");
+            list* plist = get_paths("/home/pjreddie/Data.Data/voc/2007_test.txt");
+            //list *plist = get_paths("Data.Data/voc.2012.test");
             string[] paths = (string[])list_to_array(plist);
 
-            layer l = net.Layers[net.N - 1];
-            int classes = l.classes;
+            Layer l = net.Layers[net.N - 1];
+            int classes = l.Classes;
 
             int j;
             FILE** fps = (FILE**)calloc(classes, sizeof(FILE*));
@@ -628,9 +628,9 @@ namespace Yolo_V2
                 snprintf(buff, 1024, "%s%s.txt", basec, voc_names[j]);
                 fps[j] = fopen(buff, "w");
             }
-            box* boxes = (box*)calloc(l.side * l.side * l.N, sizeof(box));
-            float[]*probs = (float[] *)calloc(l.side * l.side * l.N, sizeof(float[]));
-            for (j = 0; j < l.side * l.side * l.N; ++j) probs[j] = (float[])calloc(classes, sizeof(float[]));
+            box* boxes = (box*)calloc(l.Side * l.Side * l.N, sizeof(box));
+            float[]*probs = (float[] *)calloc(l.Side * l.Side * l.N, sizeof(float[]));
+            for (j = 0; j < l.Side * l.Side * l.N; ++j) probs[j] = (float[])calloc(classes, sizeof(float[]));
 
             int m = plist.Size;
             int i = 0;
@@ -647,7 +647,7 @@ namespace Yolo_V2
             Image* buf_resized = (Image*)calloc(nthreads, sizeof(Image));
             pthread_t* thr = (pthread_t*)calloc(nthreads, sizeof(pthread_t));
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.LayerType = IMAGE_DATA;
@@ -680,13 +680,13 @@ namespace Yolo_V2
                 {
                     string path = paths[i + t - nthreads];
                     string id = basecfg(path);
-                    float[] X = val_resized[t].Data;
+                    float[] X = val_resized[t].Data.Data;
                     network_predict(net, X);
                     int w = val[t].W;
                     int h = val[t].H;
                     get_detection_boxes(l, w, h, thresh, probs, boxes, 0);
-                    if (nms) do_nms_sort(boxes, probs, l.side * l.side * l.N, classes, iou_thresh);
-                    print_yolo_detections(fps, id, boxes, probs, l.side * l.side * l.N, classes, w, h);
+                    if (nms) do_nms_sort(boxes, probs, l.Side * l.Side * l.N, classes, iou_thresh);
+                    print_yolo_detections(fps, id, boxes, probs, l.Side * l.Side * l.N, classes, w, h);
                     free(id);
                     free_image(val[t]);
                     free_image(val_resized[t]);
@@ -697,22 +697,22 @@ namespace Yolo_V2
 
         void validate_yolo_recall(string cfgfile, string weightfile)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            srand(time(0));
+            set_batch_network(net, 1);
+            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            
 
             string basec = "results/comp4_det_test_";
-            list* plist = get_paths("data/voc.2007.test");
+            list* plist = get_paths("Data.Data/voc.2007.test");
             string[] paths = (string[])list_to_array(plist);
 
-            layer l = net.Layers[net.N - 1];
-            int classes = l.classes;
-            int side = l.side;
+            Layer l = net.Layers[net.N - 1];
+            int classes = l.Classes;
+            int side = l.Side;
 
             int j, k;
             FILE** fps = (FILE**)calloc(classes, sizeof(FILE*));
@@ -744,7 +744,7 @@ namespace Yolo_V2
                 Image orig = load_image_color(path, 0, 0);
                 Image sized = resize_image(orig, net.W, net.H);
                 string id = basecfg(path);
-                network_predict(net, sized.Data);
+                network_predict(net, sized.Data.Data);
                 get_detection_boxes(l, orig.W, orig.H, thresh, probs, boxes, 1);
                 if (nms) do_nms(boxes, probs, side * side * l.N, 1, nms);
 
@@ -793,22 +793,22 @@ namespace Yolo_V2
         void test_yolo(string cfgfile, string weightfile, string filename, float thresh)
         {
             Image** alphabet = load_alphabet();
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             detection_layer l = net.Layers[net.N - 1];
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
             clock_t time;
             char buff[256];
             string input = buff;
             int j;
             float nms = .4;
-            box* boxes = (box*)calloc(l.side * l.side * l.N, sizeof(box));
-            float[]*probs = (float[] *)calloc(l.side * l.side * l.N, sizeof(float[]));
-            for (j = 0; j < l.side * l.side * l.N; ++j) probs[j] = (float[])calloc(l.classes, sizeof(float[]));
+            box* boxes = (box*)calloc(l.Side * l.Side * l.N, sizeof(box));
+            float[]*probs = (float[] *)calloc(l.Side * l.Side * l.N, sizeof(float[]));
+            for (j = 0; j < l.Side * l.Side * l.N; ++j) probs[j] = (float[])calloc(l.Classes, sizeof(float[]));
             while (1)
             {
                 if (filename)
@@ -825,14 +825,14 @@ namespace Yolo_V2
                 }
                 Image im = load_image_color(input, 0, 0);
                 Image sized = resize_image(im, net.W, net.H);
-                float[] X = sized.Data;
+                float[] X = sized.Data.Data;
                 time = clock();
                 network_predict(net, X);
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sec(clock() - time));
                 get_detection_boxes(l, 1, 1, thresh, probs, boxes, 0);
-                if (nms) do_nms_sort(boxes, probs, l.side * l.side * l.N, l.classes, nms);
+                if (nms) do_nms_sort(boxes, probs, l.Side * l.Side * l.N, l.Classes, nms);
                 //draw_detections(im, l.sidel.sidel.N, thresh, boxes, probs, voc_names, alphabet, 20);
-                draw_detections(im, l.side * l.side * l.N, thresh, boxes, probs, voc_names, alphabet, 20);
+                draw_detections(im, l.Side * l.Side * l.N, thresh, boxes, probs, voc_names, alphabet, 20);
                 save_image(im, "predictions");
                 show_image(im, "predictions");
 
@@ -905,28 +905,28 @@ namespace Yolo_V2
 
         void train_voxel(string cfgfile, string weightfile)
         {
-            string train_images = "/data/imagenet/imagenet1k.train.list";
+            string train_images = "/Data.Data/imagenet/imagenet1k.train.list";
             string backup_directory = "/home/pjreddie/backup/";
-            srand(time(0));
+            
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
             float avg_loss = -1;
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            int imgs = net.batch * net.subdivisions;
-            int i = *net.Seen / imgs;
-            data train, buffer;
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            int imgs = net.Batch * net.Subdivisions;
+            int i = net.Seen / imgs;
+            Data.Data train, buffer;
 
 
             list* plist = get_paths(train_images);
             //int N = plist.Size;
             string[] paths = (string[])list_to_array(plist);
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.scale = 4;
@@ -976,12 +976,12 @@ namespace Yolo_V2
 
         void test_voxel(string cfgfile, string weightfile, string filename)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
 
             clock_t time;
@@ -1002,10 +1002,10 @@ namespace Yolo_V2
                     strtok(input, "\n");
                 }
                 Image im = load_image_color(input, 0, 0);
-                resize_network(&net, im.W, im.H);
+                resize_network(net, im.W, im.H);
                 Console.Write($"%d %d\n", im.W, im.H);
 
-                float[] X = im.Data;
+                float[] X = im.Data.Data;
                 time = clock();
                 network_predict(net, X);
                 Image outi = get_network_image(net);
@@ -1040,28 +1040,28 @@ namespace Yolo_V2
 
         void train_super(string cfgfile, string weightfile)
         {
-            string train_images = "/data/imagenet/imagenet1k.train.list";
+            string train_images = "/Data.Data/imagenet/imagenet1k.train.list";
             string backup_directory = "/home/pjreddie/backup/";
-            srand(time(0));
+            
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
             float avg_loss = -1;
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            int imgs = net.batch * net.subdivisions;
-            int i = *net.Seen / imgs;
-            data train, buffer;
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            int imgs = net.Batch * net.Subdivisions;
+            int i = net.Seen / imgs;
+            Data.Data train, buffer;
 
 
             list* plist = get_paths(train_images);
             //int N = plist.Size;
             string[] paths = (string[])list_to_array(plist);
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.scale = 4;
@@ -1111,12 +1111,12 @@ namespace Yolo_V2
 
         void test_super(string cfgfile, string weightfile, string filename)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
 
             clock_t time;
@@ -1137,10 +1137,10 @@ namespace Yolo_V2
                     strtok(input, "\n");
                 }
                 Image im = load_image_color(input, 0, 0);
-                resize_network(&net, im.W, im.H);
+                resize_network(net, im.W, im.H);
                 Console.Write($"%d %d\n", im.W, im.H);
 
-                float[] X = im.Data;
+                float[] X = im.Data.Data;
                 time = clock();
                 network_predict(net, X);
                 Image outi = get_network_image(net);
@@ -1177,16 +1177,16 @@ namespace Yolo_V2
         void train_detector(string datacfg, string cfgfile, string weightfile, int[] gpus, int ngpus, int clear)
         {
             list* options = read_data_cfg(datacfg);
-            string train_images = option_find_str(options, "train", "data/train.list");
+            string train_images = option_find_str(options, "train", "Data.Data/train.list");
             string backup_directory = option_find_str(options, "backup", "/backup/");
 
-            srand(time(0));
+            
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
             float avg_loss = -1;
-            network* nets = calloc(ngpus, sizeof(network));
+            Network* nets = calloc(ngpus, sizeof(Network));
 
-            srand(time(0));
+            
             int seed = rand();
             int i;
             for (i = 0; i < ngpus; ++i)
@@ -1199,32 +1199,32 @@ namespace Yolo_V2
                     Parser.load_weights(&nets[i], weightfile);
                 }
                 if (clear) *nets[i].Seen = 0;
-                nets[i].learning_rate *= ngpus;
+                nets[i].LearningRate *= ngpus;
             }
-            srand(time(0));
-            network net = nets[0];
+            
+            Network net = nets[0];
 
-            int imgs = net.batch * net.subdivisions * ngpus;
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            data train, buffer;
+            int imgs = net.Batch * net.Subdivisions * ngpus;
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            Data.Data train, buffer;
 
-            layer l = net.Layers[net.N - 1];
+            Layer l = net.Layers[net.N - 1];
 
-            int classes = l.classes;
-            float jitter = l.jitter;
+            int classes = l.Classes;
+            float jitter = l.Jitter;
 
             list* plist = get_paths(train_images);
             //int N = plist.Size;
             string[] paths = (string[])list_to_array(plist);
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.paths = paths;
             args.N = imgs;
             args.m = plist.Size;
-            args.classes = classes;
-            args.jitter = jitter;
+            args.Classes = classes;
+            args.Jitter = jitter;
             args.num_boxes = l.max_boxes;
             args.d = &buffer;
             args.LayerType = DETECTION_DATA;
@@ -1385,29 +1385,29 @@ namespace Yolo_V2
         {
             int j;
             list* options = read_data_cfg(datacfg);
-            string valid_images = option_find_str(options, "valid", "data/train.list");
-            string name_list = option_find_str(options, "names", "data/names.list");
+            string valid_images = option_find_str(options, "valid", "Data.Data/train.list");
+            string name_list = option_find_str(options, "names", "Data.Data/names.list");
             string prefix = option_find_str(options, "results", "results");
             string[] names = get_labels(name_list);
             string mapf = option_find_str(options, "map", 0);
             int[] map = 0;
             if (mapf) map = read_map(mapf);
 
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            srand(time(0));
+            set_batch_network(net, 1);
+            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            
 
             string basec = "comp4_det_test_";
             list* plist = get_paths(valid_images);
             string[] paths = (string[])list_to_array(plist);
 
-            layer l = net.Layers[net.N - 1];
-            int classes = l.classes;
+            Layer l = net.Layers[net.N - 1];
+            int classes = l.Classes;
 
             char buff[1024];
             string type = option_find_str(options, "eval", "voc");
@@ -1458,7 +1458,7 @@ namespace Yolo_V2
             Image* buf_resized = calloc(nthreads, sizeof(Image));
             pthread_t* thr = calloc(nthreads, sizeof(pthread_t));
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.LayerType = IMAGE_DATA;
@@ -1491,7 +1491,7 @@ namespace Yolo_V2
                 {
                     string path = paths[i + t - nthreads];
                     string id = basecfg(path);
-                    float[] X = val_resized[t].Data;
+                    float[] X = val_resized[t].Data.Data;
                     network_predict(net, X);
                     int w = val[t].W;
                     int h = val[t].H;
@@ -1529,20 +1529,20 @@ namespace Yolo_V2
 
         void validate_detector_recall(string cfgfile, string weightfile)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            srand(time(0));
+            set_batch_network(net, 1);
+            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            
 
-            list* plist = get_paths("data/voc.2007.test");
+            list* plist = get_paths("Data.Data/voc.2007.test");
             string[] paths = (string[])list_to_array(plist);
 
-            layer l = net.Layers[net.N - 1];
-            int classes = l.classes;
+            Layer l = net.Layers[net.N - 1];
+            int classes = l.Classes;
 
             int j, k;
             box* boxes = calloc(l.W * l.H * l.N, sizeof(box));
@@ -1567,7 +1567,7 @@ namespace Yolo_V2
                 Image orig = load_image_color(path, 0, 0);
                 Image sized = resize_image(orig, net.W, net.H);
                 string id = basecfg(path);
-                network_predict(net, sized.Data);
+                network_predict(net, sized.Data.Data);
                 get_region_boxes(l, 1, 1, thresh, probs, boxes, 1, 0);
                 if (nms) do_nms(boxes, probs, l.W * l.H * l.N, 1, nms);
 
@@ -1616,16 +1616,16 @@ namespace Yolo_V2
         public static void test_detector(string datacfg, string cfgfile, string weightfile, string filename, float thresh)
         {
             list* options = read_data_cfg(datacfg);
-            string name_list = option_find_str(options, "names", "data/names.list");
+            string name_list = option_find_str(options, "names", "Data.Data/names.list");
             string[] names = get_labels(name_list);
 
             Image** alphabet = load_alphabet();
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
             clock_t time;
             char buff[256];
@@ -1648,19 +1648,19 @@ namespace Yolo_V2
                 }
                 Image im = load_image_color(input, 0, 0);
                 Image sized = resize_image(im, net.W, net.H);
-                layer l = net.Layers[net.N - 1];
+                Layer l = net.Layers[net.N - 1];
 
                 box* boxes = calloc(l.W * l.H * l.N, sizeof(box));
                 float[]*probs = calloc(l.W * l.H * l.N, sizeof(float[]));
-                for (j = 0; j < l.W * l.H * l.N; ++j) probs[j] = calloc(l.classes, sizeof(float[]));
+                for (j = 0; j < l.W * l.H * l.N; ++j) probs[j] = calloc(l.Classes, sizeof(float[]));
 
-                float[] X = sized.Data;
+                float[] X = sized.Data.Data;
                 time = clock();
                 network_predict(net, X);
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sec(clock() - time));
                 get_region_boxes(l, 1, 1, thresh, probs, boxes, 0, 0);
-                if (nms) do_nms_sort(boxes, probs, l.W * l.H * l.N, l.classes, nms);
-                draw_detections(im, l.W * l.H * l.N, thresh, boxes, probs, names, alphabet, l.classes);
+                if (nms) do_nms_sort(boxes, probs, l.W * l.H * l.N, l.Classes, nms);
+                draw_detections(im, l.W * l.H * l.N, thresh, boxes, probs, names, alphabet, l.Classes);
                 save_image(im, "predictions");
                 show_image(im, "predictions");
 
@@ -1727,7 +1727,7 @@ namespace Yolo_V2
             {
                 list* options = read_data_cfg(datacfg);
                 int classes = option_find_int(options, "classes", 20);
-                string name_list = option_find_str(options, "names", "data/names.list");
+                string name_list = option_find_str(options, "names", "Data.Data/names.list");
                 string[] names = get_labels(name_list);
                 demo(cfg, weights, thresh, cam_index, filename, names, classes, frame_skip, prefix);
             }
@@ -1739,24 +1739,24 @@ namespace Yolo_V2
 
         void train_cifar(string cfgfile, string weightfile)
         {
-            srand(time(0));
+            
             float avg_loss = -1;
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
 
             string backup_directory = "/home/pjreddie/backup/";
             int classes = 10;
             int N = 50000;
 
-            string[] labels = get_labels("data/cifar/labels.txt");
-            int epoch = (*net.Seen) / N;
-            data train = load_all_cifar10();
+            string[] labels = get_labels("Data.Data/cifar/labels.txt");
+            int epoch = (net.Seen) / N;
+            Data.Data train = load_all_cifar10();
             while (get_current_batch(net) < net.max_batches || net.max_batches == 0)
             {
                 clock_t time = clock();
@@ -1764,10 +1764,10 @@ namespace Yolo_V2
                 float loss = train_network_sgd(net, train, 1);
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .95 + loss * .05;
-                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(*net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), *net.Seen);
-                if (*net.Seen / N > epoch)
+                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), net.Seen);
+                if (net.Seen / N > epoch)
                 {
-                    epoch = *net.Seen / N;
+                    epoch = net.Seen / N;
                     char buff[256];
                     sprintf(buff, "%s/%s_%d.Weights", backup_directory, basec, epoch);
                     save_weights(net, buff);
@@ -1791,26 +1791,26 @@ namespace Yolo_V2
 
         void train_cifar_distill(string cfgfile, string weightfile)
         {
-            srand(time(0));
+            
             float avg_loss = -1;
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
 
             string backup_directory = "/home/pjreddie/backup/";
             int classes = 10;
             int N = 50000;
 
-            string[] labels = get_labels("data/cifar/labels.txt");
-            int epoch = (*net.Seen) / N;
+            string[] labels = get_labels("Data.Data/cifar/labels.txt");
+            int epoch = (net.Seen) / N;
 
-            data train = load_all_cifar10();
-            matrix soft = csv_to_matrix("results/ensemble.csv");
+            Data.Data train = load_all_cifar10();
+            Matrix soft = csv_to_matrix("results/ensemble.csv");
 
             float weight = .9;
             scale_matrix(soft, weight);
@@ -1824,10 +1824,10 @@ namespace Yolo_V2
                 float loss = train_network_sgd(net, train, 1);
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .95 + loss * .05;
-                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(*net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), *net.Seen);
-                if (*net.Seen / N > epoch)
+                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), net.Seen);
+                if (net.Seen / N > epoch)
                 {
-                    epoch = *net.Seen / N;
+                    epoch = net.Seen / N;
                     char buff[256];
                     sprintf(buff, "%s/%s_%d.Weights", backup_directory, basec, epoch);
                     save_weights(net, buff);
@@ -1851,16 +1851,16 @@ namespace Yolo_V2
 
         void test_cifar_multi(string filename, string weightfile)
         {
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            srand(time(0));
+            set_batch_network(net, 1);
+            
 
             float avg_acc = 0;
-            data test = load_cifar10_data("data/cifar/cifar-10-batches-bin/test_batch.bin");
+            Data.Data test = load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
 
             int i;
             for (i = 0; i < test.X.rows; ++i)
@@ -1869,10 +1869,10 @@ namespace Yolo_V2
 
                 float pred[10] = { 0 };
 
-                float[] p = network_predict(net, im.Data);
+                float[] p = network_predict(net, im.Data.Data);
                 axpy_cpu(10, 1, p, 1, pred, 1);
                 flip_image(im);
-                p = network_predict(net, im.Data);
+                p = network_predict(net, im.Data.Data);
                 axpy_cpu(10, 1, p, 1, pred, 1);
 
                 int index = max_index(pred, 10);
@@ -1885,17 +1885,17 @@ namespace Yolo_V2
 
         void test_cifar(string filename, string weightfile)
         {
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
             clock_t time;
             float avg_acc = 0;
             float avg_top5 = 0;
-            data test = load_cifar10_data("data/cifar/cifar-10-batches-bin/test_batch.bin");
+            Data.Data test = load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
 
             time = clock();
 
@@ -1910,14 +1910,14 @@ namespace Yolo_V2
         {
             string labels[] = { "airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck" };
             int i;
-            data train = load_all_cifar10();
-            data test = load_cifar10_data("data/cifar/cifar-10-batches-bin/test_batch.bin");
+            Data.Data train = load_all_cifar10();
+            Data.Data test = load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
             for (i = 0; i < train.X.rows; ++i)
             {
                 Image im = float_to_image(32, 32, 3, train.X.vals[i]);
                 int sclass = max_index(train.y.vals[i], 10);
                 char buff[256];
-                sprintf(buff, "data/cifar/train/%d_%s", i, labels[sclass]);
+                sprintf(buff, "Data.Data/cifar/train/%d_%s", i, labels[sclass]);
                 save_image_png(im, buff);
             }
             for (i = 0; i < test.X.rows; ++i)
@@ -1925,23 +1925,23 @@ namespace Yolo_V2
                 Image im = float_to_image(32, 32, 3, test.X.vals[i]);
                 int sclass = max_index(test.y.vals[i], 10);
                 char buff[256];
-                sprintf(buff, "data/cifar/test/%d_%s", i, labels[sclass]);
+                sprintf(buff, "Data.Data/cifar/test/%d_%s", i, labels[sclass]);
                 save_image_png(im, buff);
             }
         }
 
         void test_cifar_csv(string filename, string weightfile)
         {
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
-            data test = load_cifar10_data("data/cifar/cifar-10-batches-bin/test_batch.bin");
+            Data.Data test = load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
 
-            matrix pred = network_predict_data(net, test);
+            Matrix pred = network_predict_data(net, test);
 
             int i;
             for (i = 0; i < test.X.rows; ++i)
@@ -1949,7 +1949,7 @@ namespace Yolo_V2
                 Image im = float_to_image(32, 32, 3, test.X.vals[i]);
                 flip_image(im);
             }
-            matrix pred2 = network_predict_data(net, test);
+            Matrix pred2 = network_predict_data(net, test);
             scale_matrix(pred, .5);
             scale_matrix(pred2, .5);
             matrix_add_matrix(pred2, pred);
@@ -1961,16 +1961,16 @@ namespace Yolo_V2
 
         void test_cifar_csvtrain(string filename, string weightfile)
         {
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
-            data test = load_all_cifar10();
+            Data.Data test = load_all_cifar10();
 
-            matrix pred = network_predict_data(net, test);
+            Matrix pred = network_predict_data(net, test);
 
             int i;
             for (i = 0; i < test.X.rows; ++i)
@@ -1978,7 +1978,7 @@ namespace Yolo_V2
                 Image im = float_to_image(32, 32, 3, test.X.vals[i]);
                 flip_image(im);
             }
-            matrix pred2 = network_predict_data(net, test);
+            Matrix pred2 = network_predict_data(net, test);
             scale_matrix(pred, .5);
             scale_matrix(pred2, .5);
             matrix_add_matrix(pred2, pred);
@@ -1990,9 +1990,9 @@ namespace Yolo_V2
 
         void eval_cifar_csv()
         {
-            data test = load_cifar10_data("data/cifar/cifar-10-batches-bin/test_batch.bin");
+            Data.Data test = load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
 
-            matrix pred = csv_to_matrix("results/combined.csv");
+            Matrix pred = csv_to_matrix("results/combined.csv");
             Console.Error.Write($"%d %d\n", pred.rows, pred.cols);
 
             Console.Error.Write($"Accuracy: %f\n", matrix_topk_accuracy(test.y, pred, 1));
@@ -2048,7 +2048,7 @@ namespace Yolo_V2
         {
             moves m;
             m.N = 128;
-            m.Data = calloc(128, sizeof(string));
+            Data.Data.Data = calloc(128, sizeof(string));
             FILE* fp = fopen(filename, "rb");
             int count = 0;
             string line = 0;
@@ -2057,14 +2057,14 @@ namespace Yolo_V2
                 if (count >= m.N)
                 {
                     m.N *= 2;
-                    m.Data = realloc(m.Data, m.N * sizeof(string));
+                    Data.Data.Data = realloc(Data.Data.Data, m.N * sizeof(string));
                 }
-                m.Data[count] = line;
+                Data.Data.Data[count] = line;
                 ++count;
             }
             Console.Write($"%d\n", count);
             m.N = count;
-            m.Data = realloc(m.Data, count * sizeof(string));
+            Data.Data.Data = realloc(Data.Data.Data, count * sizeof(string));
             return m;
         }
 
@@ -2114,7 +2114,7 @@ namespace Yolo_V2
             memset(labels, 0, 19 * 19 * n * sizeof(float));
             for (i = 0; i < n; ++i)
             {
-                string b = m.Data[rand() % m.N];
+                string b = Data.Data.Data[rand() % m.N];
                 int row = b[0];
                 int col = b[1];
                 labels[col + 19 * (row + i * 19)] = 1;
@@ -2138,39 +2138,39 @@ namespace Yolo_V2
 
         void train_go(string cfgfile, string weightfile)
         {
-            srand(time(0));
+            
             float avg_loss = -1;
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
 
             string backup_directory = "/home/pjreddie/backup/";
 
             char buff[256];
-            float[] board = calloc(19 * 19 * net.batch, sizeof(float));
-            float[] move = calloc(19 * 19 * net.batch, sizeof(float));
+            float[] board = calloc(19 * 19 * net.Batch, sizeof(float));
+            float[] move = calloc(19 * 19 * net.Batch, sizeof(float));
             moves m = load_go_moves("/home/pjreddie/backup/go.train");
             //moves m = load_go_moves("games.txt");
 
             int N = m.N;
-            int epoch = (*net.Seen) / N;
+            int epoch = (net.Seen) / N;
             while (get_current_batch(net) < net.max_batches || net.max_batches == 0)
             {
                 clock_t time = clock();
 
-                random_go_moves(m, board, move, net.batch);
-                float loss = train_network_datum(net, board, move) / net.batch;
+                random_go_moves(m, board, move, net.Batch);
+                float loss = train_network_datum(net, board, move) / net.Batch;
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .95 + loss * .05;
-                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(*net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), *net.Seen);
-                if (*net.Seen / N > epoch)
+                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), net.Seen);
+                if (net.Seen / N > epoch)
                 {
-                    epoch = *net.Seen / N;
+                    epoch = net.Seen / N;
                     char buff[256];
                     sprintf(buff, "%s/%s_%d.Weights", backup_directory, basec, epoch);
                     save_weights(net, buff);
@@ -2295,7 +2295,7 @@ namespace Yolo_V2
             }
         }
 
-        void predict_move(network net, float[] board, float[] move, int multi)
+        void predict_move(Network net, float[] board, float[] move, int multi)
         {
             float[] output = network_predict(net, board);
             Blas.Copy_cpu(19 * 19, output, 1, move, 1);
@@ -2389,7 +2389,7 @@ namespace Yolo_V2
             return 1;
         }
 
-        int generate_move(network net, int player, float[] board, int multi, float thresh, float temp, string ko, int print)
+        int generate_move(Network net, int player, float[] board, int multi, float thresh, float temp, string ko, int print)
         {
             int i, j;
             for (i = 0; i < net.N; ++i) net.Layers[i].temperature = temp;
@@ -2450,16 +2450,16 @@ namespace Yolo_V2
 
         void valid_go(string cfgfile, string weightfile, int multi)
         {
-            srand(time(0));
+            
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            set_batch_network(net, 1);
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
 
             float[] board = calloc(19 * 19, sizeof(float));
             float[] move = calloc(19 * 19, sizeof(float));
@@ -2470,7 +2470,7 @@ namespace Yolo_V2
             int correct = 0;
             for (i = 0; i < N; ++i)
             {
-                string b = m.Data[i];
+                string b = Data.Data.Data[i];
                 int row = b[0];
                 int col = b[1];
                 int truth = col + 19 * row;
@@ -2484,13 +2484,13 @@ namespace Yolo_V2
 
         void engine_go(string filename, string weightfile, int multi)
         {
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
-            set_batch_network(&net, 1);
+            
+            set_batch_network(net, 1);
             float[] board = calloc(19 * 19, sizeof(float));
             string one = calloc(91, sizeof(char));
             string two = calloc(91, sizeof(char));
@@ -2698,13 +2698,13 @@ namespace Yolo_V2
 
         void test_go(string cfg, string weights, int multi)
         {
-            network net = Parser.parse_network_cfg(cfg);
+            Network net = Parser.parse_network_cfg(cfg);
             if (weights)
             {
-                Parser.load_weights(&net, weights);
+                Parser.load_weights(net, weights);
             }
-            srand(time(0));
-            set_batch_network(&net, 1);
+            
+            set_batch_network(net, 1);
             float[] board = calloc(19 * 19, sizeof(float));
             float[] move = calloc(19 * 19, sizeof(float));
             int color = 1;
@@ -2852,13 +2852,13 @@ namespace Yolo_V2
 
         void self_go(string filename, string weightfile, string f2, string w2, int multi)
         {
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
 
-            network net2 = net;
+            Network net2 = net;
             if (f2)
             {
                 net2 = Parser.parse_network_cfg(f2);
@@ -2867,11 +2867,11 @@ namespace Yolo_V2
                     Parser.load_weights(&net2, w2);
                 }
             }
-            srand(time(0));
+            
             //char boards[300][93];
             char boards[300, 93];
             int count = 0;
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             set_batch_network(&net2, 1);
             float[] board = calloc(19 * 19, sizeof(float));
             string one = calloc(91, sizeof(char));
@@ -2909,7 +2909,7 @@ namespace Yolo_V2
                 }
                 //print_board(board, 1, 0);
                 //sleep(1);
-                network use = ((total % 2 == 0) == (player == 1)) ? net : net2;
+                Network use = ((total % 2 == 0) == (player == 1)) ? net : net2;
                 int index = generate_move(use, player, board, multi, .1, .7, two, 0);
                 if (index < 0)
                 {
@@ -3070,12 +3070,12 @@ namespace Yolo_V2
             return p;
         }
 
-        void reset_rnn_state(network net, int b)
+        void reset_rnn_state(Network net, int b)
         {
             int i;
             for (i = 0; i < net.N; ++i)
             {
-                layer l = net.Layers[i];
+                Layer l = net.Layers[i];
                 if (l.state_gpu)
                 {
                     fill_ongpu(l.Outputs, 0, l.state_gpu + l.Outputs * b, 1);
@@ -3085,7 +3085,7 @@ namespace Yolo_V2
 
         void train_char_rnn(string cfgfile, string weightfile, string filename, int clear, int tokenized)
         {
-            srand(time(0));
+            
             unsigned string text = 0;
             int[] tokens = 0;
             size_t size;
@@ -3110,18 +3110,18 @@ namespace Yolo_V2
             string basec = basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);
             float avg_loss = -1;
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
 
             int inputs = get_network_input_size(net);
-            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            int batch = net.batch;
+            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            int batch = net.Batch;
             int steps = net.time_steps;
-            if (clear) *net.Seen = 0;
-            int i = (*net.Seen) / net.batch;
+            if (clear) net.Seen = 0;
+            int i = (net.Seen) / net.Batch;
 
             int streams = batch / steps;
             size_t* offsets = calloc(streams, sizeof(size_t));
@@ -3209,10 +3209,10 @@ namespace Yolo_V2
             string basec = basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);
 
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             int inputs = get_network_input_size(net);
 
@@ -3265,10 +3265,10 @@ namespace Yolo_V2
             string basec = basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);
 
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             int inputs = get_network_input_size(net);
 
@@ -3307,10 +3307,10 @@ namespace Yolo_V2
             string basec = basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);
 
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             int inputs = get_network_input_size(net);
 
@@ -3364,10 +3364,10 @@ namespace Yolo_V2
             string basec = basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);
 
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             int inputs = get_network_input_size(net);
 
@@ -3408,10 +3408,10 @@ namespace Yolo_V2
             string basec = basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);
 
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             int inputs = get_network_input_size(net);
 
@@ -3444,7 +3444,7 @@ namespace Yolo_V2
                 network_predict(net, input);
                 input[(int)c] = 0;
 
-                layer l = net.Layers[0];
+                Layer l = net.Layers[0];
                 cuda_pull_array(l.output_gpu, l.output, l.Outputs);
                 Console.Write($"%s", line);
                 for (i = 0; i < l.Outputs; ++i)
@@ -3462,7 +3462,7 @@ namespace Yolo_V2
                 Console.Error.Write($"usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", args[0], args[1]);
                 return;
             }
-            string filename = find_char_arg(args.Count, args, "-file", "data/shakespeare.txt");
+            string filename = find_char_arg(args.Count, args, "-file", "Data.Data/shakespeare.txt");
             string seed = find_char_arg(args.Count, args, "-seed", "\n\n");
             int len = Utils.find_int_arg(args.Count, args, "-len", 1000);
             float temp = find_float_arg(args.Count, args, "-temp", .7);
@@ -3486,18 +3486,18 @@ namespace Yolo_V2
         #region RnnVidFile
 
 
-        float_pair get_rnn_vid_data(network net, string[] files, int n, int batch, int steps)
+        float_pair get_rnn_vid_data(Network net, string[] files, int n, int batch, int steps)
         {
             int b;
-            assert(net.batch == steps + 1);
+            assert(net.Batch == steps + 1);
             Image out_im = get_network_image(net);
             int output_size = out_im.W * out_im.H * out_im.C;
             Console.Write($"%d %d %d\n", out_im.W, out_im.H, out_im.C);
-            float[] feats = calloc(net.batch * batch * output_size, sizeof(float));
+            float[] feats = calloc(net.Batch * batch * output_size, sizeof(float));
             for (b = 0; b < batch; ++b)
             {
                 int input_size = net.W * net.H * net.C;
-                float[] input = calloc(input_size * net.batch, sizeof(float));
+                float[] input = calloc(input_size * net.Batch, sizeof(float));
                 string filename = files[rand() % n];
                 CvCapture* cap = cvCaptureFromFile(filename);
                 int frames = cvGetCaptureProperty(cap, CV_CAP_PROP_FRAME_COUNT);
@@ -3513,7 +3513,7 @@ namespace Yolo_V2
                 cvSetCaptureProperty(cap, CV_CAP_PROP_POS_FRAMES, index);
 
                 int i;
-                for (i = 0; i < net.batch; ++i)
+                for (i = 0; i < net.Batch; ++i)
                 {
                     IplImage* src = cvQueryFrame(cap);
                     Image im = ipl_to_image(src);
@@ -3521,7 +3521,7 @@ namespace Yolo_V2
                     Image re = resize_image(im, net.W, net.H);
                     //show_image(re, "loaded");
                     //cvWaitKey(10);
-                    memcpy(input + i * input_size, re.Data, input_size * sizeof(float));
+                    memcpy(input + i * input_size, re.Data.Data, input_size * sizeof(float));
                     free_image(im);
                     free_image(re);
                 }
@@ -3529,7 +3529,7 @@ namespace Yolo_V2
 
                 free(input);
 
-                for (i = 0; i < net.batch; ++i)
+                for (i = 0; i < net.Batch; ++i)
                 {
                     memcpy(feats + (b + i * batch) * output_size, output + i * output_size, output_size * sizeof(float));
                 }
@@ -3548,29 +3548,29 @@ namespace Yolo_V2
 
         void train_vid_rnn(string cfgfile, string weightfile)
         {
-            string train_videos = "data/vid/train.txt";
+            string train_videos = "Data.Data/vid/train.txt";
             string backup_directory = "/home/pjreddie/backup/";
-            srand(time(0));
+            
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
             float avg_loss = -1;
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            int imgs = net.batch * net.subdivisions;
-            int i = *net.Seen / imgs;
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            int imgs = net.Batch * net.Subdivisions;
+            int i = net.Seen / imgs;
 
             list* plist = get_paths(train_videos);
             int N = plist.Size;
             string[] paths = (string[])list_to_array(plist);
             clock_t time;
             int steps = net.time_steps;
-            int batch = net.batch / net.time_steps;
+            int batch = net.Batch / net.time_steps;
 
-            network extractor = Parser.parse_network_cfg("cfg/extractor.cfg");
+            Network extractor = Parser.parse_network_cfg("cfg/extractor.cfg");
             Parser.load_weights(&extractor, "/home/pjreddie/trained/yolo-coco.conv");
 
             while (get_current_batch(net) < net.max_batches)
@@ -3579,7 +3579,7 @@ namespace Yolo_V2
                 time = clock();
                 float_pair p = get_rnn_vid_data(extractor, paths, N, batch, steps);
 
-                float loss = train_network_datum(net, p.x, p.y) / (net.batch);
+                float loss = train_network_datum(net, p.x, p.y) / (net.Batch);
 
 
                 free(p.x);
@@ -3606,7 +3606,7 @@ namespace Yolo_V2
         }
 
 
-        Image save_reconstruction(network net, Image* init, float[] feat, string name, int i)
+        Image save_reconstruction(Network net, Image* init, float[] feat, string name, int i)
         {
             Image recon;
             if (init)
@@ -3629,19 +3629,19 @@ namespace Yolo_V2
 
         void generate_vid_rnn(string cfgfile, string weightfile)
         {
-            network extractor = Parser.parse_network_cfg("cfg/extractor.recon.cfg");
+            Network extractor = Parser.parse_network_cfg("cfg/extractor.recon.cfg");
             Parser.load_weights(&extractor, "/home/pjreddie/trained/yolo-coco.conv");
 
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             set_batch_network(&extractor, 1);
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
 
             int i;
-            CvCapture* cap = cvCaptureFromFile("/extra/vid/ILSVRC2015/Data/VID/snippets/val/ILSVRC2015_val_00007030.mp4");
+            CvCapture* cap = cvCaptureFromFile("/extra/vid/ILSVRC2015/Data.Data/VID/snippets/val/ILSVRC2015_val_00007030.mp4");
             float[] feat;
             float[] next;
             next = NULL;
@@ -3650,7 +3650,7 @@ namespace Yolo_V2
             {
                 Image im = get_image_from_stream(cap);
                 Image re = resize_image(im, extractor.W, extractor.H);
-                feat = network_predict(extractor, re.Data);
+                feat = network_predict(extractor, re.Data.Data);
                 if (i > 0)
                 {
                     Console.Write($"%f %f\n", mean_array(feat, 14 * 14 * 512), variance_array(feat, 14 * 14 * 512));
@@ -3702,44 +3702,44 @@ namespace Yolo_V2
 
         void train_coco(string cfgfile, string weightfile)
         {
-            //char *train_images = "/home/pjreddie/data/voc/test/train.txt";
-            //char *train_images = "/home/pjreddie/data/coco/train.txt";
-            string train_images = "data/coco.trainval.txt";
-            //char *train_images = "data/bags.train.list";
+            //char *train_images = "/home/pjreddie/Data.Data/voc/test/train.txt";
+            //char *train_images = "/home/pjreddie/Data.Data/coco/train.txt";
+            string train_images = "Data.Data/coco.trainval.txt";
+            //char *train_images = "Data.Data/bags.train.list";
             string backup_directory = "/home/pjreddie/backup/";
-            srand(time(0));
+            
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
             float avg_loss = -1;
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            int imgs = net.batch * net.subdivisions;
-            int i = *net.Seen / imgs;
-            data train, buffer;
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            int imgs = net.Batch * net.Subdivisions;
+            int i = net.Seen / imgs;
+            Data.Data train, buffer;
 
 
-            layer l = net.Layers[net.N - 1];
+            Layer l = net.Layers[net.N - 1];
 
-            int side = l.side;
-            int classes = l.classes;
-            float jitter = l.jitter;
+            int side = l.Side;
+            int classes = l.Classes;
+            float jitter = l.Jitter;
 
             list* plist = get_paths(train_images);
             //int N = plist.Size;
             string[] paths = (string[])list_to_array(plist);
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.paths = paths;
             args.N = imgs;
             args.m = plist.Size;
-            args.classes = classes;
-            args.jitter = jitter;
+            args.Classes = classes;
+            args.Jitter = jitter;
             args.num_boxes = side;
             args.d = &buffer;
             args.LayerType = REGION_DATA;
@@ -3822,24 +3822,24 @@ namespace Yolo_V2
 
         void validate_coco(string cfgfile, string weightfile)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            srand(time(0));
+            set_batch_network(net, 1);
+            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            
 
             string basec = "results/";
-            list* plist = get_paths("data/coco_val_5k.list");
-            //list *plist = get_paths("/home/pjreddie/data/people-art/test.txt");
-            //list *plist = get_paths("/home/pjreddie/data/voc/test/2007_test.txt");
+            list* plist = get_paths("Data.Data/coco_val_5k.list");
+            //list *plist = get_paths("/home/pjreddie/Data.Data/people-art/test.txt");
+            //list *plist = get_paths("/home/pjreddie/Data.Data/voc/test/2007_test.txt");
             string[] paths = (string[])list_to_array(plist);
 
-            layer l = net.Layers[net.N - 1];
-            int classes = l.classes;
-            int side = l.side;
+            Layer l = net.Layers[net.N - 1];
+            int classes = l.Classes;
+            int side = l.Side;
 
             int j;
             char buff[1024];
@@ -3866,7 +3866,7 @@ namespace Yolo_V2
             Image* buf_resized = (Image*)calloc(nthreads, sizeof(Image));
             pthread_t* thr = (pthread_t*)calloc(nthreads, sizeof(pthread_t));
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.LayerType = IMAGE_DATA;
@@ -3899,7 +3899,7 @@ namespace Yolo_V2
                 {
                     string path = paths[i + t - nthreads];
                     int image_id = get_coco_image_id(path);
-                    float[] X = val_resized[t].Data;
+                    float[] X = val_resized[t].Data.Data;
                     network_predict(net, X);
                     int w = val[t].W;
                     int h = val[t].H;
@@ -3919,22 +3919,22 @@ namespace Yolo_V2
 
         void validate_coco_recall(string cfgfile, string weightfile)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            srand(time(0));
+            set_batch_network(net, 1);
+            Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            
 
             string basec = "results/comp4_det_test_";
-            list* plist = get_paths("/home/pjreddie/data/voc/test/2007_test.txt");
+            list* plist = get_paths("/home/pjreddie/Data.Data/voc/test/2007_test.txt");
             string[] paths = (string[])list_to_array(plist);
 
-            layer l = net.Layers[net.N - 1];
-            int classes = l.classes;
-            int side = l.side;
+            Layer l = net.Layers[net.N - 1];
+            int classes = l.Classes;
+            int side = l.Side;
 
             int j, k;
             FILE** fps = (FILE**)calloc(classes, sizeof(FILE*));
@@ -3967,7 +3967,7 @@ namespace Yolo_V2
                 Image orig = load_image_color(path, 0, 0);
                 Image sized = resize_image(orig, net.W, net.H);
                 string id = basecfg(path);
-                network_predict(net, sized.Data);
+                network_predict(net, sized.Data.Data);
                 get_detection_boxes(l, 1, 1, thresh, probs, boxes, 1);
                 if (nms) do_nms(boxes, probs, side * side * l.N, 1, nms_thresh);
 
@@ -4016,22 +4016,22 @@ namespace Yolo_V2
         void test_coco(string cfgfile, string weightfile, string filename, float thresh)
         {
             Image** alphabet = load_alphabet();
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
             detection_layer l = net.Layers[net.N - 1];
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
             float nms = .4;
             clock_t time;
             char buff[256];
             string input = buff;
             int j;
-            box* boxes = (box*)calloc(l.side * l.side * l.N, sizeof(box));
-            float[]*probs = (float[] *)calloc(l.side * l.side * l.N, sizeof(float[]));
-            for (j = 0; j < l.side * l.side * l.N; ++j) probs[j] = (float[])calloc(l.classes, sizeof(float[]));
+            box* boxes = (box*)calloc(l.Side * l.Side * l.N, sizeof(box));
+            float[]*probs = (float[] *)calloc(l.Side * l.Side * l.N, sizeof(float[]));
+            for (j = 0; j < l.Side * l.Side * l.N; ++j) probs[j] = (float[])calloc(l.Classes, sizeof(float[]));
             while (1)
             {
                 if (filename)
@@ -4048,13 +4048,13 @@ namespace Yolo_V2
                 }
                 Image im = load_image_color(input, 0, 0);
                 Image sized = resize_image(im, net.W, net.H);
-                float[] X = sized.Data;
+                float[] X = sized.Data.Data;
                 time = clock();
                 network_predict(net, X);
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sec(clock() - time));
                 get_detection_boxes(l, 1, 1, thresh, probs, boxes, 0);
-                if (nms) do_nms_sort(boxes, probs, l.side * l.side * l.N, l.classes, nms);
-                draw_detections(im, l.side * l.side * l.N, thresh, boxes, probs, coco_classes, alphabet, 80);
+                if (nms) do_nms_sort(boxes, probs, l.Side * l.Side * l.N, l.Classes, nms);
+                draw_detections(im, l.Side * l.Side * l.N, thresh, boxes, probs, coco_classes, alphabet, 80);
                 save_image(im, "prediction");
                 show_image(im, "predictions");
                 free_image(im);
@@ -4114,9 +4114,9 @@ namespace Yolo_V2
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
             Console.Write($"%d\n", ngpus);
-            network* nets = calloc(ngpus, sizeof(network));
+            Network* nets = calloc(ngpus, sizeof(Network));
 
-            srand(time(0));
+            
             int seed = rand();
             for (i = 0; i < ngpus; ++i)
             {
@@ -4130,19 +4130,19 @@ namespace Yolo_V2
                     Parser.load_weights(&nets[i], weightfile);
                 }
                 if (clear) *nets[i].Seen = 0;
-                nets[i].learning_rate *= ngpus;
+                nets[i].LearningRate *= ngpus;
             }
-            srand(time(0));
-            network net = nets[0];
+            
+            Network net = nets[0];
 
-            int imgs = net.batch * net.subdivisions * ngpus;
+            int imgs = net.Batch * net.Subdivisions * ngpus;
 
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
             list* options = read_data_cfg(datacfg);
 
             string backup_directory = option_find_str(options, "backup", "/backup/");
-            string label_list = option_find_str(options, "labels", "data/labels.list");
-            string train_list = option_find_str(options, "train", "data/train.list");
+            string label_list = option_find_str(options, "labels", "Data.Data/labels.list");
+            string train_list = option_find_str(options, "train", "Data.Data/train.list");
             int classes = option_find_int(options, "classes", 2);
 
             string[] labels = get_labels(label_list);
@@ -4152,7 +4152,7 @@ namespace Yolo_V2
             int N = plist.Size;
             clock_t time;
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.threads = 32;
@@ -4168,19 +4168,19 @@ namespace Yolo_V2
             args.Size = net.W;
 
             args.paths = paths;
-            args.classes = classes;
+            args.Classes = classes;
             args.N = imgs;
             args.m = N;
             args.labels = labels;
             args.LayerType = CLASSIFICATION_DATA;
 
-            data train;
-            data buffer;
+            Data.Data train;
+            Data.Data buffer;
             pthread_t load_thread;
             args.d = &buffer;
             load_thread = load_data(args);
 
-            int epoch = (*net.Seen) / N;
+            int epoch = (net.Seen) / N;
             while (get_current_batch(net) < net.max_batches || net.max_batches == 0)
             {
                 time = clock();
@@ -4207,11 +4207,11 @@ namespace Yolo_V2
 #endif
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .9 + loss * .1;
-                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(*net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), *net.Seen);
+                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), net.Seen);
                 free_data(train);
-                if (*net.Seen / N > epoch)
+                if (net.Seen / N > epoch)
                 {
-                    epoch = *net.Seen / N;
+                    epoch = net.Seen / N;
                     char buff[256];
                     sprintf(buff, "%s/%s_%d.Weights", backup_directory, basec, epoch);
                     save_weights(net, buff);
@@ -4238,17 +4238,17 @@ namespace Yolo_V2
         void validate_classifier_crop(string datacfg, string filename, string weightfile)
         {
             int i = 0;
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
             list* options = read_data_cfg(datacfg);
 
-            string label_list = option_find_str(options, "labels", "data/labels.list");
-            string valid_list = option_find_str(options, "valid", "data/train.list");
+            string label_list = option_find_str(options, "labels", "Data.Data/labels.list");
+            string valid_list = option_find_str(options, "valid", "Data.Data/train.list");
             int classes = option_find_int(options, "classes", 2);
             int topk = option_find_int(options, "top", 1);
 
@@ -4265,14 +4265,14 @@ namespace Yolo_V2
             int splits = m / 1000;
             int num = (i + 1) * m / splits - i * m / splits;
 
-            data val, buffer;
+            Data.Data val, buffer;
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
 
             args.paths = paths;
-            args.classes = classes;
+            args.Classes = classes;
             args.N = num;
             args.m = 0;
             args.labels = labels;
@@ -4308,18 +4308,18 @@ namespace Yolo_V2
         void validate_classifier_10(string datacfg, string filename, string weightfile)
         {
             int i, j;
-            network net = Parser.parse_network_cfg(filename);
-            set_batch_network(&net, 1);
+            Network net = Parser.parse_network_cfg(filename);
+            set_batch_network(net, 1);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
             list* options = read_data_cfg(datacfg);
 
-            string label_list = option_find_str(options, "labels", "data/labels.list");
-            string valid_list = option_find_str(options, "valid", "data/train.list");
+            string label_list = option_find_str(options, "labels", "Data.Data/labels.list");
+            string valid_list = option_find_str(options, "valid", "Data.Data/train.list");
             int classes = option_find_int(options, "classes", 2);
             int topk = option_find_int(options, "top", 1);
 
@@ -4365,7 +4365,7 @@ namespace Yolo_V2
                 float[] pred = calloc(classes, sizeof(float));
                 for (j = 0; j < 10; ++j)
                 {
-                    float[] p = network_predict(net, images[j].Data);
+                    float[] p = network_predict(net, Data.Data.Data);
                     if (net.hierarchy) hierarchy_predictions(p, net.Outputs, net.hierarchy, 1);
                     axpy_cpu(classes, 1, p, 1, pred, 1);
                     free_image(images[j]);
@@ -4386,18 +4386,18 @@ namespace Yolo_V2
         void validate_classifier_full(string datacfg, string filename, string weightfile)
         {
             int i, j;
-            network net = Parser.parse_network_cfg(filename);
-            set_batch_network(&net, 1);
+            Network net = Parser.parse_network_cfg(filename);
+            set_batch_network(net, 1);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
             list* options = read_data_cfg(datacfg);
 
-            string label_list = option_find_str(options, "labels", "data/labels.list");
-            string valid_list = option_find_str(options, "valid", "data/train.list");
+            string label_list = option_find_str(options, "labels", "Data.Data/labels.list");
+            string valid_list = option_find_str(options, "valid", "Data.Data/train.list");
             int classes = option_find_int(options, "classes", 2);
             int topk = option_find_int(options, "top", 1);
 
@@ -4427,8 +4427,8 @@ namespace Yolo_V2
                 }
                 Image im = load_image_color(paths[i], 0, 0);
                 Image resized = resize_min(im, size);
-                resize_network(&net, resized.W, resized.H);
-                float[] pred = network_predict(net, resized.Data);
+                resize_network(net, resized.W, resized.H);
+                float[] pred = network_predict(net, resized.Data.Data);
                 if (net.hierarchy) hierarchy_predictions(pred, net.Outputs, net.hierarchy, 1);
 
                 free_image(im);
@@ -4449,20 +4449,20 @@ namespace Yolo_V2
         void validate_classifier_single(string datacfg, string filename, string weightfile)
         {
             int i, j;
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
-            srand(time(0));
+            set_batch_network(net, 1);
+            
 
             list* options = read_data_cfg(datacfg);
 
-            string label_list = option_find_str(options, "labels", "data/labels.list");
+            string label_list = option_find_str(options, "labels", "Data.Data/labels.list");
             string leaf_list = option_find_str(options, "leaves", 0);
             if (leaf_list) change_leaves(net.hierarchy, leaf_list);
-            string valid_list = option_find_str(options, "valid", "data/train.list");
+            string valid_list = option_find_str(options, "valid", "Data.Data/train.list");
             int classes = option_find_int(options, "classes", 2);
             int topk = option_find_int(options, "top", 1);
 
@@ -4495,10 +4495,10 @@ namespace Yolo_V2
                 //show_image(im, "orig");
                 //show_image(crop, "cropped");
                 //cvWaitKey(0);
-                float[] pred = network_predict(net, crop.Data);
+                float[] pred = network_predict(net, crop.Data.Data);
                 if (net.hierarchy) hierarchy_predictions(pred, net.Outputs, net.hierarchy, 1);
 
-                if (resized.Data != im.Data) free_image(resized);
+                if (resized.Data.Data != im.Data.Data) free_image(resized);
                 free_image(im);
                 free_image(crop);
                 top_k(pred, classes, topk, indexes);
@@ -4516,18 +4516,18 @@ namespace Yolo_V2
         void validate_classifier_multi(string datacfg, string filename, string weightfile)
         {
             int i, j;
-            network net = Parser.parse_network_cfg(filename);
-            set_batch_network(&net, 1);
+            Network net = Parser.parse_network_cfg(filename);
+            set_batch_network(net, 1);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
             list* options = read_data_cfg(datacfg);
 
-            string label_list = option_find_str(options, "labels", "data/labels.list");
-            string valid_list = option_find_str(options, "valid", "data/train.list");
+            string label_list = option_find_str(options, "labels", "Data.Data/labels.list");
+            string valid_list = option_find_str(options, "valid", "Data.Data/train.list");
             int classes = option_find_int(options, "classes", 2);
             int topk = option_find_int(options, "top", 1);
 
@@ -4561,14 +4561,14 @@ namespace Yolo_V2
                 for (j = 0; j < nscales; ++j)
                 {
                     Image r = resize_min(im, scales[j]);
-                    resize_network(&net, r.W, r.H);
-                    float[] p = network_predict(net, r.Data);
+                    resize_network(net, r.W, r.H);
+                    float[] p = network_predict(net, r.Data.Data);
                     if (net.hierarchy) hierarchy_predictions(p, net.Outputs, net.hierarchy, 1);
                     axpy_cpu(classes, 1, p, 1, pred, 1);
                     flip_image(r);
-                    p = network_predict(net, r.Data);
+                    p = network_predict(net, r.Data.Data);
                     axpy_cpu(classes, 1, p, 1, pred, 1);
-                    if (r.Data != im.Data) free_image(r);
+                    if (r.Data.Data != im.Data.Data) free_image(r);
                 }
                 free_image(im);
                 top_k(pred, classes, topk, indexes);
@@ -4585,18 +4585,18 @@ namespace Yolo_V2
 
         void try_classifier(string datacfg, string cfgfile, string weightfile, string filename, int layer_num)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
 
             list* options = read_data_cfg(datacfg);
 
             string name_list = option_find_str(options, "names", 0);
-            if (!name_list) name_list = option_find_str(options, "labels", "data/labels.list");
+            if (!name_list) name_list = option_find_str(options, "labels", "Data.Data/labels.list");
             int top = option_find_int(options, "top", 1);
 
             int i = 0;
@@ -4629,13 +4629,13 @@ namespace Yolo_V2
                 var[1] = std[1] * std[1];
                 var[2] = std[2] * std[2];
 
-                normalize_cpu(im.Data, mean, var, 1, 3, im.W * im.H);
+                normalize_cpu(im.Data.Data, mean, var, 1, 3, im.W * im.H);
 
-                float[] X = im.Data;
+                float[] X = im.Data.Data;
                 time = clock();
                 float[] predictions = network_predict(net, X);
 
-                layer l = net.Layers[layer_num];
+                Layer l = net.Layers[layer_num];
                 for (i = 0; i < l.C; ++i)
                 {
                     if (l.RollingMean) Console.Write($"%f %f %f\n", l.RollingMean[i], l.RollingVariance[i], l.Scales[i]);
@@ -4660,18 +4660,18 @@ namespace Yolo_V2
 
         public static void predict_classifier(string datacfg, string cfgfile, string weightfile, string filename, int top)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
 
             list* options = read_data_cfg(datacfg);
 
             string name_list = option_find_str(options, "names", 0);
-            if (!name_list) name_list = option_find_str(options, "labels", "data/labels.list");
+            if (!name_list) name_list = option_find_str(options, "labels", "Data.Data/labels.list");
             if (top == 0) top = option_find_int(options, "top", 1);
 
             int i = 0;
@@ -4697,10 +4697,10 @@ namespace Yolo_V2
                 }
                 Image im = load_image_color(input, 0, 0);
                 Image r = resize_min(im, size);
-                resize_network(&net, r.W, r.H);
+                resize_network(net, r.W, r.H);
                 Console.Write($"%d %d\n", r.W, r.H);
 
-                float[] X = r.Data;
+                float[] X = r.Data.Data;
                 time = clock();
                 float[] predictions = network_predict(net, X);
                 if (net.hierarchy) hierarchy_predictions(predictions, net.Outputs, net.hierarchy, 0);
@@ -4712,7 +4712,7 @@ namespace Yolo_V2
                     if (net.hierarchy) Console.Write($"%d, %s: %f, parent: %s \n", index, names[index], predictions[index], (net.hierarchy.parent[index] >= 0) ? names[net.hierarchy.parent[index]] : "Root");
                     else Console.Write($"%s: %f\n", names[index], predictions[index]);
                 }
-                if (r.Data != im.Data) free_image(r);
+                if (r.Data.Data != im.Data.Data) free_image(r);
                 free_image(im);
                 if (filename) break;
             }
@@ -4722,18 +4722,18 @@ namespace Yolo_V2
         void label_classifier(string datacfg, string filename, string weightfile)
         {
             int i;
-            network net = Parser.parse_network_cfg(filename);
-            set_batch_network(&net, 1);
+            Network net = Parser.parse_network_cfg(filename);
+            set_batch_network(net, 1);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
             list* options = read_data_cfg(datacfg);
 
-            string label_list = option_find_str(options, "names", "data/labels.list");
-            string test_list = option_find_str(options, "test", "data/train.list");
+            string label_list = option_find_str(options, "names", "Data.Data/labels.list");
+            string test_list = option_find_str(options, "test", "Data.Data/train.list");
             int classes = option_find_int(options, "classes", 2);
 
             string[] labels = get_labels(label_list);
@@ -4748,9 +4748,9 @@ namespace Yolo_V2
                 Image im = load_image_color(paths[i], 0, 0);
                 Image resized = resize_min(im, net.W);
                 Image crop = crop_image(resized, (resized.W - net.W) / 2, (resized.H - net.H) / 2, net.W, net.H);
-                float[] pred = network_predict(net, crop.Data);
+                float[] pred = network_predict(net, crop.Data.Data);
 
-                if (resized.Data != im.Data) free_image(resized);
+                if (resized.Data.Data != im.Data.Data) free_image(resized);
                 free_image(im);
                 free_image(crop);
                 int ind = max_index(pred, classes);
@@ -4763,16 +4763,16 @@ namespace Yolo_V2
         void test_classifier(string datacfg, string cfgfile, string weightfile, int target_layer)
         {
             int curr = 0;
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
             list* options = read_data_cfg(datacfg);
 
-            string test_list = option_find_str(options, "test", "data/test.list");
+            string test_list = option_find_str(options, "test", "Data.Data/test.list");
             int classes = option_find_int(options, "classes", 2);
 
             list* plist = get_paths(test_list);
@@ -4783,21 +4783,21 @@ namespace Yolo_V2
 
             clock_t time;
 
-            data val, buffer;
+            Data.Data val, buffer;
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.paths = paths;
-            args.classes = classes;
-            args.N = net.batch;
+            args.Classes = classes;
+            args.N = net.Batch;
             args.m = 0;
             args.labels = 0;
             args.d = &buffer;
             args.LayerType = OLD_CLASSIFICATION_DATA;
 
             pthread_t load_thread = load_data_in_thread(args);
-            for (curr = net.batch; curr < m; curr += net.batch)
+            for (curr = net.Batch; curr < m; curr += net.Batch)
             {
                 time = clock();
 
@@ -4807,19 +4807,19 @@ namespace Yolo_V2
                 if (curr < m)
                 {
                     args.paths = paths + curr;
-                    if (curr + net.batch > m) args.N = m - curr;
+                    if (curr + net.Batch > m) args.N = m - curr;
                     load_thread = load_data_in_thread(args);
                 }
                 Console.Error.Write($"Loaded: %d images ini %lf seconds\n", val.X.rows, sec(clock() - time));
 
                 time = clock();
-                matrix pred = network_predict_data(net, val);
+                Matrix pred = network_predict_data(net, val);
 
                 int i, j;
 
                 for (i = 0; i < pred.rows; ++i)
                 {
-                    Console.Write($"%s", paths[curr - net.batch + i]);
+                    Console.Write($"%s", paths[curr - net.Batch + i]);
                     for (j = 0; j < pred.cols; ++j)
                     {
                         Console.Write($"\t%g", pred.vals[i][j]);
@@ -4841,12 +4841,12 @@ namespace Yolo_V2
             float roll = .2;
 
             Console.Write($"Classifier Demo\n");
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             list* options = read_data_cfg(datacfg);
 
             srand(2222222);
@@ -4881,7 +4881,7 @@ namespace Yolo_V2
                 gettimeofday(&tval_before, NULL);
 
                 Image ini = get_image_from_stream(cap);
-                if (!ini.Data) break;
+                if (!ini.Data.Data) break;
                 Image in_s = resize_image(ini, net.W, net.H);
 
                 Image outo = ini;
@@ -4894,7 +4894,7 @@ namespace Yolo_V2
                 int h = y2 - y1 - 2 * border;
                 int w = x2 - x1 - 2 * border;
 
-                float[] predictions = network_predict(net, in_s.Data);
+                float[] predictions = network_predict(net, in_s.Data.Data);
                 float curr_threat = 0;
                 curr_threat = predictions[0] * 0 +
                     predictions[1] * .6 +
@@ -4967,12 +4967,12 @@ namespace Yolo_V2
             int[] bad_cats = { 218, 539, 540, 1213, 1501, 1742, 1911, 2415, 4348, 19223, 368, 369, 370, 1133, 1200, 1306, 2122, 2301, 2537, 2823, 3179, 3596, 3639, 4489, 5107, 5140, 5289, 6240, 6631, 6762, 7048, 7171, 7969, 7984, 7989, 8824, 8927, 9915, 10270, 10448, 13401, 15205, 18358, 18894, 18895, 19249, 19697 };
 
             Console.Write($"Classifier Demo\n");
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             list* options = read_data_cfg(datacfg);
 
             srand(2222222);
@@ -5009,7 +5009,7 @@ namespace Yolo_V2
                 Image in_s = resize_image(ini, net.W, net.H);
                 show_image(ini, "Threat Detection");
 
-                float[] predictions = network_predict(net, in_s.Data);
+                float[] predictions = network_predict(net, in_s.Data.Data);
                 top_predictions(net, top, indexes);
 
                 Console.Write($"\033[2J");
@@ -5051,12 +5051,12 @@ namespace Yolo_V2
         void demo_classifier(string datacfg, string cfgfile, string weightfile, int cam_index, string filename)
         {
             Console.Write($"Classifier Demo\n");
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             list* options = read_data_cfg(datacfg);
 
             srand(2222222);
@@ -5093,7 +5093,7 @@ namespace Yolo_V2
                 Image in_s = resize_image(ini, net.W, net.H);
                 show_image(ini, "Classifier");
 
-                float[] predictions = network_predict(net, in_s.Data);
+                float[] predictions = network_predict(net, in_s.Data.Data);
                 if (net.hierarchy) hierarchy_predictions(predictions, net.Outputs, net.hierarchy, 1);
                 top_predictions(net, top, indexes);
 
@@ -5159,25 +5159,25 @@ namespace Yolo_V2
             int cam_index = Utils.find_int_arg(args.Count, args, "-c", 0);
             int top = Utils.find_int_arg(args.Count, args, "-t", 0);
             int clear = find_arg(args.Count, args, "-clear");
-            string data = args[3];
+            string Data.Data = args[3];
             string cfg = args[4];
             string weights = (args.Count > 5) ? args[5] : 0;
             string filename = (args.Count > 6) ? args[6] : 0;
             string layer_s = (args.Count > 7) ? args[7] : 0;
-            int layer = layer_s ? int.Parse(layer_s) : -1;
-            if (0 == strcmp(args[2], "predict")) predict_classifier(data, cfg, weights, filename, top);
-            else if (0 == strcmp(args[2], "try")) try_classifier(data, cfg, weights, filename, int.Parse(layer_s));
-            else if (0 == strcmp(args[2], "train")) train_classifier(data, cfg, weights, gpus, ngpus, clear);
-            else if (0 == strcmp(args[2], "demo")) demo_classifier(data, cfg, weights, cam_index, filename);
-            else if (0 == strcmp(args[2], "gun")) gun_classifier(data, cfg, weights, cam_index, filename);
-            else if (0 == strcmp(args[2], "threat")) threat_classifier(data, cfg, weights, cam_index, filename);
-            else if (0 == strcmp(args[2], "test")) test_classifier(data, cfg, weights, layer);
-            else if (0 == strcmp(args[2], "label")) label_classifier(data, cfg, weights);
-            else if (0 == strcmp(args[2], "valid")) validate_classifier_single(data, cfg, weights);
-            else if (0 == strcmp(args[2], "validmulti")) validate_classifier_multi(data, cfg, weights);
-            else if (0 == strcmp(args[2], "valid10")) validate_classifier_10(data, cfg, weights);
-            else if (0 == strcmp(args[2], "validcrop")) validate_classifier_crop(data, cfg, weights);
-            else if (0 == strcmp(args[2], "validfull")) validate_classifier_full(data, cfg, weights);
+            int Layer = layer_s ? int.Parse(layer_s) : -1;
+            if (0 == strcmp(args[2], "predict")) predict_classifier(Data.Data, cfg, weights, filename, top);
+            else if (0 == strcmp(args[2], "try")) try_classifier(Data.Data, cfg, weights, filename, int.Parse(layer_s));
+            else if (0 == strcmp(args[2], "train")) train_classifier(Data.Data, cfg, weights, gpus, ngpus, clear);
+            else if (0 == strcmp(args[2], "demo")) demo_classifier(Data.Data, cfg, weights, cam_index, filename);
+            else if (0 == strcmp(args[2], "gun")) gun_classifier(Data.Data, cfg, weights, cam_index, filename);
+            else if (0 == strcmp(args[2], "threat")) threat_classifier(Data.Data, cfg, weights, cam_index, filename);
+            else if (0 == strcmp(args[2], "test")) test_classifier(Data.Data, cfg, weights, Layer);
+            else if (0 == strcmp(args[2], "label")) label_classifier(Data.Data, cfg, weights);
+            else if (0 == strcmp(args[2], "valid")) validate_classifier_single(Data.Data, cfg, weights);
+            else if (0 == strcmp(args[2], "validmulti")) validate_classifier_multi(Data.Data, cfg, weights);
+            else if (0 == strcmp(args[2], "valid10")) validate_classifier_10(Data.Data, cfg, weights);
+            else if (0 == strcmp(args[2], "validcrop")) validate_classifier_crop(Data.Data, cfg, weights);
+            else if (0 == strcmp(args[2], "validfull")) validate_classifier_full(Data.Data, cfg, weights);
         }
 
 
@@ -5188,12 +5188,12 @@ namespace Yolo_V2
 
         void demo_art(string cfgfile, string weightfile, int cam_index)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
 
             srand(2222222);
             CvCapture* cap;
@@ -5214,7 +5214,7 @@ namespace Yolo_V2
                 Image in_s = resize_image(ini, net.W, net.H);
                 show_image(ini, window);
 
-                float[] p = network_predict(net, in_s.Data);
+                float[] p = network_predict(net, in_s.Data.Data);
 
                 Console.Write($"\033[2J");
                 Console.Write($"\033[1;1H");
@@ -5259,18 +5259,18 @@ namespace Yolo_V2
 
         void train_tag(string cfgfile, string weightfile, int clear)
         {
-            srand(time(0));
+            
             float avg_loss = -1;
             string basec = basecfg(cfgfile);
             string backup_directory = "/home/pjreddie/backup/";
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            if (clear) *net.Seen = 0;
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            if (clear) net.Seen = 0;
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
             int imgs = 1024;
             list* plist = get_paths("/home/pjreddie/tag/train.list");
             string[] paths = (string[])list_to_array(plist);
@@ -5278,10 +5278,10 @@ namespace Yolo_V2
             int N = plist.Size;
             clock_t time;
             pthread_t load_thread;
-            data train;
-            data buffer;
+            Data.Data train;
+            Data.Data buffer;
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
 
@@ -5290,7 +5290,7 @@ namespace Yolo_V2
             args.Size = net.W;
 
             args.paths = paths;
-            args.classes = net.Outputs;
+            args.Classes = net.Outputs;
             args.N = imgs;
             args.m = N;
             args.d = &buffer;
@@ -5304,7 +5304,7 @@ namespace Yolo_V2
             Console.Error.Write($"%d classes\n", net.Outputs);
 
             load_thread = load_data_in_thread(args);
-            int epoch = (*net.Seen) / N;
+            int epoch = (net.Seen) / N;
             while (get_current_batch(net) < net.max_batches || net.max_batches == 0)
             {
                 time = clock();
@@ -5317,11 +5317,11 @@ namespace Yolo_V2
                 float loss = train_network(net, train);
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .9 + loss * .1;
-                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(*net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), *net.Seen);
+                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), net.Seen);
                 free_data(train);
-                if (*net.Seen / N > epoch)
+                if (net.Seen / N > epoch)
                 {
-                    epoch = *net.Seen / N;
+                    epoch = net.Seen / N;
                     char buff[256];
                     sprintf(buff, "%s/%s_%d.Weights", backup_directory, basec, epoch);
                     save_weights(net, buff);
@@ -5347,15 +5347,15 @@ namespace Yolo_V2
 
         void test_tag(string cfgfile, string weightfile, string filename)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
             int i = 0;
-            string[] names = get_labels("data/tags.txt");
+            string[] names = get_labels("Data.Data/tags.txt");
             clock_t time;
             int indexes[10];
             char buff[256];
@@ -5377,10 +5377,10 @@ namespace Yolo_V2
                 }
                 Image im = load_image_color(input, 0, 0);
                 Image r = resize_min(im, size);
-                resize_network(&net, r.W, r.H);
+                resize_network(net, r.W, r.H);
                 Console.Write($"%d %d\n", r.W, r.H);
 
-                float[] X = r.Data;
+                float[] X = r.Data.Data;
                 time = clock();
                 float[] predictions = network_predict(net, X);
                 top_predictions(net, 10, indexes);
@@ -5390,7 +5390,7 @@ namespace Yolo_V2
                     int index = indexes[i];
                     Console.Write($"%.1f%%: %s\n", predictions[index] * 100, names[index]);
                 }
-                if (r.Data != im.Data) free_image(r);
+                if (r.Data.Data != im.Data.Data) free_image(r);
                 free_image(im);
                 if (filename) break;
             }
@@ -5421,39 +5421,39 @@ namespace Yolo_V2
 
         void train_compare(string cfgfile, string weightfile)
         {
-            srand(time(0));
+            
             float avg_loss = -1;
             string basec = basecfg(cfgfile);
             string backup_directory = "/home/pjreddie/backup/";
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
             int imgs = 1024;
-            list* plist = get_paths("data/compare.train.list");
+            list* plist = get_paths("Data.Data/compare.train.list");
             string[] paths = (string[])list_to_array(plist);
             int N = plist.Size;
             Console.Write($"%d\n", N);
             clock_t time;
             pthread_t load_thread;
-            data train;
-            data buffer;
+            Data.Data train;
+            Data.Data.Data buffer;
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.paths = paths;
-            args.classes = 20;
+            args.Classes = 20;
             args.N = imgs;
             args.m = N;
             args.d = &buffer;
             args.LayerType = COMPARE_DATA;
 
             load_thread = load_data_in_thread(args);
-            int epoch = *net.Seen / N;
+            int epoch = net.Seen / N;
             int i = 0;
             while (1)
             {
@@ -5468,7 +5468,7 @@ namespace Yolo_V2
                 float loss = train_network(net, train);
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .9 + loss * .1;
-                Console.Write($"%.3f: %f, %f avg, %lf seconds, %d images\n", (float)*net.Seen / N, loss, avg_loss, sec(clock() - time), *net.Seen);
+                Console.Write($"%.3f: %f, %f avg, %lf seconds, %d images\n", (float)net.Seen / N, loss, avg_loss, sec(clock() - time), net.Seen);
                 free_data(train);
                 if (i % 100 == 0)
                 {
@@ -5476,14 +5476,14 @@ namespace Yolo_V2
                     sprintf(buff, "%s/%s_%d_minor_%d.Weights", backup_directory, basec, epoch, i);
                     save_weights(net, buff);
                 }
-                if (*net.Seen / N > epoch)
+                if (net.Seen / N > epoch)
                 {
-                    epoch = *net.Seen / N;
+                    epoch = net.Seen / N;
                     i = 0;
                     char buff[256];
                     sprintf(buff, "%s/%s_%d.Weights", backup_directory, basec, epoch);
                     save_weights(net, buff);
-                    if (epoch % 22 == 0) net.learning_rate *= .1;
+                    if (epoch % 22 == 0) net.LearningRate *= .1;
                 }
             }
             pthread_join(load_thread, 0);
@@ -5497,15 +5497,15 @@ namespace Yolo_V2
         void validate_compare(string filename, string weightfile)
         {
             int i = 0;
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
-            list* plist = get_paths("data/compare.val.list");
-            //list *plist = get_paths("data/compare.val.old");
+            list* plist = get_paths("Data.Data/compare.val.list");
+            //list *plist = get_paths("Data.Data/compare.val.old");
             string[] paths = (string[])list_to_array(plist);
             int N = plist.Size / 2;
             free_list(plist);
@@ -5516,13 +5516,13 @@ namespace Yolo_V2
             int splits = 10;
             int num = (i + 1) * N / splits - i * N / splits;
 
-            data val, buffer;
+            Data.Data.Data val, buffer;
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.paths = paths;
-            args.classes = 20;
+            args.Classes = 20;
             args.N = num;
             args.m = 0;
             args.d = &buffer;
@@ -5546,7 +5546,7 @@ namespace Yolo_V2
                 Console.Write($"Loaded: %d images ini %lf seconds\n", val.X.rows, sec(clock() - time));
 
                 time = clock();
-                matrix pred = network_predict_data(net, val);
+                Matrix pred = network_predict_data(net, val);
                 int j, k;
                 for (j = 0; j < val.y.rows; ++j)
                 {
@@ -5574,8 +5574,8 @@ namespace Yolo_V2
 
         int elo_comparator(void* a, void* b)
         {
-            sortable_bbox box1 = *(sortable_bbox*)a;
-            sortable_bbox box2 = *(sortable_bbox*)b;
+            SortableBbox box1 = *(SortableBbox*)a;
+            SortableBbox box2 = *(SortableBbox*)b;
             if (box1.elos[current_class] == box2.elos[current_class]) return 0;
             if (box1.elos[current_class] > box2.elos[current_class]) return -1;
             return 1;
@@ -5584,16 +5584,16 @@ namespace Yolo_V2
         int bbox_comparator(void* a, void* b)
         {
             ++total_compares;
-            sortable_bbox box1 = *(sortable_bbox*)a;
-            sortable_bbox box2 = *(sortable_bbox*)b;
-            network net = box1.net;
+            SortableBbox box1 = *(SortableBbox*)a;
+            SortableBbox box2 = *(SortableBbox*)b;
+            Network net = box1.net;
             int sclass = box1.sclass;
 
             Image im1 = load_image_color(box1.filename, net.W, net.H);
             Image im2 = load_image_color(box2.filename, net.W, net.H);
             float[] X = (float[])calloc(net.W * net.H * net.C, sizeof(float));
-            memcpy(X, im1.Data, im1.W * im1.H * im1.C * sizeof(float));
-            memcpy(X + im1.W * im1.H * im1.C, im2.Data, im2.W * im2.H * im2.C * sizeof(float));
+            memcpy(X, im1.Data.Data, im1.W * im1.H * im1.C * sizeof(float));
+            memcpy(X + im1.W * im1.H * im1.C, im2.Data.Data, im2.W * im2.H * im2.C * sizeof(float));
             float[] predictions = network_predict(net, X);
 
             free_image(im1);
@@ -5606,7 +5606,7 @@ namespace Yolo_V2
             return -1;
         }
 
-        void bbox_update(sortable_bbox* a, sortable_bbox* b, int sclass, int result)
+        void bbox_update(SortableBbox* a, SortableBbox* b, int sclass, int result)
         {
             int k = 32;
             float EA = 1.0f / (1 + pow(10, (b.elos[sclass] - a.elos[sclass]) / 400.));
@@ -5617,13 +5617,13 @@ namespace Yolo_V2
             b.elos[sclass] += k * (SB - EB);
         }
 
-        void bbox_fight(network net, sortable_bbox* a, sortable_bbox* b, int classes, int sclass)
+        void bbox_fight(Network net, SortableBbox* a, SortableBbox* b, int classes, int sclass)
         {
             Image im1 = load_image_color(a.filename, net.W, net.H);
             Image im2 = load_image_color(b.filename, net.W, net.H);
             float[] X = (float[])calloc(net.W * net.H * net.C, sizeof(float));
-            memcpy(X, im1.Data, im1.W * im1.H * im1.C * sizeof(float));
-            memcpy(X + im1.W * im1.H * im1.C, im2.Data, im2.W * im2.H * im2.C * sizeof(float));
+            memcpy(X, im1.Data.Data, im1.W * im1.H * im1.C * sizeof(float));
+            memcpy(X + im1.W * im1.H * im1.C, im2.Data.Data, im2.W * im2.H * im2.C * sizeof(float));
             float[] predictions = network_predict(net, X);
             ++total_compares;
 
@@ -5645,20 +5645,20 @@ namespace Yolo_V2
         void SortMaster3000(string filename, string weightfile)
         {
             int i = 0;
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
-            set_batch_network(&net, 1);
+            
+            set_batch_network(net, 1);
 
-            list* plist = get_paths("data/compare.sort.list");
-            //list *plist = get_paths("data/compare.val.old");
+            list* plist = get_paths("Data.Data/compare.sort.list");
+            //list *plist = get_paths("Data.Data/compare.val.old");
             string[] paths = (string[])list_to_array(plist);
             int N = plist.Size;
             free_list(plist);
-            sortable_bbox* boxes = (sortable_bbox*)calloc(N, sizeof(sortable_bbox));
+            SortableBbox* boxes = (SortableBbox*)calloc(N, sizeof(SortableBbox));
             Console.Write($"Sorting %d boxes...\n", N);
             for (i = 0; i < N; ++i)
             {
@@ -5668,7 +5668,7 @@ namespace Yolo_V2
                 boxes[i].elo = 1500;
             }
             clock_t time = clock();
-            qsort(boxes, N, sizeof(sortable_bbox), bbox_comparator);
+            qsort(boxes, N, sizeof(SortableBbox), bbox_comparator);
             for (i = 0; i < N; ++i)
             {
                 Console.Write($"%s\n", boxes[i].filename);
@@ -5680,29 +5680,29 @@ namespace Yolo_V2
         {
             int classes = 20;
             int i, j;
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
-            set_batch_network(&net, 1);
+            
+            set_batch_network(net, 1);
 
-            list* plist = get_paths("data/compare.sort.list");
-            //list *plist = get_paths("data/compare.small.list");
-            //list *plist = get_paths("data/compare.cat.list");
-            //list *plist = get_paths("data/compare.val.old");
+            list* plist = get_paths("Data.Data/compare.sort.list");
+            //list *plist = get_paths("Data.Data/compare.small.list");
+            //list *plist = get_paths("Data.Data/compare.cat.list");
+            //list *plist = get_paths("Data.Data/compare.val.old");
             string[] paths = (string[])list_to_array(plist);
             int N = plist.Size;
             int total = N;
             free_list(plist);
-            sortable_bbox* boxes = (sortable_bbox*)calloc(N, sizeof(sortable_bbox));
+            SortableBbox* boxes = (SortableBbox*)calloc(N, sizeof(SortableBbox));
             Console.Write($"Battling %d boxes...\n", N);
             for (i = 0; i < N; ++i)
             {
                 boxes[i].filename = paths[i];
                 boxes[i].net = net;
-                boxes[i].classes = classes;
+                boxes[i].Classes = classes;
                 boxes[i].elos = (float[])calloc(classes, sizeof(float)); ;
                 for (j = 0; j < classes; ++j)
                 {
@@ -5715,7 +5715,7 @@ namespace Yolo_V2
             {
                 clock_t round_time = clock();
                 Console.Write($"Round: %d\n", round);
-                shuffle(boxes, N, sizeof(sortable_bbox));
+                shuffle(boxes, N, sizeof(SortableBbox));
                 for (i = 0; i < N / 2; ++i)
                 {
                     bbox_fight(net, boxes + i * 2, boxes + i * 2 + 1, classes, -1);
@@ -5730,7 +5730,7 @@ namespace Yolo_V2
 
                 N = total;
                 current_class = sclass;
-                qsort(boxes, N, sizeof(sortable_bbox), elo_comparator);
+                qsort(boxes, N, sizeof(SortableBbox), elo_comparator);
                 N /= 2;
 
                 for (round = 1; round <= 100; ++round)
@@ -5738,12 +5738,12 @@ namespace Yolo_V2
                     clock_t round_time = clock();
                     Console.Write($"Round: %d\n", round);
 
-                    sorta_shuffle(boxes, N, sizeof(sortable_bbox), 10);
+                    sorta_shuffle(boxes, N, sizeof(SortableBbox), 10);
                     for (i = 0; i < N / 2; ++i)
                     {
                         bbox_fight(net, boxes + i * 2, boxes + i * 2 + 1, classes, sclass);
                     }
-                    qsort(boxes, N, sizeof(sortable_bbox), elo_comparator);
+                    qsort(boxes, N, sizeof(SortableBbox), elo_comparator);
                     if (round <= 20) N = (N * 9 / 10) / 2 * 2;
 
                     Console.Write($"Round: %f secs, %d remaining\n", sec(clock() - round_time), N);
@@ -5787,21 +5787,21 @@ namespace Yolo_V2
 
         void train_dice(string cfgfile, string weightfile)
         {
-            srand(time(0));
+            
             float avg_loss = -1;
             string basec = basecfg(cfgfile);
             string backup_directory = "/home/pjreddie/backup/";
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
             int imgs = 1024;
-            int i = *net.Seen / imgs;
+            int i = net.Seen / imgs;
             string[] labels = dice_labels;
-            list* plist = get_paths("data/dice/dice.train.list");
+            list* plist = get_paths("Data.Data/dice/dice.train.list");
             string[] paths = (string[])list_to_array(plist);
             Console.Write($"%d\n", plist.Size);
             clock_t time;
@@ -5809,16 +5809,16 @@ namespace Yolo_V2
             {
                 ++i;
                 time = clock();
-                data train = load_data_old(paths, imgs, plist.Size, labels, 6, net.W, net.H);
+                Data.Data train = load_data_old(paths, imgs, plist.Size, labels, 6, net.W, net.H);
                 Console.Write($"Loaded: %lf seconds\n", sec(clock() - time));
 
                 time = clock();
                 float loss = train_network(net, train);
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .9 + loss * .1;
-                Console.Write($"%d: %f, %f avg, %lf seconds, %d images\n", i, loss, avg_loss, sec(clock() - time), *net.Seen);
+                Console.Write($"%d: %f, %f avg, %lf seconds, %d images\n", i, loss, avg_loss, sec(clock() - time), net.Seen);
                 free_data(train);
-                if ((i % 100) == 0) net.learning_rate *= .1;
+                if ((i % 100) == 0) net.LearningRate *= .1;
                 if (i % 100 == 0)
                 {
                     char buff[256];
@@ -5830,21 +5830,21 @@ namespace Yolo_V2
 
         void validate_dice(string filename, string weightfile)
         {
-            network net = Parser.parse_network_cfg(filename);
+            Network net = Parser.parse_network_cfg(filename);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            srand(time(0));
+            
 
             string[] labels = dice_labels;
-            list* plist = get_paths("data/dice/dice.val.list");
+            list* plist = get_paths("Data.Data/dice/dice.val.list");
 
             string[] paths = (string[])list_to_array(plist);
             int m = plist.Size;
             free_list(plist);
 
-            data val = load_data_old(paths, m, 0, labels, 6, net.W, net.H);
+            Data.Data val = load_data_old(paths, m, 0, labels, 6, net.W, net.H);
             float[] acc = network_accuracies(net, val, 2);
             Console.Write($"Validation Accuracy: %f, %d images\n", acc[0], m);
             free_data(val);
@@ -5852,12 +5852,12 @@ namespace Yolo_V2
 
         void test_dice(string cfgfile, string weightfile, string filename)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
             int i = 0;
             string[] names = dice_labels;
@@ -5879,7 +5879,7 @@ namespace Yolo_V2
                     strtok(input, "\n");
                 }
                 Image im = load_image_color(input, net.W, net.H);
-                float[] X = im.Data;
+                float[] X = im.Data.Data;
                 float[] predictions = network_predict(net, X);
                 top_predictions(net, 6, indexes);
                 for (i = 0; i < 6; ++i)
@@ -5918,17 +5918,17 @@ namespace Yolo_V2
         void train_writing(string cfgfile, string weightfile)
         {
             string backup_directory = "/home/pjreddie/backup/";
-            srand(time(0));
+            
             float avg_loss = -1;
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
-            int imgs = net.batch * net.subdivisions;
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            int imgs = net.Batch * net.Subdivisions;
             list* plist = get_paths("figures.list");
             string[] paths = (string[])list_to_array(plist);
             clock_t time;
@@ -5936,9 +5936,9 @@ namespace Yolo_V2
             Console.Write($"N: %d\n", N);
             Image outf = get_network_image(net);
 
-            data train, buffer;
+            Data.Data train, buffer;
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.OutW = outf.W;
@@ -5950,7 +5950,7 @@ namespace Yolo_V2
             args.LayerType = WRITING_DATA;
 
             pthread_t load_thread = load_data_in_thread(args);
-            int epoch = (*net.Seen) / N;
+            int epoch = (net.Seen) / N;
             while (get_current_batch(net) < net.max_batches || net.max_batches == 0)
             {
                 time = clock();
@@ -5965,7 +5965,7 @@ namespace Yolo_V2
 
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .9 + loss * .1;
-                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(*net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), *net.Seen);
+                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", get_current_batch(net), (float)(net.Seen) / N, loss, avg_loss, get_current_rate(net), sec(clock() - time), net.Seen);
                 free_data(train);
                 if (get_current_batch(net) % 100 == 0)
                 {
@@ -5973,9 +5973,9 @@ namespace Yolo_V2
                     sprintf(buff, "%s/%s_batch_%d.Weights", backup_directory, basec, get_current_batch(net));
                     save_weights(net, buff);
                 }
-                if (*net.Seen / N > epoch)
+                if (net.Seen / N > epoch)
                 {
-                    epoch = *net.Seen / N;
+                    epoch = net.Seen / N;
                     char buff[256];
                     sprintf(buff, "%s/%s_%d.Weights", backup_directory, basec, epoch);
                     save_weights(net, buff);
@@ -5985,12 +5985,12 @@ namespace Yolo_V2
 
         void test_writing(string cfgfile, string weightfile, string filename)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
             clock_t time;
             char buff[256];
@@ -6011,9 +6011,9 @@ namespace Yolo_V2
                 }
 
                 Image im = load_image_color(input, 0, 0);
-                resize_network(&net, im.W, im.H);
+                resize_network(net, im.W, im.H);
                 Console.Write($"%d %d %d\n", im.H, im.W, im.C);
-                float[] X = im.Data;
+                float[] X = im.Data.Data;
                 time = clock();
                 network_predict(net, X);
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sec(clock() - time));
@@ -6056,9 +6056,9 @@ namespace Yolo_V2
         #region CaptchaFile
 
 
-        void fix_data_captcha(data d, int mask)
+        void fix_data_captcha(Data.Data d, int mask)
         {
-            matrix labels = d.y;
+            Matrix labels = d.y;
             int i, j;
             for (i = 0; i < d.y.rows; ++i)
             {
@@ -6093,41 +6093,41 @@ namespace Yolo_V2
 
         void train_captcha(string cfgfile, string weightfile)
         {
-            srand(time(0));
+            
             float avg_loss = -1;
             string basec = basecfg(cfgfile);
             Console.Write($"%s\n", basec);
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.learning_rate, net.momentum, net.decay);
+            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
             int imgs = 1024;
-            int i = *net.Seen / imgs;
+            int i = net.Seen / imgs;
             int solved = 1;
             list* plist;
-            string[] labels = get_labels("/data/captcha/reimgs.labels.list");
+            string[] labels = get_labels("/Data.Data/captcha/reimgs.labels.list");
             if (solved)
             {
-                plist = get_paths("/data/captcha/reimgs.solved.list");
+                plist = get_paths("/Data.Data/captcha/reimgs.solved.list");
             }
             else
             {
-                plist = get_paths("/data/captcha/reimgs.raw.list");
+                plist = get_paths("/Data.Data/captcha/reimgs.raw.list");
             }
             string[] paths = (string[])list_to_array(plist);
             Console.Write($"%d\n", plist.Size);
             clock_t time;
             pthread_t load_thread;
-            data train;
-            data buffer;
+            Data.Data train;
+            Data.Data buffer;
 
-            load_args args = { 0 };
+            LoadArgs args = { 0 };
             args.W = net.W;
             args.H = net.H;
             args.paths = paths;
-            args.classes = 26;
+            args.Classes = 26;
             args.N = imgs;
             args.m = plist.Size;
             args.labels = labels;
@@ -6149,7 +6149,7 @@ namespace Yolo_V2
                 float loss = train_network(net, train);
                 if (avg_loss == -1) avg_loss = loss;
                 avg_loss = avg_loss * .9 + loss * .1;
-                Console.Write($"%d: %f, %f avg, %lf seconds, %d images\n", i, loss, avg_loss, sec(clock() - time), *net.Seen);
+                Console.Write($"%d: %f, %f avg, %lf seconds, %d images\n", i, loss, avg_loss, sec(clock() - time), net.Seen);
                 free_data(train);
                 if (i % 100 == 0)
                 {
@@ -6162,15 +6162,15 @@ namespace Yolo_V2
 
         void test_captcha(string cfgfile, string weightfile, string filename)
         {
-            network net = Parser.parse_network_cfg(cfgfile);
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
             int i = 0;
-            string[] names = get_labels("/data/captcha/reimgs.labels.list");
+            string[] names = get_labels("/Data.Data/captcha/reimgs.labels.list");
             char buff[256];
             string input = buff;
             int indexes[26];
@@ -6189,7 +6189,7 @@ namespace Yolo_V2
                     strtok(input, "\n");
                 }
                 Image im = load_image_color(input, net.W, net.H);
-                float[] X = im.Data;
+                float[] X = im.Data.Data;
                 float[] predictions = network_predict(net, X);
                 top_predictions(net, 26, indexes);
                 //Console.Write($"%s: Predicted in %f seconds.\n", input, sec(clock()-time));
@@ -6208,25 +6208,25 @@ namespace Yolo_V2
 
         void valid_captcha(string cfgfile, string weightfile, string filename)
         {
-            string[] labels = get_labels("/data/captcha/reimgs.labels.list");
-            network net = Parser.parse_network_cfg(cfgfile);
+            string[] labels = get_labels("/Data.Data/captcha/reimgs.labels.list");
+            Network net = Parser.parse_network_cfg(cfgfile);
             if (weightfile)
             {
-                Parser.load_weights(&net, weightfile);
+                Parser.load_weights(net, weightfile);
             }
-            list* plist = get_paths("/data/captcha/reimgs.fg.list");
+            list* plist = get_paths("/Data.Data/captcha/reimgs.fg.list");
             string[] paths = (string[])list_to_array(plist);
             int N = plist.Size;
             int outputs = net.Outputs;
 
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             srand(2222222);
             int i, j;
             for (i = 0; i < N; ++i)
             {
                 if (i % 100 == 0) Console.Error.Write($"%d\n", i);
                 Image im = load_image_color(paths[i], net.W, net.H);
-                float[] X = im.Data;
+                float[] X = im.Data.Data;
                 float[] predictions = network_predict(net, X);
                 //Console.Write($"%s: Predicted in %f seconds.\n", input, sec(clock()-time));
                 int truth = -1;
@@ -6297,7 +6297,7 @@ namespace Yolo_V2
             }
         }
 
-        void optimize_picture(network* net, Image orig, int max_layer, float scale, float rate, float thresh, int norm)
+        void optimize_picture(Network* net, Image orig, int max_layer, float scale, float rate, float thresh, int norm)
         {
             //scale_image(orig, 2);
             //translate_image(orig, -1);
@@ -6312,34 +6312,34 @@ namespace Yolo_V2
             if (flip) flip_image(im);
 
             resize_network(net, im.W, im.H);
-            layer last = net.Layers[net.N - 1];
+            Layer last = net.Layers[net.N - 1];
             //net.Layers[net.N - 1].activation = LINEAR;
 
             Image delta = new Image(im.W, im.H, im.C);
 
             network_state state = { 0 };
             i
-            state.input = cuda_make_array(im.Data, im.W * im.H * im.C);
-            state.delta = cuda_make_array(im.Data, im.W * im.H * im.C);
+            state.input = cuda_make_array(im.Data.Data, im.W * im.H * im.C);
+            state.delta = cuda_make_array(im.Data.Data, im.W * im.H * im.C);
 
-            forward_network_gpu(*net, state);
+            forward_network_gpu(net, state);
             copy_ongpu(last.Outputs, last.output_gpu, 1, last.delta_gpu, 1);
 
             cuda_pull_array(last.delta_gpu, last.delta, last.Outputs);
             calculate_loss(last.delta, last.delta, last.Outputs, thresh);
             cuda_push_array(last.delta_gpu, last.delta, last.Outputs);
 
-            backward_network_gpu(*net, state);
+            backward_network_gpu(net, state);
 
-            cuda_pull_array(state.delta, delta.Data, im.W * im.H * im.C); i
+            cuda_pull_array(state.delta, delta.Data.Data, im.W * im.H * im.C); i
 
             if (flip) flip_image(delta);
-            //normalize_array(delta.Data, delta.W*delta.H*delta.C);
+            //normalize_array(delta.Data.Data, delta.W*delta.H*delta.C);
             Image resized = resize_image(delta, orig.W, orig.H);
             Image outi = crop_image(resized, -dx, -dy, orig.W, orig.H);
 
-            if (norm) normalize_array(outi.Data, outi.W * outi.H * outi.C);
-            axpy_cpu(orig.W * orig.H * orig.C, rate, outi.Data, 1, orig.Data, 1);
+            if (norm) normalize_array(outi.Data.Data, outi.W * outi.H * outi.C);
+            axpy_cpu(orig.W * orig.H * orig.C, rate, outi.Data.Data, 1, orig.Data.Data, 1);
 
 
             constrain_image(orig);
@@ -6370,7 +6370,7 @@ namespace Yolo_V2
                             {
                                 if (ii < 0) continue;
                                 int in_index = ii + recon.W * (jj + recon.H * k);
-                                update.Data[out_index] += lambda * (recon.Data[in_index] - recon.Data[out_index]);
+                                update.Data.Data[out_index] += lambda * (recon.Data.Data[in_index] - recon.Data.Data[out_index]);
                             }
                         }
                     }
@@ -6378,7 +6378,7 @@ namespace Yolo_V2
             }
         }
 
-        void reconstruct_picture(network net, float[] features, Image recon, Image update, float rate, float momentum, float lambda, int smooth_size, int iters)
+        void reconstruct_picture(Network net, float[] features, Image recon, Image update, float rate, float momentum, float lambda, int smooth_size, int iters)
         {
             int iter = 0;
             for (iter = 0; iter < iters; ++iter)
@@ -6386,23 +6386,23 @@ namespace Yolo_V2
                 Image delta = new Image(recon.W, recon.H, recon.C);
 
                 network_state state = { 0 };
-                state.input = cuda_make_array(recon.Data, recon.W * recon.H * recon.C);
-                state.delta = cuda_make_array(delta.Data, delta.W * delta.H * delta.C);
+                state.input = cuda_make_array(recon.Data.Data, recon.W * recon.H * recon.C);
+                state.delta = cuda_make_array(delta.Data.Data, delta.W * delta.H * delta.C);
                 state.truth = cuda_make_array(features, get_network_output_size(net));
 
                 forward_network_gpu(net, state);
                 backward_network_gpu(net, state);
 
-                cuda_pull_array(state.delta, delta.Data, delta.W * delta.H * delta.C);
+                cuda_pull_array(state.delta, delta.Data.Data, delta.W * delta.H * delta.C);
 
-                axpy_cpu(recon.W * recon.H * recon.C, 1, delta.Data, 1, update.Data, 1);
+                axpy_cpu(recon.W * recon.H * recon.C, 1, delta.Data.Data, 1, update.Data.Data, 1);
                 smooth(recon, update, lambda, smooth_size);
 
-                axpy_cpu(recon.W * recon.H * recon.C, rate, update.Data, 1, recon.Data, 1);
-                Blas.Scal_cpu(recon.W * recon.H * recon.C, momentum, update.Data, 1);
+                axpy_cpu(recon.W * recon.H * recon.C, rate, update.Data.Data, 1, recon.Data.Data, 1);
+                Blas.Scal_cpu(recon.W * recon.H * recon.C, momentum, update.Data.Data, 1);
 
-                //float mag = mag_array(recon.Data, recon.W*recon.H*recon.C);
-                //Blas.Scal_cpu(recon.W*recon.H*recon.C, 600/mag, recon.Data, 1);
+                //float mag = mag_array(recon.Data.Data, recon.W*recon.H*recon.C);
+                //Blas.Scal_cpu(recon.W*recon.H*recon.C, 600/mag, recon.Data.Data, 1);
 
                 constrain_image(recon);
                 free_image(delta);
@@ -6415,7 +6415,7 @@ namespace Yolo_V2
             srand(0);
             if (args.Count < 4)
             {
-                Console.Error.Write($"usage: %s %s [cfg] [weights] [Image] [layer] [options! (optional)]\n", args[0], args[1]);
+                Console.Error.Write($"usage: %s %s [cfg] [weights] [Image] [Layer] [options! (optional)]\n", args[0], args[1]);
                 return;
             }
 
@@ -6439,12 +6439,12 @@ namespace Yolo_V2
             int reconstruct = find_arg(args.Count, args, "-reconstruct");
             int smooth_size = Utils.find_int_arg(args.Count, args, "-smooth", 1);
 
-            network net = Parser.parse_network_cfg(cfg);
-            Parser.load_weights(&net, weights);
+            Network net = Parser.parse_network_cfg(cfg);
+            Parser.load_weights(net, weights);
             string cfgbase = basecfg(cfg);
             string imbase = basecfg(input);
 
-            set_batch_network(&net, 1);
+            set_batch_network(net, 1);
             Image im = load_image_color(input, 0, 0);
             if (0)
             {
@@ -6463,10 +6463,10 @@ namespace Yolo_V2
             Image update;
             if (reconstruct)
             {
-                resize_network(&net, im.W, im.H);
+                resize_network(net, im.W, im.H);
 
                 int zz = 0;
-                network_predict(net, im.Data);
+                network_predict(net, im.Data.Data);
                 Image out_im = get_network_image(net);
                 Image crop = crop_image(out_im, zz, zz, out_im.W - 2 * zz, out_im.H - 2 * zz);
                 //flip_image(crop);
@@ -6477,7 +6477,7 @@ namespace Yolo_V2
 
                 im = resize_image(im, im.W, im.H);
                 f_im = resize_image(f_im, f_im.W, f_im.H);
-                features = f_im.Data;
+                features = f_im.Data.Data;
 
                 int i;
                 for (i = 0; i < 14 * 14 * 512; ++i)
@@ -6510,9 +6510,9 @@ namespace Yolo_V2
                     }
                     else
                     {
-                        int layer = max_layer + rand() % range - range / 2;
+                        int Layer = max_layer + rand() % range - range / 2;
                         int octave = rand() % octaves;
-                        optimize_picture(&net, im, layer, 1 / pow(1.33333333, octave), rate, thresh, norm);
+                        optimize_picture(net, im, Layer, 1 / pow(1.33333333, octave), rate, thresh, norm);
                     }
                 }
                 Console.Error.Write($"done\n");
