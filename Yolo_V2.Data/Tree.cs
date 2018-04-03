@@ -62,7 +62,7 @@ namespace Yolo_V2.Data
             for (i = 0; i < n; ++i) if (Parent[i] >= 0) Leaf[Parent[i]] = 0;
         }
 
-        public void Hierarchy_predictions(float[] predictions, int predStart, int n, int onlyLeaves)
+        public void Hierarchy_predictions(float[] predictions, int predStart, int n, bool onlyLeaves)
         {
             int j;
             for (j = 0; j < n; ++j)
@@ -73,7 +73,7 @@ namespace Yolo_V2.Data
                     predictions[predStart + j] *= predictions[predStart + parent];
                 }
             }
-            if (onlyLeaves == 1)
+            if (onlyLeaves)
             {
                 for (j = 0; j < n; ++j)
                 {

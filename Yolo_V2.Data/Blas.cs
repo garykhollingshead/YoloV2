@@ -184,10 +184,10 @@ namespace Yolo_V2.Data
             for (i = 0; i < n; ++i) to[i + toStart] += alpha * from[i + fromStart];
         }
 
-        public static void Scal_cpu(int n, float alpha, float[] x, int incx)
+        public static void Scal_cpu(int n, float alpha, float[] x, int incx, int xStart = 0)
         {
             int i;
-            for (i = 0; i < n; ++i) x[i * incx] *= alpha;
+            for (i = 0; i < n; ++i) x[xStart + i * incx] *= alpha;
         }
 
         public static void Fill_cpu(int n, float alpha, float[] x, int incx)
@@ -628,10 +628,10 @@ namespace Yolo_V2.Data
             if (i < n) x[i * incx] *= alpha;
         }
 
-        private static void fill_kernel(int n, float alpha, float[] x, int incx)
+        private static void fill_kernel(int n, float alpha, float[] x, int incx, int startx = 0)
         {
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
-            if (i < n) x[i * incx] = alpha;
+            if (i < n) x[startx + i * incx] = alpha;
         }
 
         private static void mask_kernel(int n, float[] x, float maskNum, float[] mask)
@@ -860,10 +860,10 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void fill_ongpu(int n, float alpha, float[] x, int incx)
+        public static void fill_ongpu(int n, float alpha, float[] x, int incx, int startx = 0)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
-            Gpu.Default.Launch(fill_kernel, lp, n, alpha, x, incx);
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
+            Gpu.Default.Launch(fill_kernel, lp, n, alpha, x, incx, startx);
         }
 
         private static void shortcut_kernel(int size, int minw, int minh, int minc, int stride, int sample, int batch, int w1, int h1, int c1, float[] add, int w2, int h2, int c2, float[] output)

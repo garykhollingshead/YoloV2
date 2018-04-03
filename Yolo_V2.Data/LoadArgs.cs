@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using Emgu.CV.UI;
 using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2.Data
@@ -476,36 +477,37 @@ namespace Yolo_V2.Data
 
             string buff = name;
 
-            Mat disp = new Mat(p.H, p.W, DepthType.Cv8U, p.C);
-            //cvCreateImage(cvSize(p.W, p.H), IPL_DEPTH_8U, p.C);
-            int step = disp.Step;
-            CvInvoke.NamedWindow(buff, NamedWindowType.Normal);
-
-            ++_windows;
-            for (y = 0; y < p.H; ++y)
+            using (Mat disp = new Mat(p.H, p.W, DepthType.Cv8U, p.C))
             {
-                for (x = 0; x < p.W; ++x)
+                int step = disp.Step;
+
+                ++_windows;
+                for (y = 0; y < p.H; ++y)
                 {
-                    for (k = 0; k < p.C; ++k)
+                    for (x = 0; x < p.W; ++x)
                     {
-                        Image.SetPixel(disp, (y * step + x * p.C + k), get_pixel(copy, x, y, k) * 255);
+                        for (k = 0; k < p.C; ++k)
+                        {
+                            Image.SetPixel(disp, (y * step + x * p.C + k), get_pixel(copy, x, y, k) * 255);
+                        }
                     }
                 }
+
+                ImageViewer.Show(disp, buff);
+
+                Size size = new Size { Height = disp.Height, Width = disp.Width };
+
+                if (_outputVideo == null)
+                {
+                    Console.WriteLine($"\n SRC output_video = {_outputVideo} ");
+                    string outputName = "test_dnn_out.avi";
+                    _outputVideo = new VideoWriter(outputName, 25, size, true);
+                    Console.WriteLine($"\n cvCreateVideoWriter, DST output_video = {_outputVideo} ");
+                }
+
+                _outputVideo.Write(disp);
             }
 
-            CvInvoke.Imshow(buff, disp);
-
-            Size size = new Size { Height = disp.Height, Width = disp.Width };
-
-            if (_outputVideo == null)
-            {
-                Console.WriteLine($"\n SRC output_video = {_outputVideo} ");
-                string outputName = "test_dnn_out.avi";
-                _outputVideo = new VideoWriter(outputName, 25, size, true);
-                Console.WriteLine($"\n cvCreateVideoWriter, DST output_video = {_outputVideo} ");
-            }
-
-            _outputVideo.Write(disp);
             Console.WriteLine("\n cvWriteFrame \n");
         }
 
@@ -566,14 +568,17 @@ namespace Yolo_V2.Data
 
         public static Image load_image_cv(string filename, int channels)
         {
-            Mat src;
             var flag = (channels == 1)
                 ? ImreadModes.Grayscale
                 : ImreadModes.Color;
-
             try
             {
-                src = new Mat(filename, flag);
+                using (Mat src = new Mat(filename, flag))
+                {
+                    Image retImage = ipl_to_image(src);
+                    rgbgr_image(retImage);
+                    return retImage;
+                }
             }
             catch (Exception e)
             {
@@ -582,11 +587,6 @@ namespace Yolo_V2.Data
                 return new Image(10, 10, 3);
             }
 
-            Image retImage = ipl_to_image(src);
-            src.Dispose();
-            //cvReleaseImage(&src);
-            rgbgr_image(retImage);
-            return retImage;
         }
 
         public static Image get_image_from_stream(VideoCapture cap)

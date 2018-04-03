@@ -236,19 +236,21 @@ namespace Yolo_V2.Data
             return a.Take(n).Sum() / n;
         }
 
-        public static void mean_arrays(float[][] a, float[] avg)
+        public static void mean_arrays(float[][] a, int n, int els, float[] avg)
         {
-            foreach (var f in a)
+            int i;
+            int j;
+            avg = new float[els];
+            for (j = 0; j < n; ++j)
             {
-                for (var i = 0; i < f.Length; ++i)
+                for (i = 0; i < els; ++i)
                 {
-                    avg[i] += f[i];
+                    avg[i] += a[j][i];
                 }
             }
-
-            for (var i = 0; i < avg.Length; ++i)
+            for (i = 0; i < els; ++i)
             {
-                avg[i] /= a.Length;
+                avg[i] /= n;
             }
         }
 
@@ -256,7 +258,7 @@ namespace Yolo_V2.Data
         {
             float m = mean_array(a, n);
             float v = variance_array(a, n);
-            Console.WriteLine($"MSE: {mse_array(a):.6}, Mean: {m:.6}f, Variance: {v}f");
+            Console.WriteLine($"MSE: {mse_array(a, n):.6}, Mean: {m:.6}f, Variance: {v}f");
         }
 
         public static float variance_array(float[] a, int n)
@@ -291,12 +293,12 @@ namespace Yolo_V2.Data
             return (float)Math.Sqrt(sum);
         }
 
-        public static float mse_array(float[] a)
+        public static float mse_array(float[] a, int n)
         {
             int i;
             float sum = 0;
-            for (i = 0; i < a.Length; ++i) sum += a[i] * a[i];
-            return (float)Math.Sqrt(sum / a.Length);
+            for (i = 0; i < n; ++i) sum += a[i] * a[i];
+            return (float)Math.Sqrt(sum / n);
         }
 
         public static void normalize_array(float[] a, int n)

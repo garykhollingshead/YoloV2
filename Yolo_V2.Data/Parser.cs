@@ -209,7 +209,7 @@ namespace Yolo_V2.Data
             l.Thresh = OptionList.option_find_float(options, "thresh", .5f);
             l.Classfix = OptionList.option_find_int_quiet(options, "classfix", 0);
             l.Absolute = OptionList.option_find_int_quiet(options, "absolute", 0);
-            l.Random = OptionList.option_find_int_quiet(options, "random", 0);
+            l.Random = OptionList.option_find_int_quiet(options, "random", 0) != 0;
 
             l.CoordScale = OptionList.option_find_float(options, "coord_scale", 1);
             l.ObjectScale = OptionList.option_find_float(options, "object_scale", 1);
@@ -228,7 +228,7 @@ namespace Yolo_V2.Data
                 var lines = a.Split(',');
                 for (int i = 0; i < lines.Length; ++i)
                 {
-                    l.Biases[i] = float.Parse(lines[i]);
+                    l.BiasesComplete[l.BiasesIndex + i] = float.Parse(lines[i]);
                 }
             }
             return l;
@@ -253,7 +253,7 @@ namespace Yolo_V2.Data
             layer.NoobjectScale = OptionList.option_find_float(options, "noobject_scale", 1);
             layer.ClassScale = OptionList.option_find_float(options, "class_scale", 1);
             layer.Jitter = OptionList.option_find_float(options, "jitter", .2f);
-            layer.Random = OptionList.option_find_int_quiet(options, "random", 0);
+            layer.Random = OptionList.option_find_int_quiet(options, "random", 0) != 0;
             layer.Reorg = OptionList.option_find_int_quiet(options, "reorg", 0);
             return layer;
         }
@@ -726,12 +726,12 @@ namespace Yolo_V2.Data
             {
                 l.pull_convolutional_layer();
             }
-            Layer.binarize_weights(l.Weights, l.N, l.C * l.Size * l.Size, l.BinaryWeights);
+            Layer.binarize_weights(l.WeightsComplete, l.N, l.C * l.Size * l.Size, l.BinaryWeights);
             int size = l.C * l.Size * l.Size;
             int i, j;
             using (var fstream = File.OpenWrite(filename))
             {
-                var biases = FloatArrayToByteArray(l.Biases);
+                var biases = FloatArrayToByteArray(l.BiasesComplete, l.BiasesIndex);
                 fstream.Write(biases, 0, biases.Length);
                 if (l.BatchNormalize )
                 {
@@ -764,10 +764,11 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static byte[] FloatArrayToByteArray(float[] floats)
+        private static byte[] FloatArrayToByteArray(float[] floats, int start = 0)
         {
-            var bytes = new byte[floats.Length * 4];
-            Buffer.BlockCopy(floats, 0, bytes, 0, bytes.Length);
+            var bytes = new byte[(floats.Length - start) * 4];
+            //todo may be this should be start * 4
+            Buffer.BlockCopy(floats, start, bytes, 0, bytes.Length);
             return bytes;
         }
 
@@ -779,7 +780,7 @@ namespace Yolo_V2.Data
             }
 
             int num = l.N * l.C * l.Size * l.Size;
-            var biases = FloatArrayToByteArray(l.Biases);
+            var biases = FloatArrayToByteArray(l.BiasesComplete, l.BiasesIndex);
             fstream.Write(biases, 0, biases.Length);
 
             if (l.BatchNormalize)
@@ -792,7 +793,7 @@ namespace Yolo_V2.Data
                 fstream.Write(variance, 0, variance.Length);
             }
 
-            var weights = FloatArrayToByteArray(l.Weights);
+            var weights = FloatArrayToByteArray(l.WeightsComplete, l.WeightsIndex);
             fstream.Write(weights, 0, weights.Length);
 
             if (l.Adam )
@@ -828,10 +829,10 @@ namespace Yolo_V2.Data
                 l.pull_connected_layer();
             }
 
-            var biases = FloatArrayToByteArray(l.Biases);
+            var biases = FloatArrayToByteArray(l.BiasesComplete, l.BiasesIndex);
             fread.Write(biases, 0, biases.Length);
 
-            var weights = FloatArrayToByteArray(l.Weights);
+            var weights = FloatArrayToByteArray(l.WeightsComplete, l.WeightsIndex);
             fread.Write(weights, 0, weights.Length);
             if (l.BatchNormalize )
             {
@@ -915,9 +916,9 @@ namespace Yolo_V2.Data
                         int locations = l.OutW * l.OutH;
                         int size = l.Size * l.Size * l.C * l.N * locations;
 
-                        var biases = FloatArrayToByteArray(l.Biases);
+                        var biases = FloatArrayToByteArray(l.BiasesComplete, l.BiasesIndex);
 
-                        var weights = FloatArrayToByteArray(l.Weights);
+                        var weights = FloatArrayToByteArray(l.WeightsComplete, l.WeightsIndex);
 
                         fstream.Write(biases, 0, biases.Length);
                         fstream.Write(weights, 0, weights.Length);
@@ -931,7 +932,7 @@ namespace Yolo_V2.Data
             save_weights_upto(net, filename, net.N);
         }
 
-        public static void transpose_matrix(float[] a, int rows, int cols)
+        public static void transpose_matrix(float[] a, int rows, int cols, int aStart = 0)
         {
             float[] transpose = new float[rows * cols];
             int x, y;
@@ -939,20 +940,21 @@ namespace Yolo_V2.Data
             {
                 for (y = 0; y < cols; ++y)
                 {
-                    transpose[y * rows + x] = a[x * cols + y];
+                    transpose[y * rows + x] = a[aStart + x * cols + y];
                 }
             }
-            Array.Copy(transpose, a, rows * cols);
+            Array.Copy(transpose, 0, a, aStart, rows * cols);
         }
 
         public static void load_connected_weights(Layer l, FileStream fread, int transpose)
         {
-            l.Biases = ReadFloat(fread, l.Outputs);
-            l.Weights = ReadFloat(fread, l.Outputs * l.Inputs);
+            l.BiasesComplete = ReadFloat(fread, l.Outputs);
+            l.WeightsComplete = ReadFloat(fread, l.Outputs * l.Inputs);
+            l.BiasesIndex = l.WeightsIndex = 0;
 
             if (transpose != 0)
             {
-                transpose_matrix(l.Weights, l.Inputs, l.Outputs);
+                transpose_matrix(l.WeightsComplete, l.Inputs, l.Outputs, l.WeightsIndex);
             }
             if (l.BatchNormalize  && !l.Dontloadscales)
             {
@@ -997,7 +999,8 @@ namespace Yolo_V2.Data
 
         public static void load_convolutional_weights_binary(Layer l, FileStream fread)
         {
-            l.Biases = ReadFloat(fread, l.N);
+            l.BiasesComplete = ReadFloat(fread, l.N);
+            l.BiasesIndex = 0;
             if (l.BatchNormalize && (!l.Dontloadscales))
             {
                 l.Scales = ReadFloat(fread, l.N);
@@ -1016,7 +1019,7 @@ namespace Yolo_V2.Data
                     for (k = 0; k < 8; ++k)
                     {
                         if (j * 8 + k >= size) break;
-                        l.Weights[index + k] = (c & 1 << k) != 0 ? mean : -mean;
+                        l.WeightsComplete[l.WeightsIndex + index + k] = (c & 1 << k) != 0 ? mean : -mean;
                     }
                 }
             }
@@ -1029,7 +1032,8 @@ namespace Yolo_V2.Data
         public static void load_convolutional_weights(Layer l, FileStream fread)
         {
             int num = l.N * l.C * l.Size * l.Size;
-            l.Biases = ReadFloat(fread, l.N);
+            l.BiasesComplete = ReadFloat(fread, l.N);
+            l.BiasesIndex = 0;
             if (l.BatchNormalize  && (!l.Dontloadscales))
             {
                 l.Scales = ReadFloat(fread, l.N);
@@ -1037,7 +1041,8 @@ namespace Yolo_V2.Data
                 l.RollingVariance = ReadFloat(fread, l.N);
             }
 
-            l.Weights = ReadFloat(fread, num);
+            l.WeightsComplete = ReadFloat(fread, num);
+            l.WeightsIndex = 0;
             if (l.Adam )
             {
                 l.M = ReadFloat(fread, num);
@@ -1045,7 +1050,7 @@ namespace Yolo_V2.Data
             }
             if (l.Flipped != 0)
             {
-                transpose_matrix(l.Weights, l.C * l.Size * l.Size, l.N);
+                transpose_matrix(l.WeightsComplete, l.C * l.Size * l.Size, l.N, l.WeightsIndex);
             }
             if (CudaUtils.UseGpu)
             {
@@ -1118,8 +1123,10 @@ namespace Yolo_V2.Data
                     {
                         int locations = l.OutW * l.OutH;
                         int size = l.Size * l.Size * l.C * l.N * locations;
-                        l.Biases = ReadFloat(fread, l.Outputs);
-                        l.Weights = ReadFloat(fread, size);
+                        l.BiasesComplete = ReadFloat(fread, l.Outputs);
+                        l.WeightsComplete = ReadFloat(fread, size);
+                        l.BiasesIndex = 0;
+                        l.WeightsIndex = 0;
                         if (CudaUtils.UseGpu)
                         {
                             l.push_local_layer();

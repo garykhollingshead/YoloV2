@@ -834,7 +834,7 @@ namespace Yolo_V2.Data
             BinaryWeightsGpu = swap;
         }
 
-        public static void binarize_weights(float[] weights, int n, int size, float[] binary)
+        public static void binarize_weights(float[] weights, int n, int size, float[] binary, int weightsStart = 0)
         {
             int i, f;
             for (f = 0; f < n; ++f)
@@ -842,12 +842,12 @@ namespace Yolo_V2.Data
                 float mean = 0;
                 for (i = 0; i < size; ++i)
                 {
-                    mean += (float)Math.Abs(weights[f * size + i]);
+                    mean += (float)Math.Abs(weights[weightsStart + f * size + i]);
                 }
                 mean = mean / size;
                 for (i = 0; i < size; ++i)
                 {
-                    binary[f * size + i] = (weights[f * size + i] > 0) ? mean : -mean;
+                    binary[f * size + i] = (weights[weightsStart + f * size + i] > 0) ? mean : -mean;
                 }
             }
         }
@@ -4761,7 +4761,7 @@ namespace Yolo_V2.Data
                     int class_index = index * (l.Classes + 5) + 5;
                     if (l.SoftmaxTree != null)
                     {
-                        l.SoftmaxTree.Hierarchy_predictions(predictions, class_index, l.Classes, 0);
+                        l.SoftmaxTree.Hierarchy_predictions(predictions, class_index, l.Classes, false);
                         bool found = false;
                         if (map.Length != 0)
                         {
