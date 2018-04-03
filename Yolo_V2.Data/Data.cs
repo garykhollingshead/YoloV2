@@ -28,11 +28,11 @@ namespace Yolo_V2.Data
             Y = new Matrix();
         }
 
-        public static List<string> GetPaths(string filename)
+        public static string[] GetPaths(string filename)
         {
             return !File.Exists(filename)
-                ? new List<string>()
-                : File.ReadAllLines(filename).ToList();
+                ? new string[0]
+                : File.ReadAllLines(filename);
         }
 
         public static string[] get_random_paths(string[] paths, int n, int m)

@@ -112,13 +112,13 @@ namespace Yolo_V2.Data
             return c;
         }
 
-        public static Image get_label(Image[] characters, string lbl, int size)
+        public static Image get_label(Image[][] characters, string lbl, int size)
         {
             if (size > 7) size = 7;
             Image label = new Image();
             foreach (var c in lbl)
             {
-                Image l = characters[size];
+                Image l = characters[size][c];
                 Image n = tile_images(label, l, -size - 1 + (size + 1) / 2);
                 label = n;
             }
@@ -226,8 +226,8 @@ namespace Yolo_V2.Data
             return alphabets;
         }
 
-        public static void draw_detections(Image im, int num, float thresh, Box[] boxes, float[][] probs, List<string> names,
-            Image[] alphabet, int classes)
+        public static void draw_detections(Image im, int num, float thresh, Box[] boxes, float[][] probs, string[] names,
+            Image[][] alphabet, int classes)
         {
             int i;
 
@@ -262,7 +262,7 @@ namespace Yolo_V2.Data
                     if (bot > im.H - 1) bot = im.H - 1;
 
                     draw_box_width(im, left, top, right, bot, width, red, green, blue);
-                    if (alphabet.Any())
+                    if (alphabet.Length != 0)
                     {
                         Image label = get_label(alphabet, names[curClass], (int)(im.H * .03) / 10);
                         draw_label(im, top + width, left, label, rgb);
@@ -1220,14 +1220,14 @@ namespace Yolo_V2.Data
         public static void test_resize(string filename)
         {
             Image im = load_image(filename, 0, 0, 3);
-            float mag = mag_array(im.data, im.w * im.h * im.c);
-            printf("L2 Norm: %f\n", mag);
+            float mag = Utils.mag_array(im.Data, im.W * im.H * im.C);
+            Console.Write($"L2 Norm: {mag}\n");
             var gray = grayscale_image(im);
 
-            var c1 = copy_image(im);
-            var c2 = copy_image(im);
-            var c3 = copy_image(im);
-            var c4 = copy_image(im);
+            var c1 = new Image(im);
+            var c2 = new Image(im);
+            var c3 = new Image(im);
+            var c4 = new Image(im);
             distort_image(c1, .1f, 1.5f, 1.5f);
             distort_image(c2, -.1f, .66666f, .66666f);
             distort_image(c3, .1f, 1.5f, .66666f);
@@ -1240,28 +1240,26 @@ namespace Yolo_V2.Data
             show_image(c2, "C2");
             show_image(c3, "C3");
             show_image(c4, "C4");
-            while (1)
+            while (true)
             {
                 var aug = random_augment_image(im, 0, .75f, 320, 448, 320);
                 show_image(aug, "aug");
-                free_image(aug);
 
 
                 float exposure = 1.15f;
                 float saturation = 1.15f;
                 float hue = .05f;
 
-                var c = copy_image(im);
+                var c = new Image(im);
 
-                float dexp = rand_scale(exposure);
-                float dsat = rand_scale(saturation);
-                float dhue = rand_uniform(-hue, hue);
+                float dexp = Utils.rand_scale(exposure);
+                float dsat = Utils.rand_scale(saturation);
+                float dhue = Utils.rand_uniform(-hue, hue);
 
                 distort_image(c, dhue, dsat, dexp);
                 show_image(c, "rand");
-                printf("%f %f %f\n", dhue, dsat, dexp);
-                free_image(c);
-                cvWaitKey(0);
+                Console.Write($"{dhue} {dsat} {dexp}\n");
+                CvInvoke.WaitKey();
             }
         }
 

@@ -6,7 +6,7 @@ namespace Yolo_V2.Data
 {
     public static class OptionList
     {
-        public static List<KeyValuePair> read_data_cfg(string filename)
+        public static KeyValuePair[] read_data_cfg(string filename)
         {
             if (!File.Exists(filename))
             {
@@ -32,7 +32,7 @@ namespace Yolo_V2.Data
                         break;
                 }
             }
-            return options;
+            return options.ToArray();
         }
 
         public static bool read_option(string s, List<KeyValuePair> options)
