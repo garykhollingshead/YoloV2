@@ -12,18 +12,18 @@ namespace Yolo_V2.Data
         public static bool UseGpu = false;
         private static Gpu gpu;
         public static int BlockSize = 512;
-        private static bool cudnnInit = false;
+        private static bool cudnnInit;
         private static unsafe cudnnContext* cudnnHandle;
-        private static bool cublasInit = false;
+        private static bool cublasInit;
         private static unsafe cublasContext* cublasHandle;
-        private static bool curandInit = false;
+        private static bool curandInit;
         private static unsafe curandGenerator_st* gen;
 
         public static bool HaveGpu()
         {
             try
             {
-                if (Alea.Device.Devices.Count() > 0)
+                if (Device.Devices.Count() > 0)
                 {
                     gpu = Gpu.Default;
                     return true;

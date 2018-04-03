@@ -273,9 +273,9 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void scale_bias_gpu(float[] output, float[] biases, int batch, int n, int size)
         {
-            var dimGrid = new Alea.dim3((size - 1) / CudaUtils.BlockSize + 1, n, batch);
-            var dimBlock = new Alea.dim3(CudaUtils.BlockSize, 1, 1);
-            var lp = new Alea.LaunchParam(dimGrid, dimBlock);
+            var dimGrid = new dim3((size - 1) / CudaUtils.BlockSize + 1, n, batch);
+            var dimBlock = new dim3(CudaUtils.BlockSize, 1, 1);
+            var lp = new LaunchParam(dimGrid, dimBlock);
             Gpu.Default.Launch(scale_bias_kernel, lp, output, biases, n, size);
         }
 
@@ -321,7 +321,7 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void add_bias_gpu(float[] output, float[] biases, int batch, int n, int size)
         {
-            var lp = new LaunchParam(new Alea.dim3((size - 1) / CudaUtils.BlockSize + 1, n, batch), new Alea.dim3(CudaUtils.BlockSize, 1, 1));
+            var lp = new LaunchParam(new dim3((size - 1) / CudaUtils.BlockSize + 1, n, batch), new dim3(CudaUtils.BlockSize, 1, 1));
             Gpu.Default.Launch(add_bias_kernel, lp, output, biases, n, size);
         }
 
@@ -392,7 +392,7 @@ namespace Yolo_V2.Data
         public static void normalize_delta_gpu(float[] x, float[] mean, float[] variance, float[] meanDelta, float[] varianceDelta, int batch, int filters, int spatial, float[] delta)
         {
             int n = batch * filters * spatial;
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(normalize_delta_kernel, lp, n, x, mean, variance, meanDelta, varianceDelta, batch,
                 filters, spatial, delta);
         }
@@ -509,21 +509,21 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void mean_delta_gpu(float[] delta, float[] variance, int batch, int filters, int spatial, float[] meanDelta)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(mean_delta_kernel, lp, delta, variance, batch, filters, spatial, meanDelta);
         }
 
         [GpuManaged]
         public static void fast_mean_delta_gpu(float[] delta, float[] variance, int batch, int filters, int spatial, float[] meanDelta)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(fast_mean_delta_kernel, lp, delta, variance, batch, filters, spatial, meanDelta);
         }
 
         [GpuManaged]
         public static void fast_variance_delta_gpu(float[] x, float[] delta, float[] mean, float[] variance, int batch, int filters, int spatial, float[] varianceDelta)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(fast_variance_delta_kernel, lp, x, delta, mean, variance, batch, filters, spatial,
                 varianceDelta);
         }
@@ -656,7 +656,7 @@ namespace Yolo_V2.Data
         public static void normalize_gpu(float[] x, float[] mean, float[] variance, int batch, int filters, int spatial)
         {
             var n = batch * filters * spatial;
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(normalize_kernel, lp, n, x, mean, variance, batch, filters, spatial);
         }
 
@@ -741,14 +741,14 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void mean_gpu(float[] x, int batch, int filters, int spatial, float[] mean)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(mean_kernel, lp, x, batch, filters, spatial, mean);
         }
 
         [GpuManaged]
         public static void variance_gpu(float[] x, float[] mean, int batch, int filters, int spatial, float[] variance)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(filters), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(variance_kernel, lp, x, mean, batch, filters, spatial, variance);
         }
 
@@ -760,14 +760,14 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void pow_ongpu(int n, float alpha, float[] x, float[] y)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(pow_kernel, lp, n, alpha, x, y);
         }
 
         [GpuManaged]
         public static void axpy_ongpu_offset(int n, float alpha, float[] x, float[] y, int xStart = 0, int yStart = 0)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(axpy_kernel, lp, n, alpha, x, y, xStart, yStart);
         }
 
@@ -780,14 +780,14 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void mul_ongpu(int n, float[] x, int incx, float[] y, int incy)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(mul_kernel, lp, n, x, incx, y, incy);
         }
 
         [GpuManaged]
         public static void copy_ongpu_offset(int n, float[] from, float[] to, int xStart = 0, int yStart = 0)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(copy_kernel, lp, n, from, to, xStart, yStart);
         }
 
@@ -812,7 +812,7 @@ namespace Yolo_V2.Data
         public static void flatten_ongpu(float[] x, int spatial, int layers, int batch, int forward, float[] output)
         {
             int size = spatial * batch * layers;
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(flatten_kernel, lp, size, x, spatial, layers, batch, forward, output);
         }
 
@@ -820,42 +820,42 @@ namespace Yolo_V2.Data
         public static void reorg_ongpu(float[] x, int w, int h, int c, int batch, int stride, int forward, float[] output)
         {
             int size = w * h * c * batch;
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(reorg_kernel, lp, size, x, w, h, c, batch, stride, forward, output);
         }
 
         [GpuManaged]
         public static void mask_ongpu(int n, float[] x, float maskNum, float[] mask)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(mask_kernel, lp, n, x, maskNum, mask);
         }
 
         [GpuManaged]
         public static void const_ongpu(int n, float alpha, float[] x, int incx)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(const_kernel, lp, n, alpha, x, incx);
         }
 
         [GpuManaged]
         public static void constrain_ongpu(int n, float alpha, float[] x, int incx)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(constrain_kernel, lp, n, alpha, x, incx);
         }
         
         [GpuManaged]
         public static void scal_ongpu(int n, float alpha, float[] x, int incx)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(scal_kernel, lp, n, alpha, x, incx);
         }
 
         [GpuManaged]
         public static void supp_ongpu(int n, float alpha, float[] x, int incx)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(supp_kernel, lp, n, alpha, x, incx);
         }
 
@@ -896,7 +896,7 @@ namespace Yolo_V2.Data
             if (sample < 1) sample = 1;
 
             int size = batch * minw * minh * minc;
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(size), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(shortcut_kernel, lp, size, minw, minh, minc, stride, sample, batch, w1, h1, c1, add, w2,
                 h2, c2, output);
         }
@@ -924,7 +924,7 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void smooth_l1_gpu(int n, float[] pred, float[] truth, float[] delta, float[] error)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(smooth_l1_kernel, lp, n, pred, truth, delta, error);
         }
 
@@ -942,7 +942,7 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void l2_gpu(int n, float[] pred, float[] truth, float[] delta, float[] error)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(l2_kernel, lp, n, pred, truth, delta, error);
         }
         
@@ -958,7 +958,7 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void weighted_sum_gpu(float[] a, float[] b, float[] s, int num, float[] c)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(weighted_sum_kernel, lp, num, a, b, s, c);
         }
 
@@ -976,7 +976,7 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void weighted_delta_gpu(float[] a, float[] b, float[] s, float[] da, float[] db, float[] ds, int num, float[] dc)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(weighted_delta_kernel, lp, num, a, b, s, da, db, ds, dc);
         }
 
@@ -992,7 +992,7 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void mult_add_into_gpu(int num, float[] a, float[] b, float[] c)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(num), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(mult_add_into_kernel, lp, num, a, b, c);
         }
         
@@ -1030,7 +1030,7 @@ namespace Yolo_V2.Data
         {
             int inputs = n;
             int batch = groups;
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(batch), new Alea.dim3(CudaUtils.BlockSize));
+            var lp = new LaunchParam(CudaUtils.cuda_gridsize(batch), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(softmax_kernel, lp, inputs, offset, batch, input, temp, output, inputStart, outputStart);
         }
     }

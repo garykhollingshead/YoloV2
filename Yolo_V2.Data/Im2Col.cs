@@ -1,6 +1,6 @@
-﻿using Alea;
+﻿using System;
+using Alea;
 using Alea.CSharp;
-using System;
 
 namespace Yolo_V2.Data
 {
@@ -17,29 +17,29 @@ namespace Yolo_V2.Data
             return im[imStart + col + width * (row + height * channel)];
         }
 
-        public static void im2col_cpu(float[] data_im,
+        public static void im2col_cpu(float[] dataIm,
             int channels, int height, int width,
-            int ksize, int stride, int pad, float[] data_col, int dataImStart = 0, int dataColStart = 0)
+            int ksize, int stride, int pad, float[] dataCol, int dataImStart = 0, int dataColStart = 0)
         {
             int c, h, w;
-            int height_col = (height + 2 * pad - ksize) / stride + 1;
-            int width_col = (width + 2 * pad - ksize) / stride + 1;
+            int heightCol = (height + 2 * pad - ksize) / stride + 1;
+            int widthCol = (width + 2 * pad - ksize) / stride + 1;
 
-            int channels_col = channels * ksize * ksize;
-            for (c = 0; c < channels_col; ++c)
+            int channelsCol = channels * ksize * ksize;
+            for (c = 0; c < channelsCol; ++c)
             {
-                int w_offset = c % ksize;
-                int h_offset = (c / ksize) % ksize;
-                int c_im = c / ksize / ksize;
-                for (h = 0; h < height_col; ++h)
+                int wOffset = c % ksize;
+                int hOffset = (c / ksize) % ksize;
+                int cIm = c / ksize / ksize;
+                for (h = 0; h < heightCol; ++h)
                 {
-                    for (w = 0; w < width_col; ++w)
+                    for (w = 0; w < widthCol; ++w)
                     {
-                        int im_row = h_offset + h * stride;
-                        int im_col = w_offset + w * stride;
-                        int col_index = (c * height_col + h) * width_col + w;
-                        data_col[dataColStart + col_index] = im2col_get_pixel(data_im, height, width, channels,
-                            im_row, im_col, c_im, pad, dataImStart);
+                        int imRow = hOffset + h * stride;
+                        int imCol = wOffset + w * stride;
+                        int colIndex = (c * heightCol + h) * widthCol + w;
+                        dataCol[dataColStart + colIndex] = im2col_get_pixel(dataIm, height, width, channels,
+                            imRow, imCol, cIm, pad, dataImStart);
                     }
                 }
             }
@@ -56,67 +56,67 @@ namespace Yolo_V2.Data
             im[imStart + col + width * (row + height * channel)] += val;
         }
 
-        public static void col2im_cpu(float[] data_col,
+        public static void col2im_cpu(float[] dataCol,
             int channels, int height, int width,
-            int ksize, int stride, int pad, float[] data_im, int dataImStart = 0)
+            int ksize, int stride, int pad, float[] dataIm, int dataImStart = 0)
         {
             int c, h, w;
-            int height_col = (height + 2 * pad - ksize) / stride + 1;
-            int width_col = (width + 2 * pad - ksize) / stride + 1;
+            int heightCol = (height + 2 * pad - ksize) / stride + 1;
+            int widthCol = (width + 2 * pad - ksize) / stride + 1;
 
-            int channels_col = channels * ksize * ksize;
-            for (c = 0; c < channels_col; ++c)
+            int channelsCol = channels * ksize * ksize;
+            for (c = 0; c < channelsCol; ++c)
             {
-                int w_offset = c % ksize;
-                int h_offset = (c / ksize) % ksize;
-                int c_im = c / ksize / ksize;
-                for (h = 0; h < height_col; ++h)
+                int wOffset = c % ksize;
+                int hOffset = (c / ksize) % ksize;
+                int cIm = c / ksize / ksize;
+                for (h = 0; h < heightCol; ++h)
                 {
-                    for (w = 0; w < width_col; ++w)
+                    for (w = 0; w < widthCol; ++w)
                     {
-                        int im_row = h_offset + h * stride;
-                        int im_col = w_offset + w * stride;
-                        int col_index = (c * height_col + h) * width_col + w;
-                        float val = data_col[col_index];
-                        col2im_add_pixel(data_im, height, width, channels,
-                            im_row, im_col, c_im, pad, val, dataImStart);
+                        int imRow = hOffset + h * stride;
+                        int imCol = wOffset + w * stride;
+                        int colIndex = (c * heightCol + h) * widthCol + w;
+                        float val = dataCol[colIndex];
+                        col2im_add_pixel(dataIm, height, width, channels,
+                            imRow, imCol, cIm, pad, val, dataImStart);
                     }
                 }
             }
         }
 
-        private static void im2col_gpu_kernel(int n, float[] data_im,
+        private static void im2col_gpu_kernel(int n, float[] dataIm,
             int height, int width, int ksize,
             int pad,
             int stride,
-            int height_col, int width_col,
-            float[] data_col)
+            int heightCol, int widthCol,
+            float[] dataCol)
         {
             int index = blockIdx.x * blockDim.x + threadIdx.x;
             for (; index < n; index += blockDim.x * gridDim.x)
             {
-                int w_out = index % width_col;
-                int h_index = index / width_col;
-                int h_out = h_index % height_col;
-                int channel_in = h_index / height_col;
-                int channel_out = channel_in * ksize * ksize;
-                int h_in = h_out * stride - pad;
-                int w_in = w_out * stride - pad;
+                int wOut = index % widthCol;
+                int hIndex = index / widthCol;
+                int hOut = hIndex % heightCol;
+                int channelIn = hIndex / heightCol;
+                int channelOut = channelIn * ksize * ksize;
+                int hIn = hOut * stride - pad;
+                int wIn = wOut * stride - pad;
 
-                int data_col_ptr = (channel_out * height_col + h_out) * width_col + w_out;
-                int data_im_ptr = (channel_in * height + h_in) * width + w_in;
+                int dataColPtr = (channelOut * heightCol + hOut) * widthCol + wOut;
+                int dataImPtr = (channelIn * height + hIn) * width + wIn;
 
                 for (int i = 0; i < ksize; ++i)
                 {
                     for (int j = 0; j < ksize; ++j)
                     {
-                        int h = h_in + i;
-                        int w = w_in + j;
-                        data_col[data_col_ptr] = (h >= 0 && w >= 0 && h < height && w < width)
-                            ? data_im[data_im_ptr + i * width + j]
+                        int h = hIn + i;
+                        int w = wIn + j;
+                        dataCol[dataColPtr] = (h >= 0 && w >= 0 && h < height && w < width)
+                            ? dataIm[dataImPtr + i * width + j]
                             : 0;
 
-                        data_col_ptr += height_col * width_col;
+                        dataColPtr += heightCol * widthCol;
                     }
                 }
             }
@@ -125,24 +125,24 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void im2col_ongpu(float[] im,
                  int channels, int height, int width,
-                 int ksize, int stride, int pad, float[] data_col)
+                 int ksize, int stride, int pad, float[] dataCol)
         {
             // We are going to launch channels * height_col * width_col kernels, each
             // kernel responsible for copying a single-channel grid.
-            int height_col = (height + 2 * pad - ksize) / stride + 1;
-            int width_col = (width + 2 * pad - ksize) / stride + 1;
-            int num_kernels = channels * height_col * width_col;
-            var lp = new LaunchParam((num_kernels + CudaUtils.BlockSize - 1) / CudaUtils.BlockSize, CudaUtils.BlockSize);
-            Gpu.Default.Launch(im2col_gpu_kernel, lp, num_kernels, im, height, width, ksize, pad,
-                stride, height_col, width_col, data_col);
+            int heightCol = (height + 2 * pad - ksize) / stride + 1;
+            int widthCol = (width + 2 * pad - ksize) / stride + 1;
+            int numKernels = channels * heightCol * widthCol;
+            var lp = new LaunchParam((numKernels + CudaUtils.BlockSize - 1) / CudaUtils.BlockSize, CudaUtils.BlockSize);
+            Gpu.Default.Launch(im2col_gpu_kernel, lp, numKernels, im, height, width, ksize, pad,
+                stride, heightCol, widthCol, dataCol);
         }
 
-        private static void col2im_gpu_kernel(int n, float[] data_col,
+        private static void col2im_gpu_kernel(int n, float[] dataCol,
         int height, int width, int ksize,
         int pad,
         int stride,
-        int height_col, int width_col,
-        float[] data_im, int imStart)
+        int heightCol, int widthCol,
+        float[] dataIm, int imStart)
         {
             int index = blockIdx.x * blockDim.x + threadIdx.x;
             for (; index + imStart < n; index += blockDim.x * gridDim.x)
@@ -152,39 +152,39 @@ namespace Yolo_V2.Data
                 int h = (index / width) % height + pad;
                 int c = index / (width * height);
                 // compute the start and end of the output
-                int w_col_start = (w < ksize) ? 0 : (w - ksize) / stride + 1;
-                int w_col_end = Math.Min(w / stride + 1, width_col);
-                int h_col_start = (h < ksize) ? 0 : (h - ksize) / stride + 1;
-                int h_col_end = Math.Min(h / stride + 1, height_col);
+                int wColStart = (w < ksize) ? 0 : (w - ksize) / stride + 1;
+                int wColEnd = Math.Min(w / stride + 1, widthCol);
+                int hColStart = (h < ksize) ? 0 : (h - ksize) / stride + 1;
+                int hColEnd = Math.Min(h / stride + 1, heightCol);
                 // equivalent implementation
                 int offset =
-                    (c * ksize * ksize + h * ksize + w) * height_col * width_col;
-                int coeff_h_col = (1 - stride * ksize * height_col) * width_col;
-                int coeff_w_col = (1 - stride * height_col * width_col);
-                for (int h_col = h_col_start; h_col < h_col_end; ++h_col)
+                    (c * ksize * ksize + h * ksize + w) * heightCol * widthCol;
+                int coeffHCol = (1 - stride * ksize * heightCol) * widthCol;
+                int coeffWCol = (1 - stride * heightCol * widthCol);
+                for (int hCol = hColStart; hCol < hColEnd; ++hCol)
                 {
-                    for (int w_col = w_col_start; w_col < w_col_end; ++w_col)
+                    for (int wCol = wColStart; wCol < wColEnd; ++wCol)
                     {
-                        val += data_col[offset + h_col * coeff_h_col + w_col * coeff_w_col];
+                        val += dataCol[offset + hCol * coeffHCol + wCol * coeffWCol];
                     }
                 }
-                data_im[index + imStart] += val;
+                dataIm[index + imStart] += val;
             }
         }
 
         [GpuManaged]
-        public static void col2im_ongpu(float[] data_col,
+        public static void col2im_ongpu(float[] dataCol,
             int channels, int height, int width,
-            int ksize, int stride, int pad, float[] data_im, int imStart = 0)
+            int ksize, int stride, int pad, float[] dataIm, int imStart = 0)
         {
             // We are going to launch channels * height_col * width_col kernels, each
             // kernel responsible for copying a single-channel grid.
-            int height_col = (height + 2 * pad - ksize) / stride + 1;
-            int width_col = (width + 2 * pad - ksize) / stride + 1;
-            int num_kernels = channels * height * width;
-            var lp = new LaunchParam((num_kernels + CudaUtils.BlockSize - 1) / CudaUtils.BlockSize, CudaUtils.BlockSize);
-            Gpu.Default.Launch(col2im_gpu_kernel, lp, num_kernels, data_col, height, width, ksize, pad, stride,
-                height_col, width_col, data_im, imStart);
+            int heightCol = (height + 2 * pad - ksize) / stride + 1;
+            int widthCol = (width + 2 * pad - ksize) / stride + 1;
+            int numKernels = channels * height * width;
+            var lp = new LaunchParam((numKernels + CudaUtils.BlockSize - 1) / CudaUtils.BlockSize, CudaUtils.BlockSize);
+            Gpu.Default.Launch(col2im_gpu_kernel, lp, numKernels, dataCol, height, width, ksize, pad, stride,
+                heightCol, widthCol, dataIm, imStart);
         }
     }
 }

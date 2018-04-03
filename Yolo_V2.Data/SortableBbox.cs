@@ -2,13 +2,13 @@
 {
     public class SortableBbox
     {
-        public int index;
-        public int sclass;
-        public float[][] probs;
-        public Network net;
-        public string filename;
-        public int classes;
-        public float elo;
-        public float[] elos;
+        public int Index;
+        public int Sclass;
+        public float[][] Probs;
+        public Network Net;
+        public string Filename;
+        public int Classes;
+        public float Elo;
+        public float[] Elos;
     }
 }

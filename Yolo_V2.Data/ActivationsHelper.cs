@@ -110,10 +110,8 @@ namespace Yolo_V2.Data
             {
                 return (float)Math.Floor(x / 2.0);
             }
-            else
-            {
-                return (x - n) + (float)Math.Floor(x / 2.0);
-            }
+
+            return (x - n) + (float)Math.Floor(x / 2.0);
         }
 
         public static float Hardtan_activate(float x)

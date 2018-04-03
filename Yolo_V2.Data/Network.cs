@@ -52,18 +52,6 @@ namespace Yolo_V2.Data
         public float[] InputGpu;
         public float[] TruthGpu;
 
-        public Network()
-        {
-            InputGpu = new float[0];
-            TruthGpu = new float[0];
-            Scales = new float[0];
-            Steps = new int[0];
-            Workspace = new float[0];
-            Seen = 0;
-            Layers = new Layer[0];
-            Output = new float[0];
-        }
-
         public Network(int n)
         {
             N = n;
@@ -75,21 +63,13 @@ namespace Yolo_V2.Data
 
         public static int get_current_batch(Network net)
         {
-            int batch_num = (net.Seen) / (net.Batch * net.Subdivisions);
-            return batch_num;
-        }
-
-        public static void reset_momentum(Network net)
-        {
-            if (net.Momentum == 0) return;
-            net.LearningRate = 0;
-            net.Momentum = 0;
-            net.Decay = 0;
+            int batchNum = (net.Seen) / (net.Batch * net.Subdivisions);
+            return batchNum;
         }
 
         public static float get_current_rate(Network net)
         {
-            int batch_num = get_current_batch(net);
+            int batchNum = get_current_batch(net);
             int i;
             float rate;
             switch (net.Policy)
@@ -97,34 +77,29 @@ namespace Yolo_V2.Data
                 case LearningRatePolicy.Constant:
                     return net.LearningRate;
                 case LearningRatePolicy.Step:
-                    return net.LearningRate * (float)Math.Pow(net.Scale, batch_num / net.Step);
+                    return net.LearningRate * (float)Math.Pow(net.Scale, batchNum / net.Step);
                 case LearningRatePolicy.Steps:
                     rate = net.LearningRate;
                     for (i = 0; i < net.NumSteps; ++i)
                     {
-                        if (net.Steps[i] > batch_num) return rate;
+                        if (net.Steps[i] > batchNum) return rate;
                         rate *= net.Scales[i];
                         //if(net.steps[i] > batch_num - 1 && net.Scales[i] > 1) reset_momentum(net);
                     }
                     return rate;
                 case LearningRatePolicy.Exp:
-                    return net.LearningRate * (float)Math.Pow(net.Gamma, batch_num);
+                    return net.LearningRate * (float)Math.Pow(net.Gamma, batchNum);
                 case LearningRatePolicy.Poly:
-                    if (batch_num < net.BurnIn) return net.LearningRate * (float)Math.Pow((float)batch_num / net.BurnIn, net.Power);
-                    return net.LearningRate * (float)Math.Pow(1 - (float)batch_num / net.MaxBatches, net.Power);
+                    if (batchNum < net.BurnIn) return net.LearningRate * (float)Math.Pow((float)batchNum / net.BurnIn, net.Power);
+                    return net.LearningRate * (float)Math.Pow(1 - (float)batchNum / net.MaxBatches, net.Power);
                 case LearningRatePolicy.Random:
                     return net.LearningRate * (float)Math.Pow(Utils.rand_uniform(0, 1), net.Power);
                 case LearningRatePolicy.Sig:
-                    return net.LearningRate * (1.0f / (1.0f + (float)Math.Exp(net.Gamma * (batch_num - net.Step))));
+                    return net.LearningRate * (1.0f / (1.0f + (float)Math.Exp(net.Gamma * (batchNum - net.Step))));
                 default:
                     Console.Error.WriteLine("Policy is weird!");
                     return net.LearningRate;
             }
-        }
-
-        public static string get_layer_string(LayerType a)
-        {
-            return a.ToString();
         }
 
         public static void forward_network(Network net, NetworkState state)
@@ -147,12 +122,12 @@ namespace Yolo_V2.Data
         public static void update_network(Network net)
         {
             int i;
-            int update_batch = net.Batch * net.Subdivisions;
+            int updateBatch = net.Batch * net.Subdivisions;
             float rate = get_current_rate(net);
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                l.Update?.Invoke(l, update_batch, rate, net.Momentum, net.Decay);
+                l.Update?.Invoke(l, updateBatch, rate, net.Momentum, net.Decay);
             }
         }
 
@@ -180,26 +155,19 @@ namespace Yolo_V2.Data
             return sum / count;
         }
 
-        public static int get_predicted_class_network(Network net)
-        {
-            float[] outputF = get_network_output(net);
-            int k = get_network_output_size(net);
-            return Utils.max_index(outputF, k);
-        }
-
         public static void backward_network(Network net, NetworkState state)
         {
             int i;
-            float[] original_input = state.Input;
-            float[] original_delta = state.Delta;
+            float[] originalInput = state.Input;
+            float[] originalDelta = state.Delta;
             state.Workspace = net.Workspace;
             for (i = net.N - 1; i >= 0; --i)
             {
                 state.Index = i;
                 if (i == 0)
                 {
-                    state.Input = original_input;
-                    state.Delta = original_delta;
+                    state.Input = originalInput;
+                    state.Delta = originalDelta;
                 }
                 else
                 {
@@ -233,15 +201,15 @@ namespace Yolo_V2.Data
         public static float train_network_sgd(Network net, Data d, int n)
         {
             int batch = net.Batch;
-            float[] X = new float[batch * d.X.Cols];
+            float[] x = new float[batch * d.X.Cols];
             float[] y = new float[batch * d.Y.Cols];
 
             int i;
             float sum = 0;
             for (i = 0; i < n; ++i)
             {
-                d.get_random_batch(batch, X, y);
-                float err = train_network_datum(net, X, y);
+                d.get_random_batch(batch, x, y);
+                float err = train_network_datum(net, x, y);
                 sum += err;
             }
             return sum / (n * batch);
@@ -251,44 +219,18 @@ namespace Yolo_V2.Data
         {
             int batch = net.Batch;
             int n = d.X.Rows / batch;
-            float[] X = new float[batch * d.X.Cols];
+            float[] x = new float[batch * d.X.Cols];
             float[] y = new float[batch * d.Y.Cols];
 
             int i;
             float sum = 0;
             for (i = 0; i < n; ++i)
             {
-                d.get_next_batch(batch, i * batch, X, y);
-                float err = train_network_datum(net, X, y);
+                d.get_next_batch(batch, i * batch, x, y);
+                float err = train_network_datum(net, x, y);
                 sum += err;
             }
-            return (float)sum / (n * batch);
-        }
-
-        public static float train_network_batch(Network net, Data d, int n)
-        {
-            int i, j;
-            NetworkState state = new NetworkState();
-            state.Index = 0;
-            state.Net = net;
-            state.Train = true;
-            state.Delta = new float[0];
-            float sum = 0;
-            int batch = 2;
-            for (i = 0; i < n; ++i)
-            {
-                for (j = 0; j < batch; ++j)
-                {
-                    int index = Utils.Rand.Next() % d.X.Rows;
-                    state.Input = d.X.Vals[index];
-                    state.Truth = d.Y.Vals[index];
-                    forward_network(net, state);
-                    backward_network(net, state);
-                    sum += get_network_cost(net);
-                }
-                update_network(net);
-            }
-            return (float)sum / (n * batch);
+            return sum / (n * batch);
         }
 
         public static void set_batch_network(Network net, int b)
@@ -315,7 +257,7 @@ namespace Yolo_V2.Data
             net.W = w;
             net.H = h;
             int inputs = 0;
-            ulong workspace_size = 0;
+            ulong workspaceSize = 0;
 
             for (i = 0; i < net.N; ++i)
             {
@@ -360,7 +302,7 @@ namespace Yolo_V2.Data
                 {
                     Utils.Error("Cannot resize this type of Layer");
                 }
-                if (l.WorkspaceSize > workspace_size) workspace_size = l.WorkspaceSize;
+                if (l.WorkspaceSize > workspaceSize) workspaceSize = l.WorkspaceSize;
                 inputs = l.Outputs;
                 net.Layers[i] = l;
                 w = l.OutW;
@@ -374,7 +316,7 @@ namespace Yolo_V2.Data
                     net.InputGpu = null;
                     net.TruthGpu = null;
                 }
-                net.Workspace = new float[workspace_size];
+                net.Workspace = new float[workspaceSize];
             }
             else
             {
@@ -393,20 +335,6 @@ namespace Yolo_V2.Data
         public static int get_network_input_size(Network net)
         {
             return net.Layers[0].Inputs;
-        }
-
-        public static Layer get_network_detection_layer(Network net)
-        {
-            int i;
-            for (i = 0; i < net.N; ++i)
-            {
-                if (net.Layers[i].LayerType == LayerType.Detection)
-                {
-                    return net.Layers[i];
-                }
-            }
-            Console.Error.WriteLine("Detection Layer not found!!");
-            return new Layer();
         }
 
         public static Image get_network_image_layer(Network net, int i)
@@ -468,49 +396,20 @@ namespace Yolo_V2.Data
             return outputF;
         }
 
-        public static Matrix network_predict_data_multi(Network net, Data test, int n)
-        {
-            int i, j, b, m;
-            int k = get_network_output_size(net);
-            Matrix pred = new Matrix(test.X.Rows, k);
-            float[] X = new float[net.Batch * test.X.Rows];
-            for (i = 0; i < test.X.Rows; i += net.Batch)
-            {
-                for (b = 0; b < net.Batch; ++b)
-                {
-                    if (i + b == test.X.Rows) break;
-                    Array.Copy(test.X.Vals[i + b], 0, X, b * test.X.Cols, test.X.Cols);
-                }
-                for (m = 0; m < n; ++m)
-                {
-                    float[] outputF = network_predict(net, X);
-                    for (b = 0; b < net.Batch; ++b)
-                    {
-                        if (i + b == test.X.Rows) break;
-                        for (j = 0; j < k; ++j)
-                        {
-                            pred.Vals[i + b][j] += outputF[j + b * k] / n;
-                        }
-                    }
-                }
-            }
-            return pred;
-        }
-
         public static Matrix network_predict_data(Network net, Data test)
         {
             int i, j, b;
             int k = get_network_output_size(net);
             Matrix pred = new Matrix(test.X.Rows, k);
-            float[] X = new float[net.Batch * test.X.Cols];
+            float[] x = new float[net.Batch * test.X.Cols];
             for (i = 0; i < test.X.Rows; i += net.Batch)
             {
                 for (b = 0; b < net.Batch; ++b)
                 {
                     if (i + b == test.X.Rows) break;
-                    Array.Copy(test.X.Vals[i + b], 0, X, b * test.X.Cols, test.X.Cols);
+                    Array.Copy(test.X.Vals[i + b], 0, x, b * test.X.Cols, test.X.Cols);
                 }
-                float[] outputF = network_predict(net, X);
+                float[] outputF = network_predict(net, x);
                 for (b = 0; b < net.Batch; ++b)
                 {
                     if (i + b == test.X.Rows) break;
@@ -523,73 +422,12 @@ namespace Yolo_V2.Data
             return pred;
         }
 
-        public static void print_network(Network net)
-        {
-            int i, j;
-            for (i = 0; i < net.N; ++i)
-            {
-                Layer l = net.Layers[i];
-                float[] output = l.Output;
-                int n = l.Outputs;
-                float mean = Utils.mean_array(output, n);
-                float vari = Utils.variance_array(output, n);
-                Console.Error.WriteLine($"Layer {i} - Mean: {mean}, Variance: {vari}");
-                if (n > 100) n = 100;
-                for (j = 0; j < n; ++j) Console.Error.Write($"{output[j]}, ");
-                if (n == 100) Console.Error.Write(".....\n");
-                Console.Error.Write("\n");
-            }
-        }
-
-        public static void compare_networks(Network n1, Network n2, Data test)
-        {
-            Matrix g1 = network_predict_data(n1, test);
-            Matrix g2 = network_predict_data(n2, test);
-            int i;
-            int a, b, c, d;
-            a = b = c = d = 0;
-            for (i = 0; i < g1.Rows; ++i)
-            {
-                int truth = Utils.max_index(test.Y.Vals[i], test.Y.Cols);
-                int p1 = Utils.max_index(g1.Vals[i], g1.Cols);
-                int p2 = Utils.max_index(g2.Vals[i], g2.Cols);
-                if (p1 == truth)
-                {
-                    if (p2 == truth) ++d;
-                    else ++c;
-                }
-                else
-                {
-                    if (p2 == truth) ++b;
-                    else ++a;
-                }
-            }
-            Console.Write($"{a:5} {b:5}\n{c:5} {d:5}\n");
-            float num = (float)Math.Pow((Math.Abs(b - c) - 1), 2);
-            float den = b + c;
-            Console.Write($"{num / den}\n");
-        }
-
-        public static float network_accuracy(Network net, Data d)
-        {
-            Matrix guess = network_predict_data(net, d);
-            float acc = Matrix.matrix_topk_accuracy(d.Y, guess, 1);
-            return acc;
-        }
-
         public static float[] network_accuracies(Network net, Data d, int n)
         {
             float[] acc = new float[2];
             Matrix guess = network_predict_data(net, d);
             acc[0] = Matrix.matrix_topk_accuracy(d.Y, guess, 1);
             acc[1] = Matrix.matrix_topk_accuracy(d.Y, guess, n);
-            return acc;
-        }
-
-        public static float network_accuracy_multi(Network net, Data d, int n)
-        {
-            Matrix guess = network_predict_data_multi(net, d, n);
-            float acc = Matrix.matrix_topk_accuracy(d.Y, guess, 1);
             return acc;
         }
 
@@ -614,16 +452,16 @@ namespace Yolo_V2.Data
         {
             state.Workspace = net.Workspace;
             int i;
-            float[] original_input = state.Input;
-            float[] original_delta = state.Delta;
+            float[] originalInput = state.Input;
+            float[] originalDelta = state.Delta;
             for (i = net.N - 1; i >= 0; --i)
             {
                 state.Index = i;
                 Layer l = net.Layers[i];
                 if (i == 0)
                 {
-                    state.Input = original_input;
-                    state.Delta = original_delta;
+                    state.Input = originalInput;
+                    state.Delta = originalDelta;
                 }
                 else
                 {
@@ -638,13 +476,13 @@ namespace Yolo_V2.Data
         public static void update_network_gpu(Network net)
         {
             int i;
-            int update_batch = net.Batch * net.Subdivisions;
+            int updateBatch = net.Batch * net.Subdivisions;
             float rate = get_current_rate(net);
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
                 l.T = get_current_batch(net);
-                l.UpdateGpu?.Invoke(l, update_batch, rate, net.Momentum, net.Decay);
+                l.UpdateGpu?.Invoke(l, updateBatch, rate, net.Momentum, net.Decay);
             }
         }
         
@@ -653,9 +491,9 @@ namespace Yolo_V2.Data
             NetworkState state = new NetworkState();
             state.Index = 0;
             state.Net = net;
-            int x_size = get_network_input_size(net) * net.Batch;
-            int y_size = get_network_output_size(net) * net.Batch;
-            if (net.Layers[net.N - 1].Truths != 0) y_size = net.Layers[net.N - 1].Truths * net.Batch;
+            int xSize = get_network_input_size(net) * net.Batch;
+            int ySize = get_network_output_size(net) * net.Batch;
+            if (net.Layers[net.N - 1].Truths != 0) ySize = net.Layers[net.N - 1].Truths * net.Batch;
             if (!net.InputGpu.Any())
             {
                 net.InputGpu = (float[])x.Clone(); 
@@ -663,8 +501,8 @@ namespace Yolo_V2.Data
             }
             else
             {
-                Array.Copy(x, net.InputGpu, x_size);
-                Array.Copy(y, net.TruthGpu, y_size);
+                Array.Copy(x, net.InputGpu, xSize);
+                Array.Copy(y, net.TruthGpu, ySize);
             }
             state.Input = net.InputGpu;
             state.Delta = new float[0];
@@ -700,44 +538,6 @@ namespace Yolo_V2.Data
             var thread = new Thread(() => {train_thread(ptr);});
             thread.Start();
             return thread;
-        }
-        
-        public static void pull_updates(Layer l)
-        {
-            if (l.LayerType == LayerType.Convolutional)
-            {
-                Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
-                Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
-                if (l.ScaleUpdates.Any()) Array.Copy(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
-            }
-            else if (l.LayerType == LayerType.Connected)
-            {
-                Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.Outputs);
-                Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.Outputs * l.Inputs);
-            }
-        }
-        
-        public static void push_updates(Layer l)
-        {
-            if (l.LayerType == LayerType.Convolutional)
-            {
-                Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.N);
-                Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.N * l.Size * l.Size * l.C);
-                if (l.ScaleUpdates.Any()) Array.Copy(l.ScaleUpdatesGpu, l.ScaleUpdates, l.N);
-            }
-            else if (l.LayerType == LayerType.Connected)
-            {
-                Array.Copy(l.BiasUpdatesGpu, l.BiasUpdates, l.Outputs);
-                Array.Copy(l.WeightUpdatesGpu, l.WeightUpdates, l.Outputs * l.Inputs);
-            }
-        }
-        
-        public static void update_layer(Layer l, Network net)
-        {
-            int update_batch = net.Batch * net.Subdivisions;
-            float rate = get_current_rate(net);
-            l.T = get_current_batch(net);
-            l.UpdateGpu?.Invoke(l, update_batch, rate, net.Momentum, net.Decay);
         }
         
         public static void merge_weights(Layer l, Layer baseLayer)
@@ -791,21 +591,6 @@ namespace Yolo_V2.Data
             }
         }
         
-        public static void push_weights(Layer l)
-        {
-            if (l.LayerType == LayerType.Convolutional)
-            {
-                Array.Copy(l.BiasesGpu, 0, l.BiasesComplete, l.BiasesIndex, l.N);
-                Array.Copy(l.WeightsGpu, 0, l.WeightsComplete, l.WeightsIndex, l.N * l.Size * l.Size * l.C);
-                if (l.Scales.Any()) Array.Copy(l.ScalesGpu, l.Scales, l.N);
-            }
-            else if (l.LayerType == LayerType.Connected)
-            {
-                Array.Copy(l.BiasesGpu, 0, l.BiasesComplete, l.BiasesIndex, l.Outputs);
-                Array.Copy(l.WeightsGpu, 0, l.WeightsComplete, l.WeightsIndex, l.Outputs * l.Inputs);
-            }
-        }
-        
         public static void distribute_weights(Layer l, Layer baseLayer)
         {
             if (l.LayerType == LayerType.Convolutional)
@@ -818,39 +603,6 @@ namespace Yolo_V2.Data
             {
                 Array.Copy(l.BiasesGpu, 0, baseLayer.BiasesComplete, l.BiasesIndex, l.Outputs);
                 Array.Copy(l.WeightsGpu, 0, baseLayer.WeightsComplete, l.WeightsIndex, l.Outputs * l.Inputs);
-            }
-        }
-        
-        public static void merge_updates(Layer l, Layer baseLayer)
-        {
-            if (l.LayerType == LayerType.Convolutional)
-            {
-                Blas.Axpy_cpu(l.N, 1, l.BiasUpdates, baseLayer.BiasUpdates);
-                Blas.Axpy_cpu(l.N * l.Size * l.Size * l.C, 1, l.WeightUpdates, baseLayer.WeightUpdates);
-                if (l.ScaleUpdates.Any())
-                {
-                    Blas.Axpy_cpu(l.N, 1, l.ScaleUpdates, baseLayer.ScaleUpdates);
-                }
-            }
-            else if (l.LayerType == LayerType.Connected)
-            {
-                Blas.Axpy_cpu(l.Outputs, 1, l.BiasUpdates, baseLayer.BiasUpdates);
-                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightUpdates, baseLayer.WeightUpdates);
-            }
-        }
-        
-        public static void distribute_updates(Layer l, Layer baseLayer)
-        {
-            if (l.LayerType == LayerType.Convolutional)
-            {
-                Array.Copy(l.BiasUpdatesGpu, baseLayer.BiasUpdates, l.N);
-                Array.Copy(l.WeightUpdatesGpu, baseLayer.WeightUpdates, l.N * l.Size * l.Size * l.C);
-                if (baseLayer.ScaleUpdates.Any()) Array.Copy(l.ScaleUpdatesGpu, baseLayer.ScaleUpdates, l.N);
-            }
-            else if (l.LayerType == LayerType.Connected)
-            {
-                Array.Copy(l.BiasUpdatesGpu, baseLayer.BiasUpdates, l.Outputs);
-                Array.Copy(l.WeightUpdatesGpu, baseLayer.WeightUpdates, l.Outputs * l.Inputs);
             }
         }
         
@@ -877,7 +629,6 @@ namespace Yolo_V2.Data
         public static void sync_layer_thread(SyncArgs ptr)
         {
             sync_layer(ptr.Nets, ptr.N, ptr.J);
-            return;
         }
         
         public static Thread sync_layer_in_thread(Network[] nets, int n, int j)
@@ -940,7 +691,7 @@ namespace Yolo_V2.Data
                 sync_nets(nets, n, interval);
                 Console.Write("Done!\n");
             }
-            return (float)sum / (n);
+            return sum / (n);
         }
         
         public static float[] get_network_output_layer_gpu(Network net, int i)

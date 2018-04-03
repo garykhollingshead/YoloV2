@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO.Ports;
 using System.Threading;
 using Emgu.CV;
 using Yolo_V2.Data;
@@ -8,31 +7,30 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    public class Demo
+    public static class Demo
     {
+        private static int frames = 3;
 
-        public static int FRAMES = 3;
-
-        static string[] demo_names;
-        static Image[][] demo_alphabet;
-        static int demo_classes;
-
-        static float[][] probs;
-        static Box[] boxes;
-        static Network net;
-        static Image inputImage;
-        static Image in_s;
-        static Image det;
-        static Image det_s;
-        static Image disp = new Image();
-        static VideoCapture vidCap = null;
-        static float fps = 0;
-        static float demo_thresh = 0;
-
-        static float[][] predictions = new float[FRAMES][];
-        static int demo_index = 0;
-        static Image[] images = new Image[FRAMES];
-        static float[] avg;
+        private static string[] demoNames;
+        private static Image[][] demoAlphabet;
+        private static int demoClasses;
+         
+        private static float[][] probs;
+        private static Box[] boxes;
+        private static Network net;
+        private static Image inputImage;
+        private static Image inS;
+        private static Image det;
+        private static Image detS;
+        private static Image disp = new Image();
+        private static VideoCapture vidCap;
+        private static float fps;
+        private static float demoThresh;
+         
+        private static float[][] predictions = new float[frames][];
+        private static int demoIndex;
+        private static Image[] images = new Image[frames];
+        private static float[] avg;
 
         private static void fetch_in_thread()
         {
@@ -41,7 +39,7 @@ namespace Yolo_V2
             {
                 Utils.Error("Stream closed.");
             }
-            in_s = LoadArgs.resize_image(inputImage, net.W, net.H);
+            inS = LoadArgs.resize_image(inputImage, net.W, net.H);
         }
 
         private static void detect_in_thread()
@@ -49,20 +47,20 @@ namespace Yolo_V2
             float nms = .4f;
 
             Layer l = net.Layers[net.N - 1];
-            float[] X = det_s.Data;
-            float[] prediction = Network.network_predict(net, X);
+            float[] x = detS.Data;
+            float[] prediction = Network.network_predict(net, x);
 
-            Array.Copy(prediction, 0, prediction, demo_index, l.Outputs);
-            Utils.mean_arrays(predictions, FRAMES, l.Outputs, avg);
+            Array.Copy(prediction, 0, prediction, demoIndex, l.Outputs);
+            Utils.mean_arrays(predictions, frames, l.Outputs, avg);
             l.Output = avg;
 
             if (l.LayerType == LayerType.Detection)
             {
-                l.get_detection_boxes(1, 1, demo_thresh, probs, boxes, false);
+                l.get_detection_boxes(1, 1, demoThresh, probs, boxes, false);
             }
             else if (l.LayerType == LayerType.Region)
             {
-                Layer.get_region_boxes(l, 1, 1, demo_thresh, probs, boxes, false, new int[0]);
+                Layer.get_region_boxes(l, 1, 1, demoThresh, probs, boxes, false, new int[0]);
             }
             else
             {
@@ -74,22 +72,22 @@ namespace Yolo_V2
             Console.Write($"\nFPS:%.1f\n", fps);
             Console.Write($"Objects:\n\n");
 
-            images[demo_index] = det;
-            det = images[(demo_index + FRAMES / 2 + 1) % FRAMES];
-            demo_index = (demo_index + 1) % FRAMES;
+            images[demoIndex] = det;
+            det = images[(demoIndex + frames / 2 + 1) % frames];
+            demoIndex = (demoIndex + 1) % frames;
 
-            LoadArgs.draw_detections(det, l.W * l.H * l.N, demo_thresh, boxes, probs, demo_names, demo_alphabet, demo_classes);
+            LoadArgs.draw_detections(det, l.W * l.H * l.N, demoThresh, boxes, probs, demoNames, demoAlphabet, demoClasses);
         }
 
-        public static void demo(string cfgfile, string weightfile, float thresh, int cam_index, string filename, string[] names, int classes, int frame_skip, string prefix)
+        public static void DemoRun(string cfgfile, string weightfile, float thresh, int camIndex, string filename, string[] names, int classes, int frameSkip, string prefix)
         {
             //skip = frame_skip;
             Image[][] alphabet = LoadArgs.load_alphabet();
-            int delay = frame_skip;
-            demo_names = names;
-            demo_alphabet = alphabet;
-            demo_classes = classes;
-            demo_thresh = thresh;
+            int delay = frameSkip;
+            demoNames = names;
+            demoAlphabet = alphabet;
+            demoClasses = classes;
+            demoThresh = thresh;
             Console.Write($"Demo\n");
             net = Parser.parse_network_cfg(cfgfile);
             if (!string.IsNullOrEmpty(weightfile))
@@ -105,7 +103,7 @@ namespace Yolo_V2
 
             using (var capture = !string.IsNullOrEmpty(filename)
                 ? new VideoCapture(filename)
-                : new VideoCapture(cam_index))
+                : new VideoCapture(camIndex))
             {
                 vidCap = capture;
                 if (!vidCap.IsOpened) Utils.Error("Couldn't connect to webcam.\n");
@@ -114,33 +112,33 @@ namespace Yolo_V2
                 int j;
 
                 avg = new float[l.Outputs];
-                for (j = 0; j < FRAMES; ++j) predictions[j] = new float[l.Outputs];
-                for (j = 0; j < FRAMES; ++j) images[j] = new Image(1, 1, 3);
+                for (j = 0; j < frames; ++j) predictions[j] = new float[l.Outputs];
+                for (j = 0; j < frames; ++j) images[j] = new Image(1, 1, 3);
 
                 boxes = new Box[l.W * l.H * l.N];
                 probs = new float[l.W * l.H * l.N][];
                 for (j = 0; j < l.W * l.H * l.N; ++j) probs[j] = new float[l.Classes];
 
-                Thread fetch_thread;
-                Thread detect_thread;
+                Thread fetchThread;
+                Thread detectThread;
 
                 fetch_in_thread();
                 det = inputImage;
-                det_s = in_s;
+                detS = inS;
 
                 fetch_in_thread();
                 detect_in_thread();
                 disp = det;
                 det = inputImage;
-                det_s = in_s;
+                detS = inS;
 
-                for (j = 0; j < FRAMES / 2; ++j)
+                for (j = 0; j < frames / 2; ++j)
                 {
                     fetch_in_thread();
                     detect_in_thread();
                     disp = det;
                     det = inputImage;
-                    det_s = in_s;
+                    detS = inS;
                 }
 
                 int count = 0;
@@ -150,10 +148,10 @@ namespace Yolo_V2
                 while (true)
                 {
                     ++count;
-                    fetch_thread = new Thread(fetch_in_thread);
-                    detect_thread = new Thread(detect_in_thread);
-                    fetch_thread.Start();
-                    detect_thread.Start();
+                    fetchThread = new Thread(fetch_in_thread);
+                    detectThread = new Thread(detect_in_thread);
+                    fetchThread.Start();
+                    detectThread.Start();
 
                     if (string.IsNullOrEmpty(prefix))
                     {
@@ -161,10 +159,10 @@ namespace Yolo_V2
                         int c = CvInvoke.WaitKey(1);
                         if (c == 10)
                         {
-                            if (frame_skip == 0) frame_skip = 60;
-                            else if (frame_skip == 4) frame_skip = 0;
-                            else if (frame_skip == 60) frame_skip = 4;
-                            else frame_skip = 0;
+                            if (frameSkip == 0) frameSkip = 60;
+                            else if (frameSkip == 4) frameSkip = 0;
+                            else if (frameSkip == 60) frameSkip = 4;
+                            else frameSkip = 0;
                         }
                     }
                     else
@@ -173,8 +171,8 @@ namespace Yolo_V2
                         LoadArgs.save_image(disp, buff);
                     }
 
-                    fetch_thread.Join();
-                    detect_thread.Join();
+                    fetchThread.Join();
+                    detectThread.Join();
 
                     if (delay == 0)
                     {
@@ -182,11 +180,11 @@ namespace Yolo_V2
                     }
 
                     det = inputImage;
-                    det_s = in_s;
+                    detS = inS;
                     --delay;
                     if (delay < 0)
                     {
-                        delay = frame_skip;
+                        delay = frameSkip;
 
                         sw.Stop();
                         float curr = 1f/ sw.Elapsed.Seconds;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Emgu.CV;
@@ -63,7 +64,7 @@ namespace Yolo_V2.Data
                         //Marshal.Copy(src.DataPointer + (row * mat.Cols + col) * mat.ElementSize, value, 0, 1);
                         //Marshal.Copy(src.DataPointer + i * step + j * c + k, value, 0, 1);
                         //img.Data[count++] = data[i * step + j * c + k] / 255;
-                        Data[count++] = (float)Image.GetPixel(src, i * step + j * C + k) / 255;
+                        Data[count++] = (float)GetPixel(src, i * step + j * C + k) / 255;
 
                     }
                 }
@@ -72,7 +73,7 @@ namespace Yolo_V2.Data
 
         public Mat ToMat()
         {
-            var newMat = new Mat(new System.Drawing.Size(W, H), DepthType.Cv8U, C);
+            var newMat = new Mat(new Size(W, H), DepthType.Cv8U, C);
             //TODO: get data from Data to mat
             return newMat;
         }
@@ -81,19 +82,6 @@ namespace Yolo_V2.Data
         {
             var target = new[] { value };
             Marshal.Copy(target, 0, img.DataPointer + offset, 1);
-        }
-
-        public static void SetPixel(Mat mat, int row, int col, double value)
-        {
-            var target = new[] { value };
-            Marshal.Copy(target, 0, mat.DataPointer + (row * mat.Cols + col) * mat.ElementSize, 1);
-        }
-
-        public static double GetPixel(Mat mat, int row, int col)
-        {
-            var value = new double[1];
-            Marshal.Copy(mat.DataPointer + (row * mat.Cols + col) * mat.ElementSize, value, 0, 1);
-            return value[0];
         }
 
         public static double GetPixel(Mat mat, int offset)

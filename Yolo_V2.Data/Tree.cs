@@ -7,17 +7,15 @@ namespace Yolo_V2.Data
 {
     public class Tree
     {
-        public List<int> Leaf = new List<int>();
-        public int N;
+        private List<int> Leaf = new List<int>();
+        private int N;
         public List<int> Parent = new List<int>();
         public List<int> Group = new List<int>();
-        public List<string> Name = new List<string>();
+        private List<string> Name = new List<string>();
 
         public int Groups;
         public List<int> GroupSize = new List<int>();
         public List<int> GroupOffset = new List<int>();
-
-        public Tree() { }
 
         public Tree(string filename)
         {

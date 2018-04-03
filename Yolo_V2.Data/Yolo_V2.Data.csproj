@@ -109,7 +109,7 @@
     <Compile Include="Image.cs" />
     <Compile Include="Enums\LayerType.cs" />
     <Compile Include="Enums\LearningRatePolicy.cs" />
-    <Compile Include="Gemm.cs" />
+    <Compile Include="GemmUtils.cs" />
     <Compile Include="Im2Col.cs" />
     <Compile Include="KeyValuePair.cs" />
     <Compile Include="Layer.cs" />

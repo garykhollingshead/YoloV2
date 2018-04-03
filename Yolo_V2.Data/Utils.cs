@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -108,32 +107,6 @@ namespace Yolo_V2.Data
             return dotIndex < 0 ? filename : filename.Substring(0, dotIndex - 1);
         }
 
-        public static int alphanum_to_int(char c)
-        {
-            return (c < 58) ? c - 48 : c - 87;
-        }
-
-        public static char int_to_alphanum(int i)
-        {
-            if (i == 36) return '.';
-            return (i < 10) ? (char)(i + 48) : (char)(i + 87);
-        }
-
-        public static void Pm(int m, int n, float[] a)
-        {
-            int i, j;
-            for (i = 0; i < m; ++i)
-            {
-                Console.WriteLine($"{i + 1} ");
-                for (j = 0; j < n; ++j)
-                {
-                    Console.WriteLine($"{a[i * n + j]:2.4}, ");
-                }
-                Console.WriteLine("");
-            }
-            Console.WriteLine("");
-        }
-
         public static void find_replace(string str, string orig, string rep, out string output)
         {
             output = str.Replace(orig, rep);
@@ -162,11 +135,6 @@ namespace Yolo_V2.Data
             throw new Exception($"Couldn't open file: {s}");
         }
 
-        public static List<string> split_str(string s, char delim)
-        {
-            return s.Split(delim).ToList();
-        }
-
         public static string Strip(string s)
         {
             var len = s.Length;
@@ -182,33 +150,6 @@ namespace Yolo_V2.Data
             }
 
             return s;
-        }
-
-        public static string strip_char(string s, char bad)
-        {
-            var len = s.Length;
-            for (var i = 0; i < len; ++i)
-            {
-                if (bad == s[i])
-                {
-                    s = s.Remove(i, i + 1);
-                    len--;
-                    i--;
-                }
-            }
-
-            return s;
-        }
-
-        public static List<string> parse_csv_line(string line)
-        {
-            var newLines = new List<string>();
-            foreach (var li in line.Split('\"'))
-            {
-                newLines.AddRange(li.Split(','));
-            }
-
-            return newLines;
         }
 
         public static int count_fields(string line)
@@ -372,8 +313,8 @@ namespace Yolo_V2.Data
         }
 
         public static Random Rand = new Random(DateTime.Now.Millisecond);
-        private static int _haveSpare;
-        private static double _rand1, _rand2;
+        private static int haveSpare;
+        private static double rand1, rand2;
 
         public static int rand_int(int min, int max)
         {
@@ -389,32 +330,20 @@ namespace Yolo_V2.Data
 
         public static float rand_normal()
         {
-            if (_haveSpare != 0)
+            if (haveSpare != 0)
             {
-                _haveSpare = 0;
-                return (float)(Math.Sqrt(_rand1) * Math.Sin(_rand2));
+                haveSpare = 0;
+                return (float)(Math.Sqrt(rand1) * Math.Sin(rand2));
             }
 
-            _haveSpare = 1;
+            haveSpare = 1;
 
-            _rand1 = Rand.NextDouble() / double.MaxValue;
-            if (_rand1 < 1e-100) _rand1 = 1e-100;
-            _rand1 = -2 * Math.Log(_rand1);
-            _rand2 = (Rand.NextDouble() / double.MaxValue) * Math.PI * 2;
+            rand1 = Rand.NextDouble() / double.MaxValue;
+            if (rand1 < 1e-100) rand1 = 1e-100;
+            rand1 = -2 * Math.Log(rand1);
+            rand2 = (Rand.NextDouble() / double.MaxValue) * Math.PI * 2;
 
-            return (float)(Math.Sqrt(_rand1) * Math.Cos(_rand2));
-        }
-
-        public static ulong rand_size_t()
-        {
-            return ((ulong)(Rand.Next() & 0xff) << 56) |
-                    ((ulong)(Rand.Next() & 0xff) << 48) |
-                    ((ulong)(Rand.Next() & 0xff) << 40) |
-                    ((ulong)(Rand.Next() & 0xff) << 32) |
-                    ((ulong)(Rand.Next() & 0xff) << 24) |
-                    ((ulong)(Rand.Next() & 0xff) << 16) |
-                    ((ulong)(Rand.Next() & 0xff) << 8) |
-                    ((ulong)(Rand.Next() & 0xff) << 0);
+            return (float)(Math.Sqrt(rand1) * Math.Cos(rand2));
         }
 
         public static float rand_uniform(float min, float max)
@@ -446,22 +375,6 @@ namespace Yolo_V2.Data
                 t[i][index] = 1;
             }
             return t;
-        }
-
-        public static List<string> popen(string command, string arguments)
-        {
-            var output = "";
-            using (var p = new Process())
-            {
-                var startInfo = new ProcessStartInfo(command, arguments);
-                startInfo.RedirectStandardOutput = true;
-                p.StartInfo = startInfo;
-
-                using (var reader = p.StandardOutput)
-                    output = reader.ReadToEnd();
-            }
-
-            return output.Split('\n').ToList();
         }
     }
 }

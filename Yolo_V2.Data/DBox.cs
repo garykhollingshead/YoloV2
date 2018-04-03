@@ -2,19 +2,19 @@
 {
     public class DBox
     {
-        public float DX;
-        public float DY;
-        public float DW;
-        public float DH;
+        public float Dx;
+        public float Dy;
+        public float Dw;
+        public float Dh;
 
         public DBox() { }
 
         public DBox(float x, float y, float w, float h)
         {
-            DX = x;
-            DY = y;
-            DW = w;
-            DH = h;
+            Dx = x;
+            Dy = y;
+            Dw = w;
+            Dh = h;
         }
     }
 }

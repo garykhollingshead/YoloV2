@@ -48,9 +48,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Art.cs" />
+    <Compile Include="CiFar.cs" />
+    <Compile Include="Classifier.cs" />
+    <Compile Include="Coco.cs" />
+    <Compile Include="Compare.cs" />
     <Compile Include="Demo.cs" />
+    <Compile Include="Detector.cs" />
     <Compile Include="FloatPair.cs" />
-    <Compile Include="Moves.cs" />
+    <Compile Include="Nightmare.cs" />
+    <Compile Include="Rnn.cs" />
+    <Compile Include="RnnVid.cs" />
+    <Compile Include="Super.cs" />
+    <Compile Include="Tag.cs" />
+    <Compile Include="Voxel.cs" />
+    <Compile Include="Writing.cs" />
+    <Compile Include="Yolo.cs" />
     <Compile Include="YoloV2.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

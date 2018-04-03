@@ -80,22 +80,6 @@ namespace Yolo_V2.Data
             }
         }
 
-        public Matrix hold_out_matrix(int n)
-        {
-            int i;
-            Matrix h = new Matrix();
-            h.Rows = n;
-            h.Cols = Cols;
-            Vals = new float[Rows][];
-            for (i = 0; i < n; ++i)
-            {
-                int index = Utils.Rand.Next() % Rows;
-                h.Vals[i] = Vals[index];
-                Vals[index] = Vals[--(Rows)];
-            }
-            return h;
-        }
-
         public float[] pop_column(int c)
         {
             float[] col = new float[Rows];
@@ -154,32 +138,6 @@ namespace Yolo_V2.Data
                 lines.AppendLine();
             }
             Console.Write(lines);
-        }
-
-        public void print_matrix()
-        {
-            int i, j;
-            Console.Write($"{Rows} X {Cols} Matrix:\n");
-            Console.Write(" __");
-            for (j = 0; j < 16 * Cols - 1; ++j) Console.Write(" ");
-            Console.Write("__ \n");
-
-            Console.Write("|  ");
-            for (j = 0; j < 16 * Cols - 1; ++j) Console.Write(" ");
-            Console.Write("  |\n");
-
-            for (i = 0; i < Rows; ++i)
-            {
-                Console.Write("|  ");
-                for (j = 0; j < Cols; ++j)
-                {
-                    Console.Write($"{Vals[i][j]:15.7} ", Vals[i][j]);
-                }
-                Console.Write(" |\n");
-            }
-            Console.Write("|__");
-            for (j = 0; j < 16 * Cols - 1; ++j) Console.Write(" ");
-            Console.Write("__|\n");
         }
     }
 }
