@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
@@ -12,12 +13,27 @@ namespace Yolo_V2.Data
         public int C;
         public float[] Data;
         
-        public Image(int c = 0, int h = 0, int w = 0, float[] data = null)
+        public Image(int c = 0, int h = 0, int w = 0, float[] data = null, int start = 0)
         {
             C = c;
             H = h;
             W = w;
-            Data = data ?? new float[h*w*c];
+            if (data != null )
+            {
+                if (start != 0)
+                {
+                    Data = new float[data.Length - start];
+                    Array.Copy(data, start, Data, 0, Data.Length);
+                }
+                else
+                {
+                    Data = data;
+                }
+            }
+            else
+            {
+                Data = new float[h*w*c];
+            }
         }
 
         public Image(Image p)

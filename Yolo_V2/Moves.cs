@@ -2,7 +2,7 @@
 {
     public class Moves
     {
-        public int n;
-        public string[] data;
+        public int N;
+        public string[] Data;
     }
 }

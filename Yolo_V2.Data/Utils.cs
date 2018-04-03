@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -443,6 +444,22 @@ namespace Yolo_V2.Data
                 t[i][index] = 1;
             }
             return t;
+        }
+
+        public static List<string> popen(string command, string arguments)
+        {
+            var output = "";
+            using (var p = new Process())
+            {
+                var startInfo = new ProcessStartInfo(command, arguments);
+                startInfo.RedirectStandardOutput = true;
+                p.StartInfo = startInfo;
+
+                using (var reader = p.StandardOutput)
+                    output = reader.ReadToEnd();
+            }
+
+            return output.Split('\n').ToList();
         }
     }
 }

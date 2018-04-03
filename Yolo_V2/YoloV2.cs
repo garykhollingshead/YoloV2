@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Emgu.CV;
@@ -595,7 +596,7 @@ namespace Yolo_V2
 
                 if (probs[i].Length > probsJ)
                 {
-                    var buff = Encoding.ASCII.GetBytes($"{id} {probs[i][probsJ]} {xmin} {ymin} {xmax} {ymax}");
+                    var buff = Encoding.UTF8.GetBytes($"{id} {probs[i][probsJ]} {xmin} {ymin} {xmax} {ymax}");
                     fps.Write(buff, 0, buff.Length);
                 }
             }
@@ -1281,7 +1282,7 @@ namespace Yolo_V2
                 {
                     if (probs[i].Length < j)
                     {
-                        var temp = Encoding.ASCII.GetBytes($"{{\"image_id\":{image_id}, \"category_id\":{coco_ids[j]}, \"bbox\":[{bx}, {by}, {bw}, {bh}], \"score\":{probs[i][j]}}},\n");
+                        var temp = Encoding.UTF8.GetBytes($"{{\"image_id\":{image_id}, \"category_id\":{coco_ids[j]}, \"bbox\":[{bx}, {by}, {bw}, {bh}], \"score\":{probs[i][j]}}},\n");
                         fp.Write(temp, 0, temp.Length);
                     }
                 }
@@ -1307,7 +1308,7 @@ namespace Yolo_V2
                 {
                     if (probs[i].Length > j)
                     {
-                        var temp = Encoding.ASCII.GetBytes($"{id} {probs[i][j]} {xmin} {ymin} {xmax} {ymax}\n");
+                        var temp = Encoding.UTF8.GetBytes($"{id} {probs[i][j]} {xmin} {ymin} {xmax} {ymax}\n");
                         fps[j].Write(temp, 0, temp.Length);
                     }
                 }
@@ -1333,7 +1334,7 @@ namespace Yolo_V2
                 {
                     if (probs[i].Length > j)
                     {
-                        var temp = Encoding.ASCII.GetBytes($"{id} {j + 1} {probs[i][j]} {xmin} {ymin} {xmax} {ymax}\n");
+                        var temp = Encoding.UTF8.GetBytes($"{id} {j + 1} {probs[i][j]} {xmin} {ymin} {xmax} {ymax}\n");
                         fp.Write(temp, 0, temp.Length);
                     }
                 }
@@ -1378,7 +1379,7 @@ namespace Yolo_V2
                 if (type == "coco")
                 {
                     fp = File.OpenWrite($"{prefix}/coco_results.json");
-                    var temp = Encoding.ASCII.GetBytes("[\n");
+                    var temp = Encoding.UTF8.GetBytes("[\n");
                     fp.Write(temp, 0, temp.Length);
                     coco = true;
                 }
@@ -1480,7 +1481,7 @@ namespace Yolo_V2
                 if (coco)
                 {
                     fp?.Seek(-2, SeekOrigin.Current);
-                    var temp = Encoding.ASCII.GetBytes("\n]\n");
+                    var temp = Encoding.UTF8.GetBytes("\n]\n");
                     fp?.Write(temp, 0, temp.Length);
                 }
                 fp?.Close();
@@ -1665,7 +1666,7 @@ namespace Yolo_V2
 
         #region CiFarFile
 
-        void train_cifar(string cfgfile, string weightfile)
+        public static void train_cifar(string cfgfile, string weightfile)
         {
 
             float avg_loss = -1;
@@ -1716,7 +1717,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        void train_cifar_distill(string cfgfile, string weightfile)
+        public static void train_cifar_distill(string cfgfile, string weightfile)
         {
 
             float avg_loss = -1;
@@ -1775,7 +1776,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        void test_cifar_multi(string filename, string weightfile)
+        public static void test_cifar_multi(string filename, string weightfile)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -1804,11 +1805,11 @@ namespace Yolo_V2
                 int index = Utils.max_index(pred, 10);
                 int sclass = Utils.max_index(test.Y.Vals[i], 10);
                 if (index == sclass) avg_acc += 1;
-                Console.Write($"%4d: %.2f%%\n", i, 100f* avg_acc / (i + 1));
+                Console.Write($"%4d: %.2f%%\n", i, 100f * avg_acc / (i + 1));
             }
         }
 
-        void test_cifar(string filename, string weightfile)
+        public static void test_cifar(string filename, string weightfile)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -1822,15 +1823,15 @@ namespace Yolo_V2
             float avg_top5 = 0;
             Data.Data test = Data.Data.load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
 
-            time = clock();
+            sw.Start();
 
             float[] acc = Network.network_accuracies(net, test, 2);
             avg_acc += acc[0];
-            avg_top5 += acc[1];
-            Console.Write($"top1: %f, %lf seconds, %d images\n", avg_acc, sec(clock() - time), test.X.Rows);
+            sw.Stop();
+            Console.Write($"top1: %f, %lf seconds, %d images\n", avg_acc, sw.Elapsed.Seconds, test.X.Rows);
         }
 
-        void extract_cifar()
+        public static void extract_cifar()
         {
             string[] labels = { "airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck" };
             int i;
@@ -1852,7 +1853,7 @@ namespace Yolo_V2
             }
         }
 
-        void test_cifar_csv(string filename, string weightfile)
+        public static void test_cifar_csv(string filename, string weightfile)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -1872,15 +1873,15 @@ namespace Yolo_V2
                 LoadArgs.flip_image(im);
             }
             Matrix pred2 = Network.network_predict_data(net, test);
-            pred.scale_matrix( .5f);
-            pred2.scale_matrix( .5f);
+            pred.scale_matrix(.5f);
+            pred2.scale_matrix(.5f);
             Matrix.matrix_add_matrix(pred2, pred);
 
-            matrix_to_csv(pred);
-            Console.Error.Write($"Accuracy: {matrix_topk_accuracy(test.Y, pred, 1)}\n");
+            pred.matrix_to_csv(pred);
+            Console.Error.Write($"Accuracy: {Matrix.matrix_topk_accuracy(test.Y, pred, 1)}\n");
         }
 
-        void test_cifar_csvtrain(string filename, string weightfile)
+        public static void test_cifar_csvtrain(string filename, string weightfile)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -1900,25 +1901,22 @@ namespace Yolo_V2
                 LoadArgs.flip_image(im);
             }
             Matrix pred2 = Network.network_predict_data(net, test);
-            Matrix.scale_matrix(pred, .5);
-            Matrix.scale_matrix(pred2, .5);
+            pred.scale_matrix(.5f);
+            pred2.scale_matrix(.5f);
             Matrix.matrix_add_matrix(pred2, pred);
 
-            matrix_to_csv(pred);
-            Console.Error.Write($"Accuracy: %f\n", matrix_topk_accuracy(test.Y, pred, 1));
-            free_data(test);
+            pred.matrix_to_csv();
+            Console.Error.Write($"Accuracy: %f\n", Matrix.matrix_topk_accuracy(test.Y, pred, 1));
         }
 
-        void eval_cifar_csv()
+        public static void eval_cifar_csv()
         {
             Data.Data test = Data.Data.load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
 
-            Matrix pred = csv_to_matrix("results/combined.csv");
-            Console.Error.Write($"%d %d\n", pred.Rows, pred.cols);
+            Matrix pred = new Matrix("results/combined.csv");
+            Console.Error.Write($"%d %d\n", pred.Rows, pred.Cols);
 
-            Console.Error.Write($"Accuracy: %f\n", matrix_topk_accuracy(test.Y, pred, 1));
-            free_data(test);
-            free_matrix(pred);
+            Console.Error.Write($"Accuracy: %f\n", Matrix.matrix_topk_accuracy(test.Y, pred, 1));
         }
 
 
@@ -1931,35 +1929,37 @@ namespace Yolo_V2
             }
 
             string cfg = args[3];
-            string weights = (args.Count > 4) ? args[4] : 0;
-            if (0 == strcmp(args[2], "train")) train_cifar(cfg, weights);
-            else if (0 == strcmp(args[2], "extract")) extract_cifar();
-            else if (0 == strcmp(args[2], "distill")) train_cifar_distill(cfg, weights);
-            else if (0 == strcmp(args[2], "test")) test_cifar(cfg, weights);
-            else if (0 == strcmp(args[2], "multi")) test_cifar_multi(cfg, weights);
-            else if (0 == strcmp(args[2], "csv")) test_cifar_csv(cfg, weights);
-            else if (0 == strcmp(args[2], "csvtrain")) test_cifar_csvtrain(cfg, weights);
-            else if (0 == strcmp(args[2], "eval")) eval_cifar_csv();
+            string weights = (args.Count > 4) ? args[4] : "";
+            if (args[2] == "train") train_cifar(cfg, weights);
+            else if (args[2] == "extract") extract_cifar();
+            else if (args[2] == "distill") train_cifar_distill(cfg, weights);
+            else if (args[2] == "test") test_cifar(cfg, weights);
+            else if (args[2] == "multi") test_cifar_multi(cfg, weights);
+            else if (args[2] == "csv") test_cifar_csv(cfg, weights);
+            else if (args[2] == "csvtrain") test_cifar_csvtrain(cfg, weights);
+            else if (args[2] == "eval") eval_cifar_csv();
         }
 
         #endregion
 
         #region GoFile
 
-        static int inverted = 1;
-        static int noi = 1;
+        static bool inverted = true;
+        static bool noi = true;
         static int nind = 5;
 
 
         string fgetgo(FileStream fp)
         {
-            if (feof(fp)) return 0;
-            size_t size = 94;
-            string line = malloc(size * sizeof(char));
-            if (size != fread(line, sizeof(char), size, fp))
+            if (fp.CanRead) return "";
+            int size = 94;
+            var buff = new byte[size];
+            var read = fp.Read(buff, 0, size);
+
+            string line = Encoding.UTF8.GetString(buff);
+            if (size != read)
             {
-                free(line);
-                return 0;
+                return "";
             }
 
             return line;
@@ -1967,92 +1967,92 @@ namespace Yolo_V2
 
         Moves load_go_moves(string filename)
         {
-            Moves m;
-            m.N = 128;
-            Data.Data.Data = new float[128];
-            FileStream fp = fopen(filename, "rb");
-            int count = 0;
-            string line = 0;
-            while ((line = fgetgo(fp)))
+            var go = new List<string>();
+            FileStream fp = File.OpenRead(filename);
+            while (true)
             {
-                if (count >= m.N)
+                var line = fgetgo(fp);
+                if (string.IsNullOrEmpty(line))
                 {
-                    m.N *= 2;
-                    Data.Data.Data = realloc(Data.Data.Data, m.N * sizeof(string));
+                    break;
+
                 }
-                Data.Data.Data[count] = line;
-                ++count;
+                go.Add(line);
             }
-            Console.Write($"%d\n", count);
-            m.N = count;
-            Data.Data.Data = realloc(Data.Data.Data, count * sizeof(string));
+            Console.Write($"{go.Count}\n");
+
+            Moves m = new Moves();
+            m.N = go.Count;
+            m.Data = new string[go.Count];
+            go.CopyTo(m.Data);
             return m;
         }
 
-        void string_to_board(string s, float[] board)
+        void string_to_board(string s, float[] board, int start = 0)
         {
             int i, j;
-            //memset(board, 0, 1*19*19*sizeof(float));
             int count = 0;
             for (i = 0; i < 91; ++i)
             {
                 char c = s[i];
                 for (j = 0; j < 4; ++j)
                 {
-                    int me = (c >> (2 * j)) & 1;
-                    int you = (c >> (2 * j + 1)) & 1;
-                    if (me) board[count] = 1;
-                    else if (you) board[count] = -1;
-                    else board[count] = 0;
+                    bool me = ((c >> (2 * j)) & 1) != 0;
+                    bool you = ((c >> (2 * j + 1)) & 1) != 0;
+                    if (me) board[start + count] = 1;
+                    else if (you) board[start + count] = -1;
+                    else board[start + count] = 0;
                     ++count;
                     if (count >= 19 * 19) break;
                 }
             }
         }
 
-        void board_to_string(string s, float[] board)
+        void board_to_string(ref string s, float[] board)
         {
             int i, j;
-            memset(s, 0, (19 * 19 / 4 + 1) * sizeof(char));
+            var str = new char[(19 * 19 / 4 + 1)];
             int count = 0;
             for (i = 0; i < 91; ++i)
             {
                 for (j = 0; j < 4; ++j)
                 {
-                    int me = (board[count] == 1);
-                    int you = (board[count] == -1);
-                    if (me) s[i] = s[i] | (1 << (2 * j));
-                    if (you) s[i] = s[i] | (1 << (2 * j + 1));
+                    bool me = (board[count] == 1);
+                    bool you = (board[count] == -1);
+                    if (me) str[i] = (char)(str[i] | (1 << (2 * j)));
+                    if (you) str[i] = (char)(str[i] | (1 << (2 * j + 1)));
                     ++count;
                     if (count >= 19 * 19) break;
                 }
             }
+
+            s = str.ToString();
         }
 
-        void random_go_moves(Moves m, float[] boards, float[] labels, int n)
+        void random_go_moves(Moves m, ref float[] boards, float[] labels, int n)
         {
             int i;
-            memset(labels, 0, 19 * 19 * n * sizeof(float));
+            labels = new float[19 * 19 * n];
             for (i = 0; i < n; ++i)
             {
-                string b = Data.Data.Data[Utils.Rand.Next() % m.N];
+                string b = m.Data[Utils.Rand.Next() % m.N];
                 int row = b[0];
                 int col = b[1];
                 labels[col + 19 * (row + i * 19)] = 1;
-                string_to_board(b + 2, boards + i * 19 * 19);
+                string_to_board(b + 2, boards, i * 19 * 19);
                 boards[col + 19 * (row + i * 19)] = 0;
 
-                int flip = Utils.Rand.Next() % 2;
+                bool flip = Utils.Rand.Next() % 2 != 0;
                 int rotate = Utils.Rand.Next() % 4;
-                Image ini = new Image(19, 19, 1, boards + i * 19 * 19);
-                Image outi = new Image(19, 19, 1, labels + i * 19 * 19);
+                Image ini = new Image(19, 19, 1, boards, i * 19 * 19);
+                Image outi = new Image(19, 19, 1, labels, i * 19 * 19);
                 if (flip)
                 {
                     LoadArgs.flip_image(ini);
                     LoadArgs.flip_image(outi);
                 }
-                rotate_image_cw(ini, rotate);
-                rotate_image_cw(outi, rotate);
+                LoadArgs.rotate_image_cw(ini, rotate);
+                LoadArgs.rotate_image_cw(outi, rotate);
             }
         }
 
@@ -2080,15 +2080,19 @@ namespace Yolo_V2
 
             int N = m.N;
             int epoch = (net.Seen) / N;
+            var sw = new Stopwatch();
             while (Network.get_current_batch(net) < net.MaxBatches || net.MaxBatches == 0)
             {
-                clock_t time = clock();
+                sw.Reset();
+                sw.Start();
 
-                random_go_moves(m, board, move, net.Batch);
-                float loss = train_network_datum(net, board, move) / net.Batch;
+                random_go_moves(m, ref board, move, net.Batch);
+                float loss = Network.train_network_datum(net, board, move) / net.Batch;
                 if (avg_loss == -1) avg_loss = loss;
-                avg_loss = avg_loss * .95 + loss * .05;
-                Console.Write($"%d, %.3f: %f, %f avg, %f rate, %lf seconds, %d images\n", Network.get_current_batch(net), (float)(net.Seen) / N, loss, avg_loss, Network.get_current_rate(net), sec(clock() - time), net.Seen);
+                avg_loss = avg_loss * .95f + loss * .05f;
+                sw.Stop();
+                Console.Write(
+                    $"{Network.get_current_batch(net)}, {net.Seen / N:.3}: {loss}, {avg_loss} avg, {Network.get_current_rate(net)} rate, {sw.Elapsed.Seconds} seconds, {net.Seen} images\n");
                 if (net.Seen / N > epoch)
                 {
                     epoch = net.Seen / N;
@@ -2111,17 +2115,17 @@ namespace Yolo_V2
                 }
             }
 
-            string buff = $"{backup_directory}/{basec}.Weights";
-            Parser.save_weights(net, buff);
+            string buff2 = $"{backup_directory}/{basec}.Weights";
+            Parser.save_weights(net, buff2);
         }
 
-        void propagate_liberty(float[] board, int[] lib, int[] visited, int row, int col, int side)
+        void propagate_liberty(float[] board, int[] lib, bool[] visited, int row, int col, int side)
         {
             if (row < 0 || row > 18 || col < 0 || col > 18) return;
             int index = row * 19 + col;
             if (board[index] != side) return;
             if (visited[index]) return;
-            visited[index] = 1;
+            visited[index] = true;
             lib[index] += 1;
             propagate_liberty(board, lib, visited, row + 1, col, side);
             propagate_liberty(board, lib, visited, row - 1, col, side);
@@ -2133,20 +2137,20 @@ namespace Yolo_V2
         int[] calculate_liberties(float[] board)
         {
             int[] lib = new int[19 * 19];
-            int[] visited = new int[361];
+            bool[] visited = new bool[361];
             int i, j;
             for (j = 0; j < 19; ++j)
             {
                 for (i = 0; i < 19; ++i)
                 {
-                    memset(visited, 0, 19 * 19 * sizeof(int));
+                    visited = new bool[19 * 19];
                     int index = j * 19 + i;
                     if (board[index] == 0)
                     {
-                        if ((i > 0) && board[index - 1]) propagate_liberty(board, lib, visited, j, i - 1, board[index - 1]);
-                        if ((i < 18) && board[index + 1]) propagate_liberty(board, lib, visited, j, i + 1, board[index + 1]);
-                        if ((j > 0) && board[index - 19]) propagate_liberty(board, lib, visited, j - 1, i, board[index - 19]);
-                        if ((j < 18) && board[index + 19]) propagate_liberty(board, lib, visited, j + 1, i, board[index + 19]);
+                        if ((i > 0) && board[index - 1] != 0) propagate_liberty(board, lib, visited, j, i - 1, (int)board[index - 1]);
+                        if ((i < 18) && board[index + 1] != 0) propagate_liberty(board, lib, visited, j, i + 1, (int)board[index + 1]);
+                        if ((j > 0) && board[index - 19] != 0) propagate_liberty(board, lib, visited, j - 1, i, (int)board[index - 19]);
+                        if ((j < 18) && board[index + 19] != 0) propagate_liberty(board, lib, visited, j + 1, i, (int)board[index + 19]);
                     }
                 }
             }
@@ -2155,53 +2159,42 @@ namespace Yolo_V2
 
         void print_board(float[] board, int swap, int[] indexes)
         {
-            //FILE *stream = stdout;
-            FileStream stream = stderr;
             int i, j, n;
-            fprintf(stream, "\n\n");
-            fprintf(stream, "   ");
+            Console.Error.Write($"\n\n");
+            Console.Error.Write($"   ");
             for (i = 0; i < 19; ++i)
             {
-                fprintf(stream, "%c ", 'A' + i + 1 * (i > 7 && noi));
+                Console.Error.Write($"%c ", 'A' + i + 1 * ((i > 7 && noi) ? 1 : 0));
             }
-            fprintf(stream, "\n");
+            Console.Error.Write($"\n");
             for (j = 0; j < 19; ++j)
             {
-                fprintf(stream, "%2d", (inverted) ? 19 - j : j + 1);
+                Console.Error.Write($"%2d", (inverted) ? 19 - j : j + 1);
                 for (i = 0; i < 19; ++i)
                 {
                     int index = j * 19 + i;
-                    if (indexes)
+                    if (indexes.Length != 0)
                     {
-                        int found = 0;
+                        bool found = false;
                         for (n = 0; n < nind; ++n)
                         {
                             if (index == indexes[n])
                             {
-                                found = 1;
-                                /*
-                                if(n == 0) fprintf(stream, "\uff11");
-                                else if(n == 1) fprintf(stream, "\uff12");
-                                else if(n == 2) fprintf(stream, "\uff13");
-                                else if(n == 3) fprintf(stream, "\uff14");
-                                else if(n == 4) fprintf(stream, "\uff15");
-                                */
-                                if (n == 0) fprintf(stream, " 1");
-                                else if (n == 1) fprintf(stream, " 2");
-                                else if (n == 2) fprintf(stream, " 3");
-                                else if (n == 3) fprintf(stream, " 4");
-                                else if (n == 4) fprintf(stream, " 5");
+                                found = true;
+                                if (n == 0) Console.Error.Write($" 1");
+                                else if (n == 1) Console.Error.Write($" 2");
+                                else if (n == 2) Console.Error.Write($" 3");
+                                else if (n == 3) Console.Error.Write($" 4");
+                                else if (n == 4) Console.Error.Write($" 5");
                             }
                         }
                         if (found) continue;
                     }
-                    //if(board[index]*-swap > 0) fprintf(stream, "\u25C9 ");
-                    //else if(board[index]*-swap < 0) fprintf(stream, "\u25EF ");
-                    if (board[index] * -swap > 0) fprintf(stream, " O");
-                    else if (board[index] * -swap < 0) fprintf(stream, " X");
-                    else fprintf(stream, "  ");
+                    if (board[index] * -swap > 0) Console.Error.Write($" O");
+                    else if (board[index] * -swap < 0) Console.Error.Write($" X");
+                    else Console.Error.Write($"  ");
                 }
-                fprintf(stream, "\n");
+                Console.Error.Write($"\n");
             }
         }
 
@@ -2214,35 +2207,35 @@ namespace Yolo_V2
             }
         }
 
-        void predict_move(Network net, float[] board, float[] move, int multi)
+        void predict_move(Network net, float[] board, float[] move, bool multi)
         {
             float[] output = Network.network_predict(net, board);
-            Blas.Copy_cpu(19 * 19, output, 1, move, 1);
+            Blas.Copy_cpu(19 * 19, output, move);
             int i;
             if (multi)
             {
                 Image bim = new Image(19, 19, 1, board);
                 for (i = 1; i < 8; ++i)
                 {
-                    rotate_image_cw(bim, i);
+                    LoadArgs.rotate_image_cw(bim, i);
                     if (i >= 4) LoadArgs.flip_image(bim);
 
-                    float[] output = Network.network_predict(net, board);
-                    Image oim = new Image(19, 19, 1, output);
+                    float[] output2 = Network.network_predict(net, board);
+                    Image oim = new Image(19, 19, 1, output2);
 
                     if (i >= 4) LoadArgs.flip_image(oim);
-                    rotate_image_cw(oim, -i);
+                    LoadArgs.rotate_image_cw(oim, -i);
 
-                    Blas.Axpy_cpu(19 * 19, 1, output, 1, move, 1);
+                    Blas.Axpy_cpu(19 * 19, 1, output2, move);
 
                     if (i >= 4) LoadArgs.flip_image(bim);
-                    rotate_image_cw(bim, -i);
+                    LoadArgs.rotate_image_cw(bim, -i);
                 }
-                Blas.Scal_cpu(19 * 19, 1.0f / 8., move, 1);
+                Blas.Scal_cpu(19 * 19, 1.0f / 8f, move, 1);
             }
             for (i = 0; i < 19 * 19; ++i)
             {
-                if (board[i]) move[i] = 0;
+                if (board[i] != 0) move[i] = 0;
             }
         }
 
@@ -2267,48 +2260,46 @@ namespace Yolo_V2
             remove_connected(b, l, -p, r - 1, c);
             remove_connected(b, l, -p, r, c + 1);
             remove_connected(b, l, -p, r, c - 1);
-            free(l);
         }
 
-        int makes_safe_go(float[] b, int[] lib, int p, int r, int c)
+        bool makes_safe_go(float[] b, int[] lib, int p, int r, int c)
         {
-            if (r < 0 || r >= 19 || c < 0 || c >= 19) return 0;
+            if (r < 0 || r >= 19 || c < 0 || c >= 19) return false;
             if (b[r * 19 + c] == -p)
             {
-                if (lib[r * 19 + c] > 1) return 0;
-                else return 1;
+                if (lib[r * 19 + c] > 1) return false;
+                else return true;
             }
-            if (b[r * 19 + c] == 0) return 1;
-            if (lib[r * 19 + c] > 1) return 1;
-            return 0;
+            if (b[r * 19 + c] == 0) return true;
+            if (lib[r * 19 + c] > 1) return true;
+            return false;
         }
 
-        int suicide_go(float[] b, int p, int r, int c)
+        bool suicide_go(float[] b, int p, int r, int c)
         {
             int[] l = calculate_liberties(b);
-            int safe = 0;
+            bool safe = false;
             safe = safe || makes_safe_go(b, l, p, r + 1, c);
             safe = safe || makes_safe_go(b, l, p, r - 1, c);
             safe = safe || makes_safe_go(b, l, p, r, c + 1);
             safe = safe || makes_safe_go(b, l, p, r, c - 1);
-            free(l);
             return !safe;
         }
 
-        int legal_go(float[] b, string ko, int p, int r, int c)
+        bool legal_go(float[] b, string ko, int p, int r, int c)
         {
-            if (b[r * 19 + c]) return 0;
-            char curr[91];
-            char next[91];
-            board_to_string(curr, b);
+            if (b[r * 19 + c] != 0) return false;
+            string curr = "";
+            string next = "";
+            board_to_string(ref curr, b);
             move_go(b, p, r, c);
-            board_to_string(next, b);
+            board_to_string(ref next, b);
             string_to_board(curr, b);
-            if (memcmp(next, ko, 91) == 0) return 0;
-            return 1;
+            if (next == ko) return false;
+            return true;
         }
 
-        int generate_move(Network net, int player, float[] board, int multi, float thresh, float temp, string ko, int print)
+        int generate_move(Network net, int player, float[] board, bool multi, float thresh, float temp, string ko, bool print)
         {
             int i, j;
             for (i = 0; i < net.N; ++i) net.Layers[i].Temperature = temp;
@@ -2327,8 +2318,8 @@ namespace Yolo_V2
                 }
             }
 
-            int indexes[nind];
-            top_k(move, 19 * 19, nind, indexes);
+            int[] indexes = new int[nind];
+            Utils.top_k(move, 19 * 19, nind, indexes);
             if (thresh > move[indexes[0]]) thresh = move[indexes[nind - 1]];
 
             for (i = 0; i < 19; ++i)
@@ -2347,10 +2338,10 @@ namespace Yolo_V2
 
             if (print)
             {
-                top_k(move, 19 * 19, nind, indexes);
+                Utils.top_k(move, 19 * 19, nind, indexes);
                 for (i = 0; i < nind; ++i)
                 {
-                    if (!move[indexes[i]]) indexes[i] = -1;
+                    if (move.Length > indexes[i]) indexes[i] = -1;
                 }
                 print_board(board, player, indexes);
                 for (i = 0; i < nind; ++i)
@@ -2367,7 +2358,7 @@ namespace Yolo_V2
             return index;
         }
 
-        void valid_go(string cfgfile, string weightfile, int multi)
+        void valid_go(string cfgfile, string weightfile, bool multi)
         {
 
             string basec = Utils.Basecfg(cfgfile);
@@ -2389,7 +2380,7 @@ namespace Yolo_V2
             int correct = 0;
             for (i = 0; i < N; ++i)
             {
-                string b = Data.Data.Data[i];
+                string b = m.Data[i];
                 int row = b[0];
                 int col = b[1];
                 int truth = col + 19 * row;
@@ -2401,7 +2392,7 @@ namespace Yolo_V2
             }
         }
 
-        void engine_go(string filename, string weightfile, int multi)
+        void engine_go(string filename, string weightfile, bool multi)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -2413,62 +2404,69 @@ namespace Yolo_V2
             float[] board = new float[19 * 19];
             string one = "";
             string two = "";
-            int passed = 0;
-            while (1)
+            bool passed = false;
+            var loop = 3;
+            var end = -loop;
+            while (true)
             {
-
-                int id = 0;
-                int has_id = (scanf("%d", &id) == 1);
-                scanf("%s", buff);
-                if (feof(stdin)) break;
-                char ids[256];
-                sprintf(ids, "%d", id);
-                //Console.Error.Write($"%s\n", buff);
-                if (!has_id) ids[0] = 0;
-                if (!strcmp(buff, "protocol_version"))
+                end += loop;
+                var lines = Console.ReadLine().Split();
+                int id;
+                bool has_id = int.TryParse(lines[0 + end], out id);
+                string buff = lines[1 + end];
+                if (lines.Length == end + 2)
                 {
+                    //only the first two
+                    break;
+                }
+                loop = 3;
+                string ids = id.ToString();
+                if (!has_id) ids = "";
+                if (buff != "protocol_version")
+                {
+                    loop = 2;
                     Console.Write($"=%s 2\n\n", ids);
                 }
-                else if (!strcmp(buff, "name"))
+                else if (buff != "name")
                 {
+                    loop = 2;
                     Console.Write($"=%s DarkGo\n\n", ids);
                 }
-                else if (!strcmp(buff, "version"))
+                else if (buff != "version")
                 {
+                    loop = 2;
                     Console.Write($"=%s 1.0\n\n", ids);
                 }
-                else if (!strcmp(buff, "known_command"))
+                else if (buff != "known_command")
                 {
-                    char comm[256];
-                    scanf("%s", comm);
-                    int known = (!strcmp(comm, "protocol_version") ||
-                            !strcmp(comm, "name") ||
-                            !strcmp(comm, "version") ||
-                            !strcmp(comm, "known_command") ||
-                            !strcmp(comm, "list_commands") ||
-                            !strcmp(comm, "quit") ||
-                            !strcmp(comm, "boardsize") ||
-                            !strcmp(comm, "clear_board") ||
-                            !strcmp(comm, "komi") ||
-                            !strcmp(comm, "final_status_list") ||
-                            !strcmp(comm, "play") ||
-                            !strcmp(comm, "genmove"));
+                    string comm = lines[3 + end];
+                    bool known = (comm != "protocol_version" ||
+                            comm != "name" ||
+                            comm != "version" ||
+                            comm != "known_command" ||
+                            comm != "list_commands" ||
+                            comm != "quit" ||
+                            comm != "boardsize" ||
+                            comm != "clear_board" ||
+                            comm != "komi" ||
+                            comm != "final_status_list" ||
+                            comm != "play" ||
+                            comm != "genmove");
                     if (known) Console.Write($"=%s true\n\n", ids);
                     else Console.Write($"=%s false\n\n", ids);
                 }
-                else if (!strcmp(buff, "list_commands"))
+                else if (buff != "list_commands")
                 {
+                    loop = 2;
                     Console.Write($"=%s protocol_version\nname\nversion\nknown_command\nlist_commands\nquit\nboardsize\nclear_board\nkomi\nplay\ngenmove\nfinal_status_list\n\n", ids);
                 }
-                else if (!strcmp(buff, "quit"))
+                else if (buff != "quit")
                 {
                     break;
                 }
-                else if (!strcmp(buff, "boardsize"))
+                else if (buff != "boardsize")
                 {
-                    int boardsize = 0;
-                    scanf("%d", &boardsize);
-                    //Console.Error.Write($"%d\n", boardsize);
+                    int boardsize = int.Parse(lines[3 + end]);
                     if (boardsize != 19)
                     {
                         Console.Write($"?%s unacceptable size\n\n", ids);
@@ -2478,42 +2476,37 @@ namespace Yolo_V2
                         Console.Write($"=%s \n\n", ids);
                     }
                 }
-                else if (!strcmp(buff, "clear_board"))
+                else if (buff != "clear_board")
                 {
-                    passed = 0;
-                    memset(board, 0, 19 * 19 * sizeof(float));
+                    passed = false;
+                    loop = 2;
+                    board = new float[19 * 19];
                     Console.Write($"=%s \n\n", ids);
                 }
-                else if (!strcmp(buff, "komi"))
+                else if (buff != "komi")
                 {
-                    float komi = 0;
-                    scanf("%f", &komi);
+                    float komi = float.Parse(lines[3 + end]);
                     Console.Write($"=%s \n\n", ids);
                 }
-                else if (!strcmp(buff, "play"))
+                else if (buff != "play")
                 {
-                    char color[256];
-                    scanf("%s ", color);
-                    char c;
-                    int r;
-                    int count = scanf("%c%d", &c, &r);
+                    loop = 4;
+                    string color = lines[3 + end];
+                    char c = lines[4].First();
+                    int r = int.Parse(lines[4].Substring(1));
                     int player = (color[0] == 'b' || color[0] == 'B') ? 1 : -1;
                     if (c == 'p' && count < 2)
                     {
-                        passed = 1;
+                        passed = true;
                         Console.Write($"=%s \n\n", ids);
-                        string line = fgetl(stdin);
-                        free(line);
-
-                        fflush(stderr);
                         continue;
                     }
                     else
                     {
-                        passed = 0;
+                        passed = false;
                     }
-                    if (c >= 'A' && c <= 'Z') c = c - 'A';
-                    if (c >= 'a' && c <= 'z') c = c - 'a';
+                    if (c >= 'A' && c <= 'Z') c = (char)(c - 'A');
+                    if (c >= 'a' && c <= 'z') c = (char)(c - 'a');
                     if (c >= 8) --c;
                     r = 19 - r;
                     Console.Error.Write($"move: %d %d\n", r, c);
@@ -2522,22 +2515,21 @@ namespace Yolo_V2
                     two = one;
                     one = swap;
                     move_go(board, player, r, c);
-                    board_to_string(one, board);
+                    board_to_string(ref one, board);
 
                     Console.Write($"=%s \n\n", ids);
-                    print_board(board, 1, 0);
+                    print_board(board, 1, new int[0]);
                 }
-                else if (!strcmp(buff, "genmove"))
+                else if (buff != "genmove")
                 {
-                    char color[256];
-                    scanf("%s", color);
+                    string color = lines[3 + end];
                     int player = (color[0] == 'b' || color[0] == 'B') ? 1 : -1;
 
-                    int index = generate_move(net, player, board, multi, .1, .7, two, 1);
+                    int index = generate_move(net, player, board, multi, .1f, .7f, two, true);
                     if (passed || index < 0)
                     {
                         Console.Write($"=%s pass\n\n", ids);
-                        passed = 0;
+                        passed = false;
                     }
                     else
                     {
@@ -2549,69 +2541,64 @@ namespace Yolo_V2
                         one = swap;
 
                         move_go(board, player, row, col);
-                        board_to_string(one, board);
+                        board_to_string(ref one, board);
                         row = 19 - row;
                         if (col >= 8) ++col;
                         Console.Write($"=%s %c%d\n\n", ids, 'A' + col, row);
-                        print_board(board, 1, 0);
+                        print_board(board, 1, new int[0]);
                     }
 
                 }
-                else if (!strcmp(buff, "p"))
+                else if (buff != "p")
                 {
+                    loop = 2;
                     //print_board(board, 1, 0);
                 }
-                else if (!strcmp(buff, "final_status_list"))
+                else if (buff != "final_status_list")
                 {
-                    char type[256];
-                    scanf("%s", type);
+                    string type = lines[3 + end];
                     Console.Error.Write($"final_status\n");
-                    string line = fgetl(stdin);
-                    free(line);
+                    Console.ReadLine();
                     if (type[0] == 'd' || type[0] == 'D')
                     {
-                        FileStream f = fopen("game.txt", "w");
+                        var builder = new List<string>();
                         int i, j;
                         int count = 2;
-                        fprintf(f, "boardsize 19\n");
-                        fprintf(f, "clear_board\n");
+                        builder.Append("boardsize 19\n");
+                        builder.Append("clear_board\n");
                         for (j = 0; j < 19; ++j)
                         {
                             for (i = 0; i < 19; ++i)
                             {
-                                if (board[j * 19 + i] == 1) fprintf(f, "play black %c%d\n", 'A' + i + (i >= 8), 19 - j);
-                                if (board[j * 19 + i] == -1) fprintf(f, "play white %c%d\n", 'A' + i + (i >= 8), 19 - j);
-                                if (board[j * 19 + i]) ++count;
+                                if (board[j * 19 + i] == 1)
+                                    builder.Append($"play black {'A' + i + (i >= 8 ? 1 : 0)}{19 - j}\n");
+                                if (board[j * 19 + i] == -1)
+                                    builder.Append($"play white {'A' + i + (i >= 8 ? 1 : 0)}{19 - j}\n");
+                                if (board[j * 19 + i] != 0) ++count;
                             }
                         }
-                        fprintf(f, "final_status_list dead\n");
-                        fclose(f);
-                        FileStream p = popen("./gnugo --mode gtp < game.txt", "r");
+
+                        builder.Append("final_status_list dead\n");
+                        File.WriteAllLines("game.txt", builder, Encoding.UTF8);
+
+                        var p = Utils.popen("./gnugo", "--mode gtp < game.txt");
                         for (i = 0; i < count; ++i)
                         {
-                            free(fgetl(p));
-                            free(fgetl(p));
+                            p.RemoveRange(0, 2);
                         }
-                        string l = 0;
-                        while ((l = fgetl(p)))
-                        {
-                            Console.Write($"%s\n", l);
-                            free(l);
-                        }
+                        p.ForEach(Console.WriteLine);
                     }
                     else
                     {
+                        loop = 2;
                         Console.Write($"?%s unknown command\n\n", ids);
                     }
                 }
                 else
                 {
-                    string line = fgetl(stdin);
-                    free(line);
+                    string line = Console.ReadLine();
                     Console.Write($"?%s unknown command\n\n", ids);
                 }
-
-                fflush(stderr);
             }
         }
 
@@ -2637,19 +2624,19 @@ namespace Yolo_V2
                     Image bim = new Image(19, 19, 1, board);
                     for (i = 1; i < 8; ++i)
                     {
-                        rotate_image_cw(bim, i);
+                        LoadArgs.rotate_image_cw(bim, i);
                         if (i >= 4) LoadArgs.flip_image(bim);
 
                         float[] output = Network.network_predict(net, board);
                         Image oim = new Image(19, 19, 1, output);
 
                         if (i >= 4) LoadArgs.flip_image(oim);
-                        rotate_image_cw(oim, -i);
+                        LoadArgs.rotate_image_cw(oim, -i);
 
                         Blas.Axpy_cpu(19 * 19, 1, output, 1, move, 1);
 
                         if (i >= 4) LoadArgs.flip_image(bim);
-                        rotate_image_cw(bim, -i);
+                        LoadArgs.rotate_image_cw(bim, -i);
                     }
                     Blas.Scal_cpu(19 * 19, 1.0f / 8., move, 1);
                 }
@@ -2660,7 +2647,7 @@ namespace Yolo_V2
 
                 int indexes[nind];
                 int row, col;
-                top_k(move, 19 * 19, nind, indexes);
+                Utils.top_k(move, 19 * 19, nind, indexes);
                 print_board(board, color, indexes);
                 for (i = 0; i < nind; ++i)
                 {
@@ -2748,22 +2735,19 @@ namespace Yolo_V2
             }
             fprintf(f, "final_score\n");
             fclose(f);
-            FileStream p = popen("./gnugo --mode gtp < game.txt", "r");
+            var p = Utils.popen("./gnugo" ,"--mode gtp < game.txt");
             for (i = 0; i < count; ++i)
             {
-                free(fgetl(p));
-                free(fgetl(p));
+                p.RemoveRange(0, 2);
             }
-            string l = 0;
             float score = 0;
-            char player = 0;
-            while ((l = fgetl(p)))
+            char player = '\0';
+            p.ForEach(l =>
             {
                 Console.Error.Write($"%s  \t", l);
                 int n = sscanf(l, "= %c+%f", &player, &score);
-                free(l);
                 if (n == 2) break;
-            }
+            });
             if (player == 'W') score = -score;
             pclose(p);
             return score;
@@ -2819,7 +2803,7 @@ namespace Yolo_V2
                         }
                         Console.Write($"\n");
                     }
-                    memset(board, 0, 19 * 19 * sizeof(float));
+                    aaaaa = new float[board, 0, 19 * 19 * sizeof(float));
                     player = 1;
                     done = 0;
                     count = 0;
@@ -2883,10 +2867,10 @@ namespace Yolo_V2
 
         #region RnnFile
 
-        int[] read_tokenized_data(string filename, size_t* read)
+        int[] read_tokenized_data(string filename, int* read)
         {
-            size_t size = 512;
-            size_t count = 0;
+            int size = 512;
+            int count = 0;
             FileStream fp = fopen(filename, "r");
             int[] d = new float[size];
             int n, one;
@@ -2908,10 +2892,10 @@ namespace Yolo_V2
             return d;
         }
 
-        string[] read_tokens(string filename, size_t* read)
+        string[] read_tokens(string filename, int* read)
         {
-            size_t size = 512;
-            size_t count = 0;
+            int size = 512;
+            int count = 0;
             FileStream fp = fopen(filename, "r");
             string[] d = new float[size];
             string line;
@@ -2931,7 +2915,7 @@ namespace Yolo_V2
             return d;
         }
 
-        FloatPair get_rnn_token_data(int[] tokens, size_t* offsets, int characters, size_t len, int batch, int steps)
+        FloatPair get_rnn_token_data(int[] tokens, int* offsets, int characters, int len, int batch, int steps)
         {
             float[] x = new float[batch * steps * characters];
             float[] y = new float[batch * steps * characters];
@@ -2960,7 +2944,7 @@ namespace Yolo_V2
             return p;
         }
 
-        FloatPair get_rnn_data(unsigned string text, size_t* offsets, int characters, size_t len, int batch, int steps)
+        FloatPair get_rnn_data(unsigned string text, int* offsets, int characters, int len, int batch, int steps)
         {
             float[] x = new float[batch * steps * characters];
             float[] y = new float[batch * steps * characters];
@@ -3007,7 +2991,7 @@ namespace Yolo_V2
 
             unsigned string text = 0;
             int[] tokens = 0;
-            size_t size;
+            int size;
             if (tokenized)
             {
                 tokens = read_tokenized_data(filename, &size);
@@ -3043,7 +3027,7 @@ namespace Yolo_V2
             int i = (net.Seen) / net.Batch;
 
             int streams = batch / steps;
-            size_t* offsets = new float[streams];
+            int* offsets = new float[streams];
             int j;
             for (j = 0; j < streams; ++j)
             {
@@ -3065,7 +3049,7 @@ namespace Yolo_V2
                     p = get_rnn_data(text, offsets, inputs, size, streams, steps);
                 }
 
-                float loss = train_network_datum(net, p.X, p.Y) / (batch);
+                float loss = Network.train_network_datum(net, p.X, p.Y) / (batch);
                 free(p.X);
                 free(p.Y);
                 if (avg_loss < 0) avg_loss = loss;
@@ -3120,7 +3104,7 @@ namespace Yolo_V2
             string[] tokens = 0;
             if (token_file)
             {
-                size_t n;
+                int n;
                 tokens = read_tokens(token_file, &n);
             }
 
@@ -3176,7 +3160,7 @@ namespace Yolo_V2
             string[] tokens = 0;
             if (token_file)
             {
-                size_t n;
+                int n;
                 tokens = read_tokens(token_file, &n);
             }
 
@@ -3496,7 +3480,7 @@ namespace Yolo_V2
                 time = clock();
                 FloatPair p = get_rnn_vid_data(extractor, paths, N, batch, steps);
 
-                float loss = train_network_datum(net, p.X, p.Y) / (net.Batch);
+                float loss = Network.train_network_datum(net, p.X, p.Y) / (net.Batch);
 
                 if (avg_loss < 0) avg_loss = loss;
                 avg_loss = avg_loss * .9f + loss * .1f;
@@ -4272,7 +4256,7 @@ namespace Yolo_V2
                     free_image(images[j]);
                 }
                 free_image(im);
-                top_k(pred, classes, topk, indexes);
+                Utils.top_k(pred, classes, topk, indexes);
                 free(pred);
                 if (indexes[0] == class2) avg_acc += 1;
                 for (j = 0; j < topk; ++j)
@@ -4334,7 +4318,7 @@ namespace Yolo_V2
 
                 free_image(im);
                 free_image(resized);
-                top_k(pred, classes, topk, indexes);
+                Utils.top_k(pred, classes, topk, indexes);
 
                 if (indexes[0] == class2) avg_acc += 1;
                 for (j = 0; j < topk; ++j)
@@ -4399,7 +4383,7 @@ namespace Yolo_V2
                 if (resized.Data.Data != im.Data) free_image(resized);
                 free_image(im);
                 free_image(crop);
-                top_k(pred, classes, topk, indexes);
+                Utils.top_k(pred, classes, topk, indexes);
 
                 if (indexes[0] == class2) avg_acc += 1;
                 for (j = 0; j < topk; ++j)
@@ -4469,7 +4453,7 @@ namespace Yolo_V2
                     if (r.Data.Data != im.Data) free_image(r);
                 }
                 free_image(im);
-                top_k(pred, classes, topk, indexes);
+                Utils.top_k(pred, classes, topk, indexes);
                 free(pred);
                 if (indexes[0] == class2) avg_acc += 1;
                 for (j = 0; j < topk; ++j)
@@ -4602,7 +4586,7 @@ namespace Yolo_V2
                 time = clock();
                 float[] predictions = Network.network_predict(net, X);
                 if (net.hierarchy) hierarchy_predictions(predictions, net.Outputs, net.hierarchy, 0);
-                top_k(predictions, net.Outputs, top, indexes);
+                Utils.top_k(predictions, net.Outputs, top, indexes);
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sec(clock() - time));
                 for (i = 0; i < top; ++i)
                 {
@@ -4718,7 +4702,7 @@ namespace Yolo_V2
                 for (i = 0; i < pred.Rows; ++i)
                 {
                     Console.Write($"%s", paths[curr - net.Batch + i]);
-                    for (j = 0; j < pred.cols; ++j)
+                    for (j = 0; j < pred.Cols; ++j)
                     {
                         Console.Write($"\t%g", pred.Vals[i][j]);
                     }
@@ -5929,7 +5913,7 @@ namespace Yolo_V2
             int i, j;
             for (i = 0; i < d.Y.Rows; ++i)
             {
-                for (j = 0; j < d.Y.cols; j += 2)
+                for (j = 0; j < d.Y.Cols; j += 2)
                 {
                     if (mask)
                     {
@@ -6390,7 +6374,7 @@ namespace Yolo_V2
                     Image rot = rotate_image(im, rotate);
                     im = rot;
                 }
-                Image crop = LoadArgs.crop_image(im, im.W * (1. - zoom) / 2., im.H * (1.- zoom) / 2., im.W * zoom, im.H * zoom);
+                Image crop = LoadArgs.crop_image(im, (int)(im.W * (1f - zoom) / 2f), (int)(im.H * (1f- zoom) / 2f), (int)(im.W * zoom), (int)(im.H * zoom));
                 Image resized = LoadArgs.resize_image(crop, im.W, im.H);
                 im = resized;
             }
