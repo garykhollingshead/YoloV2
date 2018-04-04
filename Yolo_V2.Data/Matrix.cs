@@ -44,19 +44,6 @@ namespace Yolo_V2.Data
             }
         }
 
-        public void resize_matrix(int size)
-        {
-            int i;
-            if (Rows == size) return;
-
-            Array.Resize(ref Vals, size);
-            for (i = Rows; i < size; ++i)
-            {
-                Array.Resize(ref Vals[i], Cols);
-            }
-            Rows = size;
-        }
-
         public static void matrix_add_matrix(Matrix from, Matrix to)
         {
             int i, j;
@@ -78,22 +65,6 @@ namespace Yolo_V2.Data
             {
                 Vals[i] = new float[Cols];
             }
-        }
-
-        public float[] pop_column(int c)
-        {
-            float[] col = new float[Rows];
-            int i, j;
-            for (i = 0; i < Rows; ++i)
-            {
-                col[i] = Vals[i][c];
-                for (j = c; j < Cols - 1; ++j)
-                {
-                    Vals[i][j] = Vals[i][j + 1];
-                }
-            }
-            --Cols;
-            return col;
         }
 
         public Matrix(string filename)

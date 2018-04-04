@@ -7,9 +7,9 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    class Tag
+    public static class Tag
     {
-        public static void train_tag(string cfgfile, string weightfile, bool clear)
+        private static void train_tag(string cfgfile, string weightfile, bool clear)
         {
 
             float avgLoss = -1;
@@ -95,7 +95,7 @@ namespace Yolo_V2
             loadThread.Join();
         }
 
-        public static void test_tag(string cfgfile, string weightfile, string filename)
+        private static void test_tag(string cfgfile, string weightfile, string filename)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))

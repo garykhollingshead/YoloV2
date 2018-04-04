@@ -6,7 +6,7 @@ namespace Yolo_V2.Data
 {
     public static class Im2Col
     {
-        public static float im2col_get_pixel(float[] im, int height, int width, int channels,
+        private static float im2col_get_pixel(float[] im, int height, int width, int channels,
             int row, int col, int channel, int pad, int imStart = 0)
         {
             row -= pad;
@@ -45,7 +45,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void col2im_add_pixel(float[] im, int height, int width, int channels,
+        private static void col2im_add_pixel(float[] im, int height, int width, int channels,
             int row, int col, int channel, int pad, float val, int imStart = 0)
         {
             row -= pad;

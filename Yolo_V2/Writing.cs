@@ -8,9 +8,9 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    class Writing
+    public static class Writing
     {
-        public static void train_writing(string cfgfile, string weightfile)
+        private static void train_writing(string cfgfile, string weightfile)
         {
             string backupDirectory = "/home/pjreddie/backup/";
 
@@ -79,7 +79,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void test_writing(string cfgfile, string weightfile, string filename)
+        private static void test_writing(string cfgfile, string weightfile, string filename)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))

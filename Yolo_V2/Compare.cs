@@ -8,13 +8,12 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    class Compare
+    public static class Compare
     {
-        public static int TotalCompares;
-        public static int CurrentClass;
-        private readonly Nightmare nightmare = new Nightmare();
+        private static int TotalCompares;
+        private static int CurrentClass;
 
-        public static void train_compare(string cfgfile, string weightfile)
+        private static void train_compare(string cfgfile, string weightfile)
         {
 
             float avgLoss = -1;
@@ -87,7 +86,7 @@ namespace Yolo_V2
             loadThread.Join();
         }
 
-        public static void validate_compare(string filename, string weightfile)
+        private static void validate_compare(string filename, string weightfile)
         {
             int i = 0;
             Network net = Parser.parse_network_cfg(filename);
@@ -160,14 +159,14 @@ namespace Yolo_V2
             }
         }
 
-        public static int elo_comparator(SortableBbox a, SortableBbox b)
+        private static int elo_comparator(SortableBbox a, SortableBbox b)
         {
             if (a.Elos[CurrentClass] == b.Elos[CurrentClass]) return 0;
             if (a.Elos[CurrentClass] > b.Elos[CurrentClass]) return -1;
             return 1;
         }
 
-        public static int bbox_comparator(SortableBbox a, SortableBbox b)
+        private static int bbox_comparator(SortableBbox a, SortableBbox b)
         {
             ++TotalCompares;
             Network net = a.Net;
@@ -187,7 +186,7 @@ namespace Yolo_V2
             return -1;
         }
 
-        public static void bbox_update(SortableBbox a, SortableBbox b, int sclass, bool result)
+        private static void bbox_update(SortableBbox a, SortableBbox b, int sclass, bool result)
         {
             int k = 32;
             float ea = 1.0f / (1 + (float)Math.Pow(10, (b.Elos[sclass] - a.Elos[sclass]) / 400f));
@@ -198,7 +197,7 @@ namespace Yolo_V2
             b.Elos[sclass] += k * (sb - eb);
         }
 
-        public static void bbox_fight(Network net, SortableBbox a, SortableBbox b, int classes, int sclass)
+        private static void bbox_fight(Network net, SortableBbox a, SortableBbox b, int classes, int sclass)
         {
             Image im1 = LoadArgs.load_image_color(a.Filename, net.W, net.H);
             Image im2 = LoadArgs.load_image_color(b.Filename, net.W, net.H);
@@ -219,7 +218,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void SortMaster3000(string filename, string weightfile)
+        private static void SortMaster3000(string filename, string weightfile)
         {
             int i = 0;
             Network net = Parser.parse_network_cfg(filename);
@@ -252,7 +251,7 @@ namespace Yolo_V2
             Console.Write($"Sorted ini %d compares, %f secs\n", TotalCompares, sw.Elapsed.Seconds);
         }
 
-        public static void BattleRoyaleWithCheese(string filename, string weightfile)
+        private static void BattleRoyaleWithCheese(string filename, string weightfile)
         {
             int classes = 20;
             int i, j;

@@ -5,9 +5,9 @@ using Yolo_V2.Data;
 
 namespace Yolo_V2
 {
-    class CiFar
+    public static class CiFar
     {
-        public static void train_cifar(string cfgfile, string weightfile)
+        private static void train_cifar(string cfgfile, string weightfile)
         {
 
             float avgLoss = -1;
@@ -57,7 +57,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        public static void train_cifar_distill(string cfgfile, string weightfile)
+        private static void train_cifar_distill(string cfgfile, string weightfile)
         {
 
             float avgLoss = -1;
@@ -115,7 +115,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        public static void test_cifar_multi(string filename, string weightfile)
+        private static void test_cifar_multi(string filename, string weightfile)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -148,7 +148,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void test_cifar(string filename, string weightfile)
+        private static void test_cifar(string filename, string weightfile)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -169,7 +169,7 @@ namespace Yolo_V2
             Console.Write($"top1: %f, %lf seconds, %d images\n", avgAcc, sw.Elapsed.Seconds, test.X.Rows);
         }
 
-        public static void extract_cifar()
+        private static void extract_cifar()
         {
             string[] labels = { "airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck" };
             int i;
@@ -191,7 +191,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void test_cifar_csv(string filename, string weightfile)
+        private static void test_cifar_csv(string filename, string weightfile)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -219,7 +219,7 @@ namespace Yolo_V2
             Console.Error.Write($"Accuracy: {Matrix.matrix_topk_accuracy(test.Y, pred, 1)}\n");
         }
 
-        public static void test_cifar_csvtrain(string filename, string weightfile)
+        private static void test_cifar_csvtrain(string filename, string weightfile)
         {
             Network net = Parser.parse_network_cfg(filename);
             if (string.IsNullOrEmpty(weightfile))
@@ -247,7 +247,7 @@ namespace Yolo_V2
             Console.Error.Write($"Accuracy: %f\n", Matrix.matrix_topk_accuracy(test.Y, pred, 1));
         }
 
-        public static void eval_cifar_csv()
+        private static void eval_cifar_csv()
         {
             Data.Data test = Data.Data.load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
 

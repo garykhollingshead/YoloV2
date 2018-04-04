@@ -51,44 +51,21 @@ namespace Yolo_V2.Data
             H = src.Height;
             W = src.Width;
             Data = new float[C * W * H];
-            var step = src.Step;
-            var count = 0;
-
-            for (var k = 0; k < C; ++k)
+            GCHandle hand = GCHandle.Alloc(Data, GCHandleType.Pinned);
+            using (var img2 = new Mat(src.Size, src.Depth, src.NumberOfChannels, hand.AddrOfPinnedObject(), src.Width * src.NumberOfChannels))
             {
-                for (var i = 0; i < H; ++i)
-                {
-                    for (var j = 0; j < W; ++j)
-                    {
-                        //var value = new double[1];
-                        //Marshal.Copy(src.DataPointer + (row * mat.Cols + col) * mat.ElementSize, value, 0, 1);
-                        //Marshal.Copy(src.DataPointer + i * step + j * c + k, value, 0, 1);
-                        //img.Data[count++] = data[i * step + j * c + k] / 255;
-                        Data[count++] = (float)GetPixel(src, i * step + j * C + k) / 255;
-
-                    }
-                }
+                CvInvoke.BitwiseNot(src, img2);
+                CvInvoke.BitwiseNot(img2, img2);
             }
+            hand.Free();
         }
 
         public Mat ToMat()
         {
-            var newMat = new Mat(new Size(W, H), DepthType.Cv8U, C);
-            //TODO: get data from Data to mat
+            GCHandle hand = GCHandle.Alloc(Data, GCHandleType.Pinned);
+            var newMat = new Mat(new Size(W, H), DepthType.Cv8U, C, hand.AddrOfPinnedObject(), W * C);
+            hand.Free();
             return newMat;
-        }
-
-        public static void SetPixel(Mat img, int offset, double value)
-        {
-            var target = new[] { value };
-            Marshal.Copy(target, 0, img.DataPointer + offset, 1);
-        }
-
-        public static double GetPixel(Mat mat, int offset)
-        {
-            var value = new double[1];
-            Marshal.Copy(mat.DataPointer + offset * mat.ElementSize, value, 0, 1);
-            return value[0];
         }
     }
 }

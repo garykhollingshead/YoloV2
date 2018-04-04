@@ -10,9 +10,9 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    class Detector
+    public static class Detector
     {
-        public static void train_detector(string datacfg, string cfgfile, string weightfile, bool clear)
+        private static void train_detector(string datacfg, string cfgfile, string weightfile, bool clear)
         {
             var options = OptionList.read_data_cfg(datacfg);
             string trainImages = OptionList.option_find_str(options, "train", "Data.Data/train.list");
@@ -154,7 +154,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void print_detector_detections(FileStream[] fps, string id, Box[] boxes, float[][] probs, int total, int classes, int w, int h)
+        private static void print_detector_detections(FileStream[] fps, string id, Box[] boxes, float[][] probs, int total, int classes, int w, int h)
         {
             int i, j;
             for (i = 0; i < total; ++i)
@@ -180,7 +180,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void print_imagenet_detections(FileStream fp, int id, Box[] boxes, float[][] probs, int total, int classes, int w, int h)
+        private static void print_imagenet_detections(FileStream fp, int id, Box[] boxes, float[][] probs, int total, int classes, int w, int h)
         {
             int i, j;
             for (i = 0; i < total; ++i)
@@ -206,7 +206,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void validate_detector(string datacfg, string cfgfile, string weightfile)
+        private static void validate_detector(string datacfg, string cfgfile, string weightfile)
         {
             int j;
             var options = OptionList.read_data_cfg(datacfg);
@@ -356,7 +356,7 @@ namespace Yolo_V2
             Console.Error.Write($"Total Detection Time: %f Seconds\n", sw.Elapsed.Seconds);
         }
 
-        public static void validate_detector_recall(string cfgfile, string weightfile)
+        private static void validate_detector_recall(string cfgfile, string weightfile)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))

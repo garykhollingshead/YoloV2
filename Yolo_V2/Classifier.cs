@@ -8,21 +8,9 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    class Classifier
+    public static class Classifier
     {
-        private float[] get_regression_values(string[] labels, int n)
-        {
-            float[] v = new float[n];
-            int i;
-            for (i = 0; i < n; ++i)
-            {
-                var p = labels[i].Split(' ');
-                v[i] = float.Parse(p[1]);
-            }
-            return v;
-        }
-
-        public static void train_classifier(string datacfg, string cfgfile, string weightfile, int[] gpus, int ngpus, bool clear)
+        private static void train_classifier(string datacfg, string cfgfile, string weightfile, int[] gpus, int ngpus, bool clear)
         {
             int i;
 
@@ -138,7 +126,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        public static void validate_classifier_crop(string datacfg, string filename, string weightfile)
+        private static void validate_classifier_crop(string datacfg, string filename, string weightfile)
         {
             int i = 0;
             Network net = Parser.parse_network_cfg(filename);
@@ -210,7 +198,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void validate_classifier_10(string datacfg, string filename, string weightfile)
+        private static void validate_classifier_10(string datacfg, string filename, string weightfile)
         {
             int i, j;
             Network net = Parser.parse_network_cfg(filename);
@@ -283,7 +271,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void validate_classifier_full(string datacfg, string filename, string weightfile)
+        private static void validate_classifier_full(string datacfg, string filename, string weightfile)
         {
             int i, j;
             Network net = Parser.parse_network_cfg(filename);
@@ -341,7 +329,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void validate_classifier_single(string datacfg, string filename, string weightfile)
+        private static void validate_classifier_single(string datacfg, string filename, string weightfile)
         {
             int i, j;
             Network net = Parser.parse_network_cfg(filename);
@@ -400,7 +388,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void validate_classifier_multi(string datacfg, string filename, string weightfile)
+        private static void validate_classifier_multi(string datacfg, string filename, string weightfile)
         {
             int i, j;
             Network net = Parser.parse_network_cfg(filename);
@@ -465,7 +453,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void try_classifier(string datacfg, string cfgfile, string weightfile, string filename, int layerNum)
+        private static void try_classifier(string datacfg, string cfgfile, string weightfile, string filename, int layerNum)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
@@ -604,7 +592,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void label_classifier(string datacfg, string filename, string weightfile)
+        private static void label_classifier(string datacfg, string filename, string weightfile)
         {
             int i;
             Network net = Parser.parse_network_cfg(filename);
@@ -639,7 +627,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void test_classifier(string datacfg, string cfgfile, string weightfile, int targetLayer)
+        private static void test_classifier(string datacfg, string cfgfile, string weightfile, int targetLayer)
         {
             int curr = 0;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -712,7 +700,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void threat_classifier(string datacfg, string cfgfile, string weightfile, int camIndex, string filename)
+        private static void threat_classifier(string datacfg, string cfgfile, string weightfile, int camIndex, string filename)
         {
             float threat = 0;
             float roll = .2f;
@@ -834,7 +822,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void gun_classifier(string datacfg, string cfgfile, string weightfile, int camIndex, string filename)
+        private static void gun_classifier(string datacfg, string cfgfile, string weightfile, int camIndex, string filename)
         {
             int[] badCats = { 218, 539, 540, 1213, 1501, 1742, 1911, 2415, 4348, 19223, 368, 369, 370, 1133, 1200, 1306, 2122, 2301, 2537, 2823, 3179, 3596, 3639, 4489, 5107, 5140, 5289, 6240, 6631, 6762, 7048, 7171, 7969, 7984, 7989, 8824, 8927, 9915, 10270, 10448, 13401, 15205, 18358, 18894, 18895, 19249, 19697 };
 
@@ -911,7 +899,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void demo_classifier(string datacfg, string cfgfile, string weightfile, int camIndex, string filename)
+        private static void demo_classifier(string datacfg, string cfgfile, string weightfile, int camIndex, string filename)
         {
             Console.Write($"Classifier Demo\n");
             Network net = Parser.parse_network_cfg(cfgfile);

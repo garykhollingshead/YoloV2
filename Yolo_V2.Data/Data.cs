@@ -9,21 +9,18 @@ namespace Yolo_V2.Data
 {
     public class Data
     {
-        public int W;
-        public int H;
+        private int W;
+        private int H;
         public Matrix X;
         public Matrix Y;
-        public int Shallow;
-        public List<int> NumBoxes;
-        public Box[][] Boxes;
+        private int Shallow;
+        private List<int> NumBoxes;
 
         private static readonly object mutexLock = new object();
-        public static readonly int NumChars = 37;
 
         public Data()
         {
             NumBoxes = new List<int>();
-            Boxes = new Box[0][];
             X = new Matrix();
             Y = new Matrix();
         }
@@ -35,7 +32,7 @@ namespace Yolo_V2.Data
                 : File.ReadAllLines(filename);
         }
 
-        public static string[] get_random_paths(string[] paths, int n, int m)
+        private static string[] get_random_paths(string[] paths, int n, int m)
         {
             string[] randomPaths = new string[n];
             int i;
@@ -50,7 +47,7 @@ namespace Yolo_V2.Data
             return randomPaths;
         }
 
-        public static string[] find_replace_paths(string[] paths, int n, string find, string replace)
+        private static string[] find_replace_paths(string[] paths, int n, string find, string replace)
         {
             string[] replacePaths = new string[n];
             int i;
@@ -62,7 +59,7 @@ namespace Yolo_V2.Data
             return replacePaths;
         }
 
-        public static Matrix load_image_paths_gray(string[] paths, int n, int w, int h)
+        private static Matrix load_image_paths_gray(string[] paths, int n, int w, int h)
         {
             int i;
             Matrix x = new Matrix(n);
@@ -80,7 +77,7 @@ namespace Yolo_V2.Data
             return x;
         }
 
-        public static Matrix load_image_paths(string[] paths, int n, int w, int h)
+        private static Matrix load_image_paths(string[] paths, int n, int w, int h)
         {
             int i;
             Matrix x = new Matrix(n);
@@ -94,7 +91,7 @@ namespace Yolo_V2.Data
             return x;
         }
 
-        public static Matrix load_image_augment_paths(string[] paths, int n, int min, int max, int size, float angle, float aspect, float hue, float saturation, float exposure)
+        private static Matrix load_image_augment_paths(string[] paths, int n, int min, int max, int size, float angle, float aspect, float hue, float saturation, float exposure)
         {
             int i;
             Matrix x = new Matrix(n);
@@ -153,7 +150,7 @@ namespace Yolo_V2.Data
             return boxes;
         }
 
-        public static void randomize_boxes(BoxLabel[] b, int n)
+        private static void randomize_boxes(BoxLabel[] b, int n)
         {
             int i;
             for (i = 0; i < n; ++i)
@@ -165,7 +162,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void correct_boxes(BoxLabel[] boxes, int n, float dx, float dy, float sx, float sy, int flip)
+        private static void correct_boxes(BoxLabel[] boxes, int n, float dx, float dy, float sx, float sy, int flip)
         {
             int i;
             for (i = 0; i < n; ++i)
@@ -205,7 +202,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void fill_truth_swag(string path, float[] truth, int classes, int flip, float dx, float dy, float sx, float sy)
+        private static void fill_truth_swag(string path, float[] truth, int classes, int flip, float dx, float dy, float sx, float sy)
         {
             string labelpath = path.Replace("images", "labels");
             labelpath = labelpath.Replace("JPEGImages", "labels");
@@ -242,7 +239,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void fill_truth_region(string path, float[] truth, int classes, int numBoxes, int flip, float dx, float dy, float sx, float sy)
+        private static void fill_truth_region(string path, float[] truth, int classes, int numBoxes, int flip, float dx, float dy, float sx, float sy)
         {
             string labelpath = path.Replace("images", "labels");
             labelpath = labelpath.Replace("JPEGImages", "labels");
@@ -288,7 +285,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void fill_truth_detection(string path, int numBoxes, float[] truth, int classes, int flip, float dx, float dy, float sx, float sy)
+        private static void fill_truth_detection(string path, int numBoxes, float[] truth, int classes, int flip, float dx, float dy, float sx, float sy)
         {
             string labelpath = path.Replace("images", "labels");
             labelpath = labelpath.Replace("JPEGImages", "labels");
@@ -324,64 +321,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void print_letters(float[] pred, int n)
-        {
-            int i;
-            for (i = 0; i < n; ++i)
-            {
-                var p = pred.Skip(Int32.MaxValue * NumChars).ToArray();
-                int index = Utils.max_index(p, NumChars);
-                Console.Write($"{index}");
-            }
-            Console.Write("\n");
-        }
-
-        public static void fill_truth_captcha(string path, int n, float[] truth)
-        {
-            string begin = path.Split('/').Last();
-            int i;
-            for (i = 0; i < begin.Length && i < n && begin[i] != '.'; ++i)
-            {
-                int index = int.Parse(begin[i].ToString());
-                if (index > 35) Console.Write($"Bad {begin[1]}\n");
-                truth[i * NumChars + index] = 1;
-            }
-            for (; i < n; ++i)
-            {
-                truth[i * NumChars + NumChars - 1] = 1;
-            }
-        }
-
-        public static Data load_data_captcha(string[] paths, int n, int m, int k, int w, int h)
-        {
-            if (m != 0)
-            {
-                paths = get_random_paths(paths, n, m);
-            }
-            Data d = new Data();
-            d.Shallow = 0;
-            d.X = load_image_paths(paths, n, w, h);
-            d.Y = new Matrix(n, k * NumChars);
-            int i;
-            for (i = 0; i < n; ++i)
-            {
-                fill_truth_captcha(paths[i], k, d.Y.Vals[i]);
-            }
-            return d;
-        }
-
-        public static Data load_data_captcha_encode(string[] paths, int n, int m, int w, int h)
-        {
-            if (m != 0) paths = get_random_paths(paths, n, m);
-            Data d = new Data();
-            d.Shallow = 0;
-            d.X = load_image_paths(paths, n, w, h);
-            d.X.Cols = 17100;
-            d.Y = d.X;
-            return d;
-        }
-
-        public static void fill_truth(string path, string[] labels, int k, float[] truth)
+        private static void fill_truth(string path, string[] labels, int k, float[] truth)
         {
             int i;
             truth = new float[truth.Length];
@@ -397,7 +337,7 @@ namespace Yolo_V2.Data
             if (count != 1) Console.Write($"Too many or too few labels: {count}, {path}\n", count, path);
         }
 
-        public static void fill_hierarchy(float[] truth, int k, Tree hierarchy)
+        private static void fill_hierarchy(float[] truth, int k, Tree hierarchy)
         {
             int j;
             for (j = 0; j < k; ++j)
@@ -436,7 +376,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static Matrix load_labels_paths(string[] paths, int n, string[] labels, int k, Tree hierarchy)
+        private static Matrix load_labels_paths(string[] paths, int n, string[] labels, int k, Tree hierarchy)
         {
             Matrix y = new Matrix(n, k);
             int i;
@@ -451,7 +391,7 @@ namespace Yolo_V2.Data
             return y;
         }
 
-        public static Matrix load_tags_paths(string[] paths, int n, int k)
+        private static Matrix load_tags_paths(string[] paths, int n, int k)
         {
             Matrix y = new Matrix(n, k);
             int i;
@@ -492,7 +432,7 @@ namespace Yolo_V2.Data
             return GetPaths(filename).ToArray();
         }
 
-        public static Data load_data_region(int n, string[] paths, int m, int w, int h, int size, int classes, float jitter, float hue, float saturation, float exposure)
+        private static Data load_data_region(int n, string[] paths, int m, int w, int h, int size, int classes, float jitter, float hue, float saturation, float exposure)
         {
             string[] randomPaths = get_random_paths(paths, n, m);
             int i;
@@ -543,7 +483,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data load_data_compare(int n, string[] paths, int m, int classes, int w, int h)
+        private static Data load_data_compare(int n, string[] paths, int m, int classes, int w, int h)
         {
             if (m != 0) paths = get_random_paths(paths, 2 * n, m);
             int i, j;
@@ -629,7 +569,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data load_data_swag(string[] paths, int n, int classes, float jitter)
+        private static Data load_data_swag(string[] paths, int n, int classes, float jitter)
         {
             int index = Utils.Rand.Next() % n;
             string randomPath = paths[index];
@@ -679,7 +619,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data load_data_detection(int n, string[] paths, int m, int w, int h, int boxes, int classes, float jitter, float hue, float saturation, float exposure)
+        private static Data load_data_detection(int n, string[] paths, int m, int w, int h, int boxes, int classes, float jitter, float hue, float saturation, float exposure)
         {
             string[] randomPaths = get_random_paths(paths, n, m);
             int i;
@@ -728,7 +668,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static void load_thread(LoadArgs ptr)
+        private static void load_thread(LoadArgs ptr)
         {
             if (ptr.Exposure == 0) ptr.Exposure = 1;
             if (ptr.Saturation == 0) ptr.Saturation = 1;
@@ -784,7 +724,7 @@ namespace Yolo_V2.Data
             return thread;
         }
 
-        public static void load_threads(LoadArgs ptr)
+        private static void load_threads(LoadArgs ptr)
         {
             int i;
             if (ptr.Threads == 0) ptr.Threads = 1;
@@ -816,7 +756,7 @@ namespace Yolo_V2.Data
             return thread;
         }
 
-        public static Data load_data_writing(string[] paths, int n, int m, int w, int h, int outW, int outH)
+        private static Data load_data_writing(string[] paths, int n, int m, int w, int h, int outW, int outH)
         {
             if (m != 0) paths = get_random_paths(paths, n, m);
             string[] replacePaths = find_replace_paths(paths, n, ".png", "-label.png");
@@ -827,7 +767,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data load_data_old(string[] paths, int n, int m, string[] labels, int k, int w, int h)
+        private static Data load_data_old(string[] paths, int n, int m, string[] labels, int k, int w, int h)
         {
             if (m != 0) paths = get_random_paths(paths, n, m);
             Data d = new Data();
@@ -837,7 +777,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data load_data_super(string[] paths, int n, int m, int w, int h, int scale)
+        private static Data load_data_super(string[] paths, int n, int m, int w, int h, int scale)
         {
             if (m != 0) paths = get_random_paths(paths, n, m);
             Data d = new Data();
@@ -865,7 +805,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data load_data_augment(string[] paths, int n, int m, string[] labels, int k, Tree hierarchy, int min, int max, int size, float angle, float aspect, float hue, float saturation, float exposure)
+        private static Data load_data_augment(string[] paths, int n, int m, string[] labels, int k, Tree hierarchy, int min, int max, int size, float angle, float aspect, float hue, float saturation, float exposure)
         {
             if (m != 0)
             {
@@ -878,7 +818,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data load_data_tag(string[] paths, int n, int m, int k, int min, int max, int size, float angle, float aspect, float hue, float saturation, float exposure)
+        private static Data load_data_tag(string[] paths, int n, int m, int k, int min, int max, int size, float angle, float aspect, float hue, float saturation, float exposure)
         {
             if (m != 0) paths = get_random_paths(paths, n, m);
             Data d = new Data();
@@ -890,7 +830,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Matrix concat_matrix(Matrix m1, Matrix m2)
+        private static Matrix concat_matrix(Matrix m1, Matrix m2)
         {
             int i, count = 0;
             Matrix m = new Matrix();
@@ -908,7 +848,7 @@ namespace Yolo_V2.Data
             return m;
         }
 
-        public static Data concat_data(Data d1, Data d2)
+        private static Data concat_data(Data d1, Data d2)
         {
             Data d = new Data();
             d.Shallow = 1;
@@ -917,7 +857,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data concat_datas(Data[] d, int n)
+        private static Data concat_datas(Data[] d, int n)
         {
             int i;
             Data output = new Data();
@@ -927,22 +867,6 @@ namespace Yolo_V2.Data
                 output = snew;
             }
             return output;
-        }
-
-        public static Data load_categorical_data_csv(string filename, int target, int k)
-        {
-            Data d = new Data();
-            d.Shallow = 0;
-            Matrix x = new Matrix(filename);
-            float[] truth_1D = x.pop_column(target);
-            float[][] truth = Utils.one_hot_encode(truth_1D, x.Rows, k);
-            Matrix y = new Matrix();
-            y.Rows = x.Rows;
-            y.Cols = k;
-            y.Vals = truth;
-            d.X = x;
-            d.Y = y;
-            return d;
         }
 
         public static Data load_cifar10_data(string filename)
@@ -1016,7 +940,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public void smooth_data()
+        private void smooth_data()
         {
             int i, j;
             float scale = 1.0f / Y.Cols;
@@ -1066,99 +990,12 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public static Data load_go(string filename)
-        {
-            Matrix x = new Matrix(3363059, 361);
-            Matrix y = new Matrix(3363059, 361);
-            int row = 0;
-            int col = 0;
-
-            if (!File.Exists(filename)) Utils.file_error(filename);
-            int count = 0;
-            var lines = File.ReadAllLines(filename);
-            var first = true;
-            foreach (var label in lines)
-            {
-                if (first)
-                {
-                    if (count == x.Rows)
-                    {
-                        x.resize_matrix(count * 2);
-                        y.resize_matrix(count * 2);
-                    }
-
-                    var parts = label.Split(' ');
-                    row = int.Parse(parts[0]);
-                    col = int.Parse(parts[1]);
-                }
-                else
-                {
-                    int index = row * 19 + col;
-                    y.Vals[count][index] = 1;
-
-                    for (var i = 0; i < 19 * 19; ++i)
-                    {
-                        float val = 0;
-                        if (label[i] == '1') val = 1;
-                        else if (label[i] == '2') val = -1;
-                        x.Vals[count][i] = val;
-                    }
-                }
-
-                first = !first;
-                ++count;
-            }
-            x.resize_matrix(count);
-            y.resize_matrix(count);
-
-            Data d = new Data();
-            d.Shallow = 0;
-            d.X = x;
-            d.Y = y;
-
-            return d;
-        }
-
-        public void randomize_data()
-        {
-            int i;
-            for (i = X.Rows - 1; i > 0; --i)
-            {
-                int index = Utils.Rand.Next() % i;
-                float[] swap = X.Vals[index];
-                X.Vals[index] = X.Vals[i];
-                X.Vals[i] = swap;
-
-                swap = Y.Vals[index];
-                Y.Vals[index] = Y.Vals[i];
-                Y.Vals[i] = swap;
-            }
-        }
-
-        public void scale_data_rows(float s)
+        private void scale_data_rows(float s)
         {
             int i;
             for (i = 0; i < X.Rows; ++i)
             {
                 Utils.scale_array(X.Vals[i], X.Cols, s);
-            }
-        }
-
-        public void translate_data_rows(float s)
-        {
-            int i;
-            for (i = 0; i < X.Rows; ++i)
-            {
-                Utils.translate_array(X.Vals[i], X.Cols, s);
-            }
-        }
-
-        public void normalize_data_rows()
-        {
-            int i;
-            for (i = 0; i < X.Rows; ++i)
-            {
-                Utils.normalize_array(X.Vals[i], X.Cols);
             }
         }
 
@@ -1186,70 +1023,6 @@ namespace Yolo_V2.Data
                 }
             }
             return p;
-        }
-
-        public static Data get_random_data(Data d, int num)
-        {
-            Data r = new Data();
-            r.Shallow = 1;
-
-            r.X.Rows = num;
-            r.Y.Rows = num;
-
-            r.X.Cols = d.X.Cols;
-            r.Y.Cols = d.Y.Cols;
-
-            r.X.Vals = new float[num][];
-            r.Y.Vals = new float[num][];
-
-            int i;
-            for (i = 0; i < num; ++i)
-            {
-                int index = Utils.Rand.Next() % d.X.Rows;
-                r.X.Vals[i] = d.X.Vals[index];
-                r.Y.Vals[i] = d.Y.Vals[index];
-            }
-            return r;
-        }
-
-        public static Data[] split_data(Data d, int part, int total)
-        {
-            Data[] split = new Data[2];
-            int i;
-            int start = part * d.X.Rows / total;
-            int end = (part + 1) * d.X.Rows / total;
-            Data train = new Data();
-            Data test = new Data();
-            train.Shallow = test.Shallow = 1;
-
-            test.X.Rows = test.Y.Rows = end - start;
-            train.X.Rows = train.Y.Rows = d.X.Rows - (end - start);
-            train.X.Cols = test.X.Cols = d.X.Cols;
-            train.Y.Cols = test.Y.Cols = d.Y.Cols;
-
-            train.X.Vals = new float[train.X.Rows][];
-            test.X.Vals = new float[test.X.Rows][];
-            train.Y.Vals = new float[train.Y.Rows][];
-            test.Y.Vals = new float[train.Y.Rows][];
-
-            for (i = 0; i < start; ++i)
-            {
-                train.X.Vals[i] = d.X.Vals[i];
-                train.Y.Vals[i] = d.Y.Vals[i];
-            }
-            for (i = start; i < end; ++i)
-            {
-                test.X.Vals[i - start] = d.X.Vals[i];
-                test.Y.Vals[i - start] = d.Y.Vals[i];
-            }
-            for (i = end; i < d.X.Rows; ++i)
-            {
-                train.X.Vals[i - (end - start)] = d.X.Vals[i];
-                train.Y.Vals[i - (end - start)] = d.Y.Vals[i];
-            }
-            split[0] = train;
-            split[1] = test;
-            return split;
         }
     }
 }
