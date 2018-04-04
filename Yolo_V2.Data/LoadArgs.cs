@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.UI;
@@ -204,7 +205,7 @@ namespace Yolo_V2.Data
                 for (i = 32; i < 127; ++i)
                 {
                     string buff = $"data/labels/{i}_{j}.png";
-                    alphabets[i][j] = load_image_color(buff, 0, 0);
+                    alphabets[j][i] = load_image_color(buff, 0, 0);
                 }
             }
 
@@ -403,13 +404,13 @@ namespace Yolo_V2.Data
 
         public static Image ipl_to_image(Mat src)
         {
-            int h = src.Height;
+            ImageViewer.Show(src, "foooo");
+                int h = src.Height;
             int w = src.Width;
             int c = src.NumberOfChannels;
             int step = src.Step;
             Image img = new Image(w, h, c);
-            int i, j, k, count = 0; ;
-
+            int i, j, k, count = 0;
             for (k = 0; k < c; ++k)
             {
                 for (i = 0; i < h; ++i)

@@ -18,6 +18,10 @@ namespace Yolo_V2.Data
             for (var i = 0; i < lines.Length; ++i)
             {
                 lines[i] = Utils.Strip(lines[i]);
+                if (string.IsNullOrEmpty(lines[i]))
+                {
+                    continue;
+                }
                 switch (lines[i][0])
                 {
                     case '\0':

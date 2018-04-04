@@ -692,6 +692,10 @@ namespace Yolo_V2.Data
             {
                 ++nu;
                 Utils.Strip(line);
+                if (string.IsNullOrEmpty(line))
+                {
+                    continue;
+                }
                 switch (line[0])
                 {
                     case '[':

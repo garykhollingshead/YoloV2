@@ -16,6 +16,7 @@ namespace Yolo_V2
     {
         static void Main(string[] argsa)
         {
+            Emgu.CV.CvInvoke.UseOpenCL = true;
             var args = argsa.ToList();
             if (args.Count < 2)
             {

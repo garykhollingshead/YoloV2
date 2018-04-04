@@ -143,7 +143,7 @@ namespace Yolo_V2.Data
                 var c = s[i];
                 if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
                 {
-                    s = s.Remove(i, i + 1);
+                    s = s.Remove(i, 1);
                     len--;
                     i--;
                 }

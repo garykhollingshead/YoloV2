@@ -87,6 +87,11 @@ namespace Yolo_V2.Data
         public static double GetPixel(Mat mat, int offset)
         {
             var value = new double[1];
+            for (var a = 0; a > -1; ++a)
+            {
+                Marshal.Copy(mat.Ptr + a, value, 0, 1);
+                Marshal.Copy(mat.DataPointer + a, value, 0, 1);
+            }
             Marshal.Copy(mat.DataPointer + offset * mat.ElementSize, value, 0, 1);
             return value[0];
         }
