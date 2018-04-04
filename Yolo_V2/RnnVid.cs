@@ -7,9 +7,9 @@ using Yolo_V2.Data;
 
 namespace Yolo_V2
 {
-    class RnnVid
+    public static class RnnVid
     {
-        public static FloatPair get_rnn_vid_data(Network net, string[] files, int n, int batch, int steps)
+        private static FloatPair get_rnn_vid_data(Network net, string[] files, int n, int batch, int steps)
         {
             int b;
             Image outIm = Network.get_network_image(net);
@@ -37,12 +37,14 @@ namespace Yolo_V2
                     int i;
                     for (i = 0; i < net.Batch; ++i)
                     {
-                        Mat src = cap.QueryFrame();
-                        Image im = new Image(src);
+                        using (Mat src = cap.QueryFrame())
+                        {
+                            Image im = new Image(src);
 
-                        LoadArgs.rgbgr_image(im);
-                        Image re = LoadArgs.resize_image(im, net.W, net.H);
-                        Array.Copy(re.Data, 0, input, i * inputSize, inputSize);
+                            LoadArgs.rgbgr_image(im);
+                            Image re = LoadArgs.resize_image(im, net.W, net.H);
+                            Array.Copy(re.Data, 0, input, i * inputSize, inputSize);
+                        }
                     }
 
                     float[] output = Network.network_predict(net, input);
@@ -62,7 +64,7 @@ namespace Yolo_V2
             return p;
         }
 
-        public static void train_vid_rnn(string cfgfile, string weightfile)
+        private static void train_vid_rnn(string cfgfile, string weightfile)
         {
             string trainVideos = "Data.Data/vid/train.txt";
             string backupDirectory = "/home/pjreddie/backup/";
@@ -120,7 +122,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        public static Image save_reconstruction(Network net, Image init, float[] feat, string name, int i)
+        private static Image save_reconstruction(Network net, Image init, float[] feat, string name, int i)
         {
             Image recon;
             if (init != null)
@@ -140,7 +142,7 @@ namespace Yolo_V2
             return recon;
         }
 
-        public static void generate_vid_rnn(string cfgfile, string weightfile)
+        private static void generate_vid_rnn(string cfgfile, string weightfile)
         {
             Network extractor = Parser.parse_network_cfg("cfg/extractor.recon.cfg");
             Parser.load_weights(extractor, "/home/pjreddie/trained/yolo-coco.conv");

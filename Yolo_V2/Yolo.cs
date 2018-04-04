@@ -10,11 +10,11 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    class Yolo
+    public static class Yolo
     {
-        public static string[] VocNames = { "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor" };
+        private static readonly string[] VocNames = { "aeroplane", "bicycle", "bird", "boat", "bottle", "bus", "car", "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor" };
 
-        public static void train_yolo(string cfgfile, string weightfile)
+        private static void train_yolo(string cfgfile, string weightfile)
         {
             string trainImages = "/Data.Data/voc/train.txt";
             string backupDirectory = "/home/pjreddie/backup/";
@@ -89,7 +89,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        public static void print_yolo_detections(FileStream fps, string id, Box[] boxes, float[][] probs, int probsJ, int total, int classes, int w, int h)
+        private static void print_yolo_detections(FileStream fps, string id, Box[] boxes, float[][] probs, int probsJ, int total, int classes, int w, int h)
         {
             int i;
             for (i = 0; i < total; ++i)
@@ -112,7 +112,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void validate_yolo(string cfgfile, string weightfile)
+        private static void validate_yolo(string cfgfile, string weightfile)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
@@ -214,7 +214,7 @@ namespace Yolo_V2
             Console.Error.Write($"Total Detection Time: %f Seconds\n", sw.Elapsed.Seconds);
         }
 
-        public static void validate_yolo_recall(string cfgfile, string weightfile)
+        private static void validate_yolo_recall(string cfgfile, string weightfile)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
@@ -294,7 +294,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void test_yolo(string cfgfile, string weightfile, string filename, float thresh)
+        private static void test_yolo(string cfgfile, string weightfile, string filename, float thresh)
         {
             var alphabet = LoadArgs.load_alphabet();
             Network net = Parser.parse_network_cfg(cfgfile);

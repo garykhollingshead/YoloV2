@@ -8,9 +8,9 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    class Voxel
+    public static class Voxel
     {
-        public static void extract_voxel(string lfile, string rfile, string prefix)
+        private static void extract_voxel(string lfile, string rfile, string prefix)
         {
             int w = 1920;
             int h = 1080;
@@ -38,7 +38,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void train_voxel(string cfgfile, string weightfile)
+        private static void train_voxel(string cfgfile, string weightfile)
         {
             string trainImages = "/Data.Data/imagenet/imagenet1k.train.list";
             string backupDirectory = "/home/pjreddie/backup/";
@@ -104,7 +104,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff);
         }
 
-        public static void test_voxel(string cfgfile, string weightfile, string filename)
+        private static void test_voxel(string cfgfile, string weightfile, string filename)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))

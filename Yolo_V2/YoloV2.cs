@@ -12,9 +12,9 @@ using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2
 {
-    class YoloV2
+    public class YoloV2
     {
-        static void Main(string[] argsa)
+        public static void Main(string[] argsa)
         {
             Emgu.CV.CvInvoke.UseOpenCL = true;
             var args = argsa.ToList();
@@ -158,8 +158,8 @@ namespace Yolo_V2
                     if (l.LayerType == LayerType.Convolutional)
                     {
                         int num = l.N * l.C * l.Size * l.Size;
-                        Blas.Axpy_cpu(l.N, 1, l.BiasesComplete, outl.BiasesComplete);
-                        Blas.Axpy_cpu(num, 1, l.WeightsComplete, outl.WeightsComplete);
+                        Blas.Axpy_cpu(l.N, 1, l.BiasesComplete, outl.BiasesComplete, l.BiasesIndex, outl.BiasesIndex);
+                        Blas.Axpy_cpu(num, 1, l.WeightsComplete, outl.WeightsComplete, l.WeightsIndex, outl.WeightsIndex);
                         if (l.BatchNormalize)
                         {
                             Blas.Axpy_cpu(l.N, 1, l.Scales, outl.Scales);
@@ -169,8 +169,8 @@ namespace Yolo_V2
                     }
                     if (l.LayerType == LayerType.Connected)
                     {
-                        Blas.Axpy_cpu(l.Outputs, 1, l.BiasesComplete, outl.BiasesComplete);
-                        Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightsComplete, outl.WeightsComplete);
+                        Blas.Axpy_cpu(l.Outputs, 1, l.BiasesComplete, outl.BiasesComplete, l.BiasesIndex, outl.BiasesIndex);
+                        Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightsComplete, outl.WeightsComplete, l.WeightsIndex, outl.WeightsIndex);
                     }
                 }
             }
@@ -181,8 +181,8 @@ namespace Yolo_V2
                 if (l.LayerType == LayerType.Convolutional)
                 {
                     int num = l.N * l.C * l.Size * l.Size;
-                    Blas.Scal_cpu(l.N, 1.0f / n, l.BiasesComplete, 1);
-                    Blas.Scal_cpu(num, 1.0f / n, l.WeightsComplete, 1);
+                    Blas.Scal_cpu(l.N, 1.0f / n, l.BiasesComplete, 1, l.BiasesIndex);
+                    Blas.Scal_cpu(num, 1.0f / n, l.WeightsComplete, 1, l.WeightsIndex);
                     if (l.BatchNormalize)
                     {
                         Blas.Scal_cpu(l.N, 1.0f / n, l.Scales, 1);
@@ -192,14 +192,14 @@ namespace Yolo_V2
                 }
                 if (l.LayerType == LayerType.Connected)
                 {
-                    Blas.Scal_cpu(l.Outputs, 1.0f / n, l.BiasesComplete, 1);
-                    Blas.Scal_cpu(l.Outputs * l.Inputs, 1.0f / n, l.WeightsComplete, 1);
+                    Blas.Scal_cpu(l.Outputs, 1.0f / n, l.BiasesComplete, 1, l.BiasesIndex);
+                    Blas.Scal_cpu(l.Outputs * l.Inputs, 1.0f / n, l.WeightsComplete, 1, l.WeightsIndex);
                 }
             }
             Parser.save_weights(sum, outfile);
         }
 
-        public static void Speed(string cfgfile, int tics)
+        private static void Speed(string cfgfile, int tics)
         {
             if (tics == 0) tics = 1000;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -219,7 +219,7 @@ namespace Yolo_V2
             Console.Write($"Speed: %f Hz\n", tics / t);
         }
 
-        public static void Operations(string cfgfile)
+        private static void Operations(string cfgfile)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -241,7 +241,7 @@ namespace Yolo_V2
             Console.Write($"Floating Point Operations: %.2f Bn\n", ops / 1000000000.0f);
         }
 
-        public static void Oneoff(string cfgfile, string weightfile, string outfile)
+        private static void Oneoff(string cfgfile, string weightfile, string outfile)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -267,7 +267,7 @@ namespace Yolo_V2
             Parser.save_weights(net, outfile);
         }
 
-        public static void Partial(string cfgfile, string weightfile, string outfile, int max)
+        private static void Partial(string cfgfile, string weightfile, string outfile, int max)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -279,7 +279,7 @@ namespace Yolo_V2
             Parser.save_weights_upto(net, outfile, max);
         }
 
-        public static void rescale_net(string cfgfile, string weightfile, string outfile)
+        private static void rescale_net(string cfgfile, string weightfile, string outfile)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -300,7 +300,7 @@ namespace Yolo_V2
             Parser.save_weights(net, outfile);
         }
 
-        public static void rgbgr_net(string cfgfile, string weightfile, string outfile)
+        private static void rgbgr_net(string cfgfile, string weightfile, string outfile)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -321,7 +321,7 @@ namespace Yolo_V2
             Parser.save_weights(net, outfile);
         }
 
-        public static void reset_normalize_net(string cfgfile, string weightfile, string outfile)
+        private static void reset_normalize_net(string cfgfile, string weightfile, string outfile)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -354,7 +354,7 @@ namespace Yolo_V2
             Parser.save_weights(net, outfile);
         }
 
-        public static Layer normalize_layer(Layer l, int n)
+        private static Layer normalize_layer(Layer l, int n)
         {
             int j;
             l.BatchNormalize = true;
@@ -368,7 +368,7 @@ namespace Yolo_V2
             return l;
         }
 
-        public static void normalize_net(string cfgfile, string weightfile, string outfile)
+        private static void normalize_net(string cfgfile, string weightfile, string outfile)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -402,7 +402,7 @@ namespace Yolo_V2
             Parser.save_weights(net, outfile);
         }
 
-        public static void statistics_net(string cfgfile, string weightfile)
+        private static void statistics_net(string cfgfile, string weightfile)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -439,7 +439,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void denormalize_net(string cfgfile, string weightfile, string outfile)
+        private static void denormalize_net(string cfgfile, string weightfile, string outfile)
         {
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
@@ -481,7 +481,7 @@ namespace Yolo_V2
             Parser.save_weights(net, outfile);
         }
 
-        public static void Visualize(string cfgfile, string weightfile)
+        private static void Visualize(string cfgfile, string weightfile)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))

@@ -8,9 +8,9 @@ using Yolo_V2.Data;
 
 namespace Yolo_V2
 {
-    class Rnn
+    public static class Rnn
     {
-        public static int[] read_tokenized_data(string filename, out int read)
+        private static int[] read_tokenized_data(string filename, out int read)
         {
             var lines = File.ReadAllLines(filename);
             int n;
@@ -35,14 +35,14 @@ namespace Yolo_V2
             return ns.ToArray();
         }
 
-        public static string[] read_tokens(string filename, out int read)
+        private static string[] read_tokens(string filename, out int read)
         {
             var lines = File.ReadAllLines(filename);
             read = lines.Length;
             return lines;
         }
 
-        public static FloatPair get_rnn_token_data(int[] tokens, int[] offsets, int characters, int len, int batch, int steps)
+        private static FloatPair get_rnn_token_data(int[] tokens, int[] offsets, int characters, int len, int batch, int steps)
         {
             float[] x = new float[batch * steps * characters];
             float[] y = new float[batch * steps * characters];
@@ -71,7 +71,7 @@ namespace Yolo_V2
             return p;
         }
 
-        public static FloatPair get_rnn_data(byte[] text, int[] offsets, int characters, int len, int batch, int steps)
+        private static FloatPair get_rnn_data(byte[] text, int[] offsets, int characters, int len, int batch, int steps)
         {
             float[] x = new float[batch * steps * characters];
             float[] y = new float[batch * steps * characters];
@@ -100,7 +100,7 @@ namespace Yolo_V2
             return p;
         }
 
-        public static void reset_rnn_state(Network net, int b)
+        private static void reset_rnn_state(Network net, int b)
         {
             int i;
             for (i = 0; i < net.N; ++i)
@@ -113,7 +113,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void train_char_rnn(string cfgfile, string weightfile, string filename, bool clear, bool tokenized)
+        private static void train_char_rnn(string cfgfile, string weightfile, string filename, bool clear, bool tokenized)
         {
 
             byte[] text = new byte[0];
@@ -211,7 +211,7 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        public static void print_symbol(int n, string[] tokens)
+        private static void print_symbol(int n, string[] tokens)
         {
             if (!string.IsNullOrEmpty(tokens[n]))
             {
@@ -223,7 +223,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void test_char_rnn(string cfgfile, string weightfile, int num, string seed, float temp, int rseed, string tokenFile)
+        private static void test_char_rnn(string cfgfile, string weightfile, int num, string seed, float temp, int rseed, string tokenFile)
         {
             string[] tokens = new string[0];
             if (!string.IsNullOrEmpty(tokenFile))
@@ -274,7 +274,7 @@ namespace Yolo_V2
             Console.Write($"\n");
         }
 
-        public static void test_tactic_rnn(string cfgfile, string weightfile, int num, float temp, int rseed, string tokenFile)
+        private static void test_tactic_rnn(string cfgfile, string weightfile, int num, float temp, int rseed, string tokenFile)
         {
             string[] tokens = new string[0];
             if (!string.IsNullOrEmpty(tokenFile))
@@ -326,7 +326,7 @@ namespace Yolo_V2
             Console.Write($"\n");
         }
 
-        public static void valid_tactic_rnn(string cfgfile, string weightfile, string seed)
+        private static void valid_tactic_rnn(string cfgfile, string weightfile, string seed)
         {
             string basec = Utils.Basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);
@@ -383,7 +383,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void valid_char_rnn(string cfgfile, string weightfile, string seed)
+        private static void valid_char_rnn(string cfgfile, string weightfile, string seed)
         {
             string basec = Utils.Basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);
@@ -429,7 +429,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void vec_char_rnn(string cfgfile, string weightfile, string seed)
+        private static void vec_char_rnn(string cfgfile, string weightfile, string seed)
         {
             string basec = Utils.Basecfg(cfgfile);
             Console.Error.Write($"%s\n", basec);

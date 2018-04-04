@@ -96,16 +96,6 @@ namespace Yolo_V2.Data
         {
             x = Gpu.CopyToHost(gpuX);
         }
-
-        public static float cuda_compare(DeviceMemory<float> gpuX, float[] x, int n, string s)
-        {
-            float[] tmp = Gpu.CopyToHost(gpuX);
-            Blas.Axpy_cpu(n, -1, x, tmp);
-            float err = Blas.Dot_cpu(n, tmp, 1, tmp, 1);
-            Console.Error.WriteLine($"Error {s}: {Math.Sqrt(err/n)}");
-            return err;
-        }
-
         
         public static void SafeCall(cublasStatus_t status)
         {
@@ -115,7 +105,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void SafeCall(curandStatus status)
+        private static void SafeCall(curandStatus status)
         {
             if (status != curandStatus.CURAND_STATUS_SUCCESS)
             {
@@ -123,7 +113,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void SafeCall(cudnnStatus_t status)
+        private static void SafeCall(cudnnStatus_t status)
         {
             if (status != cudnnStatus_t.CUDNN_STATUS_SUCCESS)
             {

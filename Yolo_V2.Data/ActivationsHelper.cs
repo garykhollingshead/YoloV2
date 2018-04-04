@@ -7,17 +7,12 @@ namespace Yolo_V2.Data
 {
     public static class ActivationsHelper
     {
-        public static string Get_activation_string(Activation a)
-        {
-            return a.ToString();
-        }
-
         public static Activation Get_activation(string s)
         {
             return (Activation)Enum.Parse(typeof(Activation), s);
         }
 
-        public static float Activate(float x, Activation a)
+        private static float Activate(float x, Activation a)
         {
             switch (a)
             {
@@ -60,7 +55,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static float Gradient(float x, Activation a)
+        private static float Gradient(float x, Activation a)
         {
             switch (a)
             {
@@ -103,7 +98,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static float Stair_activate(float x)
+        private static float Stair_activate(float x)
         {
             int n = (int)Math.Floor(x);
             if (n % 2 == 0)
@@ -114,13 +109,13 @@ namespace Yolo_V2.Data
             return (x - n) + (float)Math.Floor(x / 2.0);
         }
 
-        public static float Hardtan_activate(float x)
+        private static float Hardtan_activate(float x)
         {
             if (x < -1) return -1;
             return x > 1 ? 1 : x;
         }
 
-        public static float Linear_activate(float x)
+        private static float Linear_activate(float x)
         {
             return x;
         }
@@ -130,68 +125,68 @@ namespace Yolo_V2.Data
             return 1.0f/ (1.0f + (float)Math.Exp(-x));
         }
 
-        public static float Loggy_activate(float x)
+        private static float Loggy_activate(float x)
         {
             return 2.0f/ (1.0f + (float)Math.Exp(-x)) - 1;
         }
 
-        public static float Relu_activate(float x)
+        private static float Relu_activate(float x)
         {
             return (x > 0) ? x : 0;
         }
 
-        public static float Elu_activate(float x)
+        private static float Elu_activate(float x)
         {
             return (x >= 0) ? x - 1 : (float)Math.Exp(x) - 1;
         }
 
-        public static float Relie_activate(float x)
+        private static float Relie_activate(float x)
         {
             return (x > 0) ? x : 0.01f * x;
         }
 
-        public static float Ramp_activate(float x)
+        private static float Ramp_activate(float x)
         {
             return (x > 0) ? x + 0.1f * x :  0.1f * x;
         }
 
-        public static float Leaky_activate(float x)
+        private static float Leaky_activate(float x)
         {
             return (x > 0) ? x : 0.1f * x;
         }
 
-        public static float Tanh_activate(float x)
+        private static float Tanh_activate(float x)
         {
             return ((float)Math.Exp(2 * x) - 1) / ((float)Math.Exp(2 * x) + 1);
         }
 
-        public static float Plse_activate(float x)
+        private static float Plse_activate(float x)
         {
             if (x < -4) return .01f * (x + 4);
             if (x > 4) return .01f * (x - 4) + 1;
             return 0.125f * x + 0.5f;
         }
 
-        public static float Lhtan_activate(float x)
+        private static float Lhtan_activate(float x)
         {
             if (x < 0) return 0.001f * x;
             if (x > 1) return 0.001f * (x - 1) + 1;
             return x;
         }
 
-        public static float Lhtan_gradient(float x)
+        private static float Lhtan_gradient(float x)
         {
             if (x > 0 && x < 1) return 1;
             return 0.001f;
         }
 
-        public static float Hardtan_gradient(float x)
+        private static float Hardtan_gradient(float x)
         {
             if (x > -1 && x < 1) return 1;
             return 0;
         }
 
-        public static float Linear_gradient(float x)
+        private static float Linear_gradient(float x)
         {
             return 1;
         }
@@ -201,49 +196,49 @@ namespace Yolo_V2.Data
             return (1 - x) * x;
         }
 
-        public static float Loggy_gradient(float x)
+        private static float Loggy_gradient(float x)
         {
             float y = (x + 1.0f) / 2.0f;
             return 2 * (1 - y) * y;
         }
 
-        public static float Stair_gradient(float x)
+        private static float Stair_gradient(float x)
         {
             if (Math.Floor(x) == x) return 0;
             return 1;
         }
 
-        public static float Relu_gradient(float x)
+        private static float Relu_gradient(float x)
         {
             return (x > 0) ? 1 : 0;
         }
 
-        public static float Elu_gradient(float x)
+        private static float Elu_gradient(float x)
         {
             return (x >= 0) ? 1 : (x + 1);
         }
 
-        public static float Relie_gradient(float x)
+        private static float Relie_gradient(float x)
         {
             return (x > 0) ? 1 : .01f;
         }
 
-        public static float Ramp_gradient(float x)
+        private static float Ramp_gradient(float x)
         {
             return (x > 0) ? 1.1f : .1f;
         }
 
-        public static float Leaky_gradient(float x)
+        private static float Leaky_gradient(float x)
         {
             return (x > 0) ? 1 : .1f;
         }
 
-        public static float Tanh_gradient(float x)
+        private static float Tanh_gradient(float x)
         {
             return 1 - x * x;
         }
 
-        public static float Plse_gradient(float x)
+        private static float Plse_gradient(float x)
         {
             return (x < 0 || x > 1) ? .01f : .125f;
         }

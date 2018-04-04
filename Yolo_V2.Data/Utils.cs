@@ -7,7 +7,7 @@ namespace Yolo_V2.Data
 {
     public static class Utils
     {
-        public static readonly int SecretNum = -1234;
+        public const int SecretNum = -1234;
 
         public static int[] read_map(string filename)
         {
@@ -69,7 +69,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void del_arg(List<string> argv, int index)
+        private static void del_arg(List<string> argv, int index)
         {
             argv.RemoveAt(index);
         }
@@ -115,11 +115,16 @@ namespace Yolo_V2.Data
         public static void top_k(float[] a, int n, int k, int[] index)
         {
             var temp = new Dictionary<float, int>();
-            a.Select((f, ind) => temp[f] = ind);
-            var ata = temp.Keys.OrderByDescending(f => f).Select(v => temp[v]).ToArray();
+            for (var l = 0; l < n; ++l)
+            {
+                temp[a[l]] = l;
+            }
+
+            Array.Sort(a);
+
             for (var i = 0; i < k; ++i)
             {
-                index[i] = ata[i];
+                index[i] = temp[a[i]];
             }
         }
 
@@ -172,9 +177,14 @@ namespace Yolo_V2.Data
             return fields.ToArray();
         }
 
-        public static float mean_array(float[] a, int n)
+        public static float mean_array(float[] a, int n, int aStart = 0)
         {
-            return a.Take(n).Sum() / n;
+            var sum = 0f;
+            for (var i = 0; i < n; ++i)
+            {
+                sum += a[aStart + i];
+            }
+            return sum / n;
         }
 
         public static void mean_arrays(float[][] a, int n, int els, float[] avg)
@@ -195,19 +205,19 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void print_statistics(float[] a, int n)
+        public static void print_statistics(float[] a, int n, int aStart = 0)
         {
-            float m = mean_array(a, n);
-            float v = variance_array(a, n);
-            Console.WriteLine($"MSE: {mse_array(a, n):.6}, Mean: {m:.6}f, Variance: {v}f");
+            float m = mean_array(a, n, aStart);
+            float v = variance_array(a, n, aStart);
+            Console.WriteLine($"MSE: {mse_array(a, n, aStart):.6}, Mean: {m:.6}f, Variance: {v}f");
         }
 
-        public static float variance_array(float[] a, int n)
+        public static float variance_array(float[] a, int n, int aStart = 0)
         {
             int i;
             float sum = 0;
-            float mean = mean_array(a, n);
-            for (i = 0; i < n; ++i) sum += (a[i] - mean) * (a[i] - mean);
+            float mean = mean_array(a, n, aStart);
+            for (i = 0; i < n; ++i) sum += (a[aStart + i] - mean) * (a[aStart + i] - mean);
             float variance = sum / n;
             return variance;
         }
@@ -234,11 +244,11 @@ namespace Yolo_V2.Data
             return (float)Math.Sqrt(sum);
         }
 
-        public static float mse_array(float[] a, int n)
+        public static float mse_array(float[] a, int n, int aStart = 0)
         {
             int i;
             float sum = 0;
-            for (i = 0; i < n; ++i) sum += a[i] * a[i];
+            for (i = 0; i < n; ++i) sum += a[aStart + i] * a[aStart + i];
             return (float)Math.Sqrt(sum / n);
         }
 
@@ -250,15 +260,6 @@ namespace Yolo_V2.Data
             for (i = 0; i < a.Length; ++i)
             {
                 a[i] = (float)((a[i] - mu) / sigma);
-            }
-        }
-
-        public static void translate_array(float[] a, int n, float s)
-        {
-            int i;
-            for (i = 0; i < n; ++i)
-            {
-                a[i] += s;
             }
         }
 
@@ -362,19 +363,6 @@ namespace Yolo_V2.Data
             float scale = rand_uniform(1, s);
             if (Rand.Next() % 2 == 1) return scale;
             return 1.0f / scale;
-        }
-
-        public static float[][] one_hot_encode(float[] a, int n, int k)
-        {
-            var t = new float[n][];
-
-            for (var i = 0; i < n; ++i)
-            {
-                t[i] = new float[k];
-                int index = (int)a[i];
-                t[i][index] = 1;
-            }
-            return t;
         }
     }
 }

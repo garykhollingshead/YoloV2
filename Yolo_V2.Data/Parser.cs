@@ -8,7 +8,7 @@ namespace Yolo_V2.Data
 {
     public static class Parser
     {
-        public static LayerType string_to_layer_type(string type)
+        private static LayerType string_to_layer_type(string type)
         {
             switch (type)
             {
@@ -66,7 +66,7 @@ namespace Yolo_V2.Data
             return LayerType.Blank;
         }
 
-        public static Layer parse_local(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_local(KeyValuePair[] options, SizeParams parameters)
         {
             int n = OptionList.option_find_int(options, "filters", 1);
             int size = OptionList.option_find_int(options, "size", 1);
@@ -87,7 +87,7 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        public static Layer parse_convolutional(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_convolutional(KeyValuePair[] options, SizeParams parameters)
         {
             int n = OptionList.option_find_int(options, "filters", 1);
             int size = OptionList.option_find_int(options, "size", 1);
@@ -122,7 +122,7 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        public static Layer parse_crnn(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_crnn(KeyValuePair[] options, SizeParams parameters)
         {
             int outputFilters = OptionList.option_find_int(options, "output_filters", 1);
             int hiddenFilters = OptionList.option_find_int(options, "hidden_filters", 1);
@@ -137,7 +137,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static Layer parse_rnn(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_rnn(KeyValuePair[] options, SizeParams parameters)
         {
             int output = OptionList.option_find_int(options, "output", 1);
             int hidden = OptionList.option_find_int(options, "hidden", 1);
@@ -153,7 +153,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static Layer parse_gru(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_gru(KeyValuePair[] options, SizeParams parameters)
         {
             int output = OptionList.option_find_int(options, "output", 1);
             bool batchNormalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
@@ -163,7 +163,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static Layer parse_connected(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_connected(KeyValuePair[] options, SizeParams parameters)
         {
             int output = OptionList.option_find_int(options, "output", 1);
             string activationS = OptionList.option_find_str(options, "activation", "logistic");
@@ -173,7 +173,7 @@ namespace Yolo_V2.Data
             return Layer.make_connected_layer(parameters.Batch, parameters.Inputs, output, activation, batchNormalize);
         }
 
-        public static Layer parse_softmax(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_softmax(KeyValuePair[] options, SizeParams parameters)
         {
             int groups = OptionList.option_find_int_quiet(options, "groups", 1);
             Layer layer = Layer.make_softmax_layer(parameters.Batch, parameters.Inputs, groups);
@@ -183,7 +183,7 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        public static Layer parse_region(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_region(KeyValuePair[] options, SizeParams parameters)
         {
             int coords = OptionList.option_find_int(options, "coords", 4);
             int classes = OptionList.option_find_int(options, "classes", 20);
@@ -227,7 +227,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static Layer parse_detection(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_detection(KeyValuePair[] options, SizeParams parameters)
         {
             int coords = OptionList.option_find_int(options, "coords", 1);
             int classes = OptionList.option_find_int(options, "classes", 1);
@@ -251,7 +251,7 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        public static Layer parse_cost(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_cost(KeyValuePair[] options, SizeParams parameters)
         {
             string typeS = OptionList.option_find_str(options, "type", "sse");
             CostType type = (CostType)Enum.Parse(typeof(CostType), typeS);
@@ -261,7 +261,7 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        public static Layer parse_crop(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_crop(KeyValuePair[] options, SizeParams parameters)
         {
             int cropHeight = OptionList.option_find_int(options, "crop_height", 1);
             int cropWidth = OptionList.option_find_int(options, "crop_width", 1);
@@ -285,7 +285,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static Layer parse_reorg(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_reorg(KeyValuePair[] options, SizeParams parameters)
         {
             int stride = OptionList.option_find_int(options, "stride", 1);
             bool reverse = OptionList.option_find_int_quiet(options, "reverse", 0) != 0;
@@ -300,7 +300,7 @@ namespace Yolo_V2.Data
             return Layer.make_reorg_layer(batch, w, h, c, stride, reverse);
         }
 
-        public static Layer parse_maxpool(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_maxpool(KeyValuePair[] options, SizeParams parameters)
         {
             int stride = OptionList.option_find_int(options, "stride", 1);
             int size = OptionList.option_find_int(options, "size", stride);
@@ -316,7 +316,7 @@ namespace Yolo_V2.Data
             return Layer.make_maxpool_layer(batch, h, w, c, size, stride, padding);
         }
 
-        public static Layer parse_avgpool(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_avgpool(KeyValuePair[] options, SizeParams parameters)
         {
             int batch, w, h, c;
             w = parameters.W;
@@ -328,7 +328,7 @@ namespace Yolo_V2.Data
             return Layer.make_avgpool_layer(batch, w, h, c);
         }
 
-        public static Layer parse_dropout(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_dropout(KeyValuePair[] options, SizeParams parameters)
         {
             float probability = OptionList.option_find_float(options, "probability", .5f);
             Layer layer = Layer.make_dropout_layer(parameters.Batch, parameters.Inputs, probability);
@@ -338,7 +338,7 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        public static Layer parse_normalization(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_normalization(KeyValuePair[] options, SizeParams parameters)
         {
             float alpha = OptionList.option_find_float(options, "alpha", .0001f);
             float beta = OptionList.option_find_float(options, "beta", .75f);
@@ -347,12 +347,12 @@ namespace Yolo_V2.Data
             return Layer.make_normalization_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, size, alpha, beta, kappa);
         }
 
-        public static Layer parse_batchnorm(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_batchnorm(KeyValuePair[] options, SizeParams parameters)
         {
             return Layer.make_batchnorm_layer(parameters.Batch, parameters.W, parameters.H, parameters.C);
         }
 
-        public static Layer parse_shortcut(KeyValuePair[] options, SizeParams parameters, Network net)
+        private static Layer parse_shortcut(KeyValuePair[] options, SizeParams parameters, Network net)
         {
             string l = OptionList.option_find(options, "from");
             int index = int.Parse(l);
@@ -369,7 +369,7 @@ namespace Yolo_V2.Data
             return s;
         }
 
-        public static Layer parse_activation(KeyValuePair[] options, SizeParams parameters)
+        private static Layer parse_activation(KeyValuePair[] options, SizeParams parameters)
         {
             string activationS = OptionList.option_find_str(options, "activation", "linear");
             Activation activation = ActivationsHelper.Get_activation(activationS);
@@ -386,7 +386,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static Layer parse_route(KeyValuePair[] options, SizeParams parameters, Network net)
+        private static Layer parse_route(KeyValuePair[] options, SizeParams parameters, Network net)
         {
             string l = OptionList.option_find(options, "layers");
             if (string.IsNullOrEmpty(l)) Utils.Error("Route Layer must specify input layers");
@@ -430,7 +430,7 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        public static LearningRatePolicy get_policy(string s)
+        private static LearningRatePolicy get_policy(string s)
         {
             return (LearningRatePolicy)Enum.Parse(typeof(LearningRatePolicy), s);
             //if (s, "random") == 0) return RANDOM;
@@ -444,7 +444,7 @@ namespace Yolo_V2.Data
             //return CONSTANT;
         }
 
-        public static void parse_net_options(KeyValuePair[] options, Network net)
+        private static void parse_net_options(KeyValuePair[] options, Network net)
         {
             net.Batch = OptionList.option_find_int(options, "batch", 1);
             net.LearningRate = OptionList.option_find_float(options, "learning_rate", .001f);
@@ -522,7 +522,7 @@ namespace Yolo_V2.Data
             net.MaxBatches = OptionList.option_find_int(options, "max_batches", 0);
         }
 
-        public static bool is_network(Section s)
+        private static bool is_network(Section s)
         {
             return s.Type == "[net]" || s.Type == "[Network]";
         }
@@ -681,7 +681,7 @@ namespace Yolo_V2.Data
             return net;
         }
 
-        public static Section[] read_cfg(string filename)
+        private static Section[] read_cfg(string filename)
         {
             if (!File.Exists(filename)) Utils.file_error(filename);
             int nu = 0;
@@ -725,7 +725,7 @@ namespace Yolo_V2.Data
             return bytes;
         }
 
-        public static void save_convolutional_weights(Layer l, FileStream fstream)
+        private static void save_convolutional_weights(Layer l, FileStream fstream)
         {
             if (CudaUtils.UseGpu)
             {
@@ -758,7 +758,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void save_batchnorm_weights(Layer l, FileStream fread)
+        private static void save_batchnorm_weights(Layer l, FileStream fread)
         {
             if (CudaUtils.UseGpu)
             {
@@ -775,7 +775,7 @@ namespace Yolo_V2.Data
             fread.Write(variance, 0, variance.Length);
         }
 
-        public static void save_connected_weights(Layer l, FileStream fread)
+        private static void save_connected_weights(Layer l, FileStream fread)
         {
             if (CudaUtils.UseGpu)
             {
@@ -885,7 +885,7 @@ namespace Yolo_V2.Data
             save_weights_upto(net, filename, net.N);
         }
 
-        public static void transpose_matrix(float[] a, int rows, int cols, int aStart = 0)
+        private static void transpose_matrix(float[] a, int rows, int cols, int aStart = 0)
         {
             float[] transpose = new float[rows * cols];
             int x, y;
@@ -899,7 +899,7 @@ namespace Yolo_V2.Data
             Array.Copy(transpose, 0, a, aStart, rows * cols);
         }
 
-        public static void load_connected_weights(Layer l, FileStream fread, int transpose)
+        private static void load_connected_weights(Layer l, FileStream fread, int transpose)
         {
             l.BiasesComplete = ReadFloat(fread, l.Outputs);
             l.WeightsComplete = ReadFloat(fread, l.Outputs * l.Inputs);
@@ -939,7 +939,7 @@ namespace Yolo_V2.Data
             return ints;
         }
 
-        public static void load_batchnorm_weights(Layer l, FileStream fread)
+        private static void load_batchnorm_weights(Layer l, FileStream fread)
         {
             l.Scales = ReadFloat(fread, l.C);
             l.RollingMean = ReadFloat(fread, l.C);
@@ -950,7 +950,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void load_convolutional_weights(Layer l, FileStream fread)
+        private static void load_convolutional_weights(Layer l, FileStream fread)
         {
             int num = l.N * l.C * l.Size * l.Size;
             l.BiasesComplete = ReadFloat(fread, l.N);

@@ -5,9 +5,9 @@ using Yolo_V2.Data;
 
 namespace Yolo_V2
 {
-    class Art
+    public static class Art
     {
-        public static void demo_art(string cfgfile, string weightfile, int camIndex)
+        private static void demo_art(string cfgfile, string weightfile, int camIndex)
         {
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))

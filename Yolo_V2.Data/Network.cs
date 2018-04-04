@@ -49,8 +49,8 @@ namespace Yolo_V2.Data
 
         public Tree Hierarchy;
 
-        public float[] InputGpu;
-        public float[] TruthGpu;
+        private float[] InputGpu;
+        private float[] TruthGpu;
 
         public Network(int n)
         {
@@ -102,7 +102,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_network(Network net, NetworkState state)
+        private static void forward_network(Network net, NetworkState state)
         {
             state.Workspace = net.Workspace;
             int i;
@@ -119,7 +119,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void update_network(Network net)
+        private static void update_network(Network net)
         {
             int i;
             int updateBatch = net.Batch * net.Subdivisions;
@@ -139,7 +139,7 @@ namespace Yolo_V2.Data
             return net.Layers[i].Output;
         }
 
-        public static float get_network_cost(Network net)
+        private static float get_network_cost(Network net)
         {
             int i;
             float sum = 0;
@@ -155,7 +155,7 @@ namespace Yolo_V2.Data
             return sum / count;
         }
 
-        public static void backward_network(Network net, NetworkState state)
+        private static void backward_network(Network net, NetworkState state)
         {
             int i;
             float[] originalInput = state.Input;
@@ -337,7 +337,7 @@ namespace Yolo_V2.Data
             return net.Layers[0].Inputs;
         }
 
-        public static Image get_network_image_layer(Network net, int i)
+        private static Image get_network_image_layer(Network net, int i)
         {
             Layer l = net.Layers[i];
             if (l.OutW != 0 && l.OutH != 0 && l.OutC != 0)
@@ -472,8 +472,8 @@ namespace Yolo_V2.Data
                 l.BackwardGpu(l, state);
             }
         }
-        
-        public static void update_network_gpu(Network net)
+
+        private static void update_network_gpu(Network net)
         {
             int i;
             int updateBatch = net.Batch * net.Subdivisions;
@@ -485,8 +485,8 @@ namespace Yolo_V2.Data
                 l.UpdateGpu?.Invoke(l, updateBatch, rate, net.Momentum, net.Decay);
             }
         }
-        
-        public static void forward_backward_network_gpu(Network net, float[] x, float[] y)
+
+        private static void forward_backward_network_gpu(Network net, float[] x, float[] y)
         {
             NetworkState state = new NetworkState();
             state.Index = 0;
@@ -511,8 +511,8 @@ namespace Yolo_V2.Data
             forward_network_gpu(net, state);
             backward_network_gpu(net, state);
         }
-        
-        public static float train_network_datum_gpu(Network net, float[] x, float[] y)
+
+        private static float train_network_datum_gpu(Network net, float[] x, float[] y)
         {
             net.Seen += net.Batch;
             forward_backward_network_gpu(net, x, y);
@@ -521,13 +521,13 @@ namespace Yolo_V2.Data
 
             return error;
         }
-        
-        public static void train_thread(TrainArgs ptr)
+
+        private static void train_thread(TrainArgs ptr)
         {
             ptr.Err[0] = train_network(ptr.Net, ptr.D);
         }
-        
-        public static Thread train_network_in_thread(Network net, Data d, float[] err)
+
+        private static Thread train_network_in_thread(Network net, Data d, float[] err)
         {
             var ptr = new TrainArgs
             {
@@ -539,8 +539,8 @@ namespace Yolo_V2.Data
             thread.Start();
             return thread;
         }
-        
-        public static void merge_weights(Layer l, Layer baseLayer)
+
+        private static void merge_weights(Layer l, Layer baseLayer)
         {
             if (l.LayerType == LayerType.Convolutional)
             {
@@ -554,11 +554,11 @@ namespace Yolo_V2.Data
             else if (l.LayerType == LayerType.Connected)
             {
                 Blas.Axpy_cpu(l.Outputs, 1, l.BiasesComplete, baseLayer.BiasesComplete, l.BiasesIndex, baseLayer.BiasesIndex);
-                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightsComplete, baseLayer.WeightsComplete);
+                Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightsComplete, baseLayer.WeightsComplete, l.WeightsIndex, baseLayer.WeightsIndex);
             }
         }
-        
-        public static void scale_weights(Layer l, float s)
+
+        private static void scale_weights(Layer l, float s)
         {
             if (l.LayerType == LayerType.Convolutional)
             {
@@ -575,8 +575,8 @@ namespace Yolo_V2.Data
                 Blas.Scal_cpu(l.Outputs * l.Inputs, s, l.WeightsComplete, 1, l.WeightsIndex);
             }
         }
-        
-        public static void pull_weights(Layer l)
+
+        private static void pull_weights(Layer l)
         {
             if (l.LayerType == LayerType.Convolutional)
             {
@@ -590,8 +590,8 @@ namespace Yolo_V2.Data
                 Array.Copy(l.WeightsGpu, 0, l.WeightsComplete, l.WeightsIndex, l.Outputs * l.Inputs);
             }
         }
-        
-        public static void distribute_weights(Layer l, Layer baseLayer)
+
+        private static void distribute_weights(Layer l, Layer baseLayer)
         {
             if (l.LayerType == LayerType.Convolutional)
             {
@@ -605,8 +605,8 @@ namespace Yolo_V2.Data
                 Array.Copy(l.WeightsGpu, 0, baseLayer.WeightsComplete, l.WeightsIndex, l.Outputs * l.Inputs);
             }
         }
-        
-        public static void sync_layer(Network[] nets, int n, int j)
+
+        private static void sync_layer(Network[] nets, int n, int j)
         {
             int i;
             Network net = nets[0];
@@ -625,13 +625,13 @@ namespace Yolo_V2.Data
                 distribute_weights(l, baseLayer);
             }
         }
-        
-        public static void sync_layer_thread(SyncArgs ptr)
+
+        private static void sync_layer_thread(SyncArgs ptr)
         {
             sync_layer(ptr.Nets, ptr.N, ptr.J);
         }
-        
-        public static Thread sync_layer_in_thread(Network[] nets, int n, int j)
+
+        private static Thread sync_layer_in_thread(Network[] nets, int n, int j)
         {
             SyncArgs ptr = new SyncArgs();
             ptr.Nets = nets;
@@ -642,8 +642,8 @@ namespace Yolo_V2.Data
             thread.Start();
             return thread;
         }
-        
-        public static void sync_nets(Network[] nets, int n, int interval)
+
+        private static void sync_nets(Network[] nets, int n, int interval)
         {
             int j;
             int layers = nets[0].N;
@@ -693,22 +693,22 @@ namespace Yolo_V2.Data
             }
             return sum / (n);
         }
-        
-        public static float[] get_network_output_layer_gpu(Network net, int i)
+
+        private static float[] get_network_output_layer_gpu(Network net, int i)
         {
             Layer l = net.Layers[i];
             if (l.LayerType != LayerType.Region) Array.Copy(l.Output, l.OutputGpu, l.Outputs * l.Batch);
             return l.Output;
         }
-        
-        public static float[] get_network_output_gpu(Network net)
+
+        private static float[] get_network_output_gpu(Network net)
         {
             int i;
             for (i = net.N - 1; i > 0; --i) if (net.Layers[i].LayerType != LayerType.Cost) break;
             return get_network_output_layer_gpu(net, i);
         }
-        
-        public static float[] network_predict_gpu(Network net, float[] input)
+
+        private static float[] network_predict_gpu(Network net, float[] input)
         {
             int size = get_network_input_size(net) * net.Batch;
             NetworkState state = new NetworkState
@@ -725,6 +725,5 @@ namespace Yolo_V2.Data
             float[] output = get_network_output_gpu(net);
             return output;
         }
-
     }
 }

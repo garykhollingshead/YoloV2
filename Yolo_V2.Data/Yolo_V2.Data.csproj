@@ -102,7 +102,6 @@
     <Compile Include="BoxLabel.cs" />
     <Compile Include="CudaUtils.cs" />
     <Compile Include="Data.cs" />
-    <Compile Include="DBox.cs" />
     <Compile Include="Enums\Activation.cs" />
     <Compile Include="Enums\CostType.cs" />
     <Compile Include="Enums\DataType.cs" />

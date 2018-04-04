@@ -14,7 +14,7 @@ namespace Yolo_V2.Data
     {
         public LayerType LayerType;
         public Activation Activation;
-        public CostType CostType;
+        private CostType CostType;
         public Action<Layer, NetworkState> Forward;
         public Action<Layer, NetworkState> Backward;
         public Action<Layer, int, float, float, float> Update;
@@ -35,29 +35,29 @@ namespace Yolo_V2.Data
         public int OutC;
         public int N;
         public int MaxBoxes;
-        public int Groups;
+        private int Groups;
         public int Size;
         public int Side;
-        public int Stride;
-        public bool Reverse;
-        public int Pad;
+        private int Stride;
+        private bool Reverse;
+        private int Pad;
         public bool Sqrt;
-        public bool Flip;
-        public int Index;
-        public bool Binary;
-        public bool Xnor;
-        public int Steps;
-        public int Hidden;
+        private bool Flip;
+        private int Index;
+        private bool Binary;
+        private bool Xnor;
+        private int Steps;
+        private int Hidden;
         public float Dot;
-        public float Angle;
+        private float Angle;
         public float Jitter;
-        public float Saturation;
-        public float Exposure;
+        private float Saturation;
+        private float Exposure;
         public float Shift;
         public float Ratio;
         public bool Softmax;
         public int Classes;
-        public int Coords;
+        private int Coords;
         public int Background;
         public bool Rescore;
         public int Objectness;
@@ -71,8 +71,8 @@ namespace Yolo_V2.Data
         public float B1;
         public float B2;
         public float Eps;
-        public float[] MGpu;
-        public float[] VGpu;
+        private float[] MGpu;
+        private float[] VGpu;
         public int T;
         public float[] M;
         public float[] V;
@@ -80,9 +80,9 @@ namespace Yolo_V2.Data
         public Tree SoftmaxTree;
         public int[] Map;
 
-        public float Alpha;
-        public float Beta;
-        public float Kappa;
+        private float Alpha;
+        private float Beta;
+        private float Kappa;
 
         public float CoordScale;
         public float ObjectScale;
@@ -98,59 +98,59 @@ namespace Yolo_V2.Data
         public bool Dontloadscales;
 
         public float Temperature;
-        public float Probability;
-        public float Scale;
+        private float Probability;
+        private float Scale;
 
-        public int[] Indexes;
-        public float[] Rand;
+        private int[] Indexes;
+        private float[] Rand;
         public float? Cost;
-        public int StateIndex;
-        public float[] State;
-        public float[] StateBackup;
-        public float[] PrevState;
-        public float[] ForgotState;
-        public float[] ForgotDelta;
-        
-        public float[] BinaryWeights;
+        private int StateIndex;
+        private float[] State;
+        private float[] StateBackup;
+        private float[] PrevState;
+        private float[] ForgotState;
+        private float[] ForgotDelta;
+
+        private float[] BinaryWeights;
 
         public int BiasesIndex;
         public float[] BiasesComplete;
-        public float[] BiasUpdates;
+        private float[] BiasUpdates;
 
         public float[] Scales;
-        public float[] ScaleUpdates;
+        private float[] ScaleUpdates;
 
         public int WeightsIndex;
         public float[] WeightsComplete;
-        public float[] WeightUpdates;
+        private float[] WeightUpdates;
 
-        public float[] ColImage;
-        public int[] InputLayers;
-        public int[] InputSizes;
-        public int DeltaIndex;
-        public float[] DeltaBackup;
+        private float[] ColImage;
+        private int[] InputLayers;
+        private int[] InputSizes;
+        private int DeltaIndex;
+        private float[] DeltaBackup;
         public float[] Delta;
-        public int OutputIndex;
-        public float[] OutputBackup;
+        private int OutputIndex;
+        private float[] OutputBackup;
         public float[] Output;
-        public float[] Squared;
-        public float[] Norms;
+        private float[] Squared;
+        private float[] Norms;
 
-        public float[] Mean;
-        public float[] Variance;
+        private float[] Mean;
+        private float[] Variance;
 
-        public float[] MeanDelta;
-        public float[] VarianceDelta;
+        private float[] MeanDelta;
+        private float[] VarianceDelta;
 
         public float[] RollingMean;
         public float[] RollingVariance;
 
-        public int XIndex;
-        public float[] XBackup;
-        public float[] X;
-        public int XNormIndex;
-        public float[] XNormBackup;
-        public float[] XNorm;
+        private int XIndex;
+        private float[] XBackup;
+        private float[] X;
+        private int XNormIndex;
+        private float[] XNormBackup;
+        private float[] XNorm;
 
         public Layer InputLayer;
         public Layer SelfLayer;
@@ -165,74 +165,74 @@ namespace Yolo_V2.Data
         public Layer InputHLayer;
         public Layer StateHLayer;
 
-        public float[] ZCpu;
-        public float[] RCpu;
-        public float[] HCpu;
+        private float[] ZCpu;
+        private float[] RCpu;
+        private float[] HCpu;
 
-        public float[] BinaryInput;
+        private float[] BinaryInput;
 
         public ulong WorkspaceSize;
 
-        public float[] ZGpu;
-        public float[] RGpu;
-        public float[] HGpu;
+        private float[] ZGpu;
+        private float[] RGpu;
+        private float[] HGpu;
 
-        public int[] IndexesGpu;
-        public float[] PrevStateGpu;
-        public float[] ForgotStateGpu;
-        public float[] ForgotDeltaGpu;
-        public int StateGpuIndex;
-        public float[] StateGpuBackup;
+        private int[] IndexesGpu;
+        private float[] PrevStateGpu;
+        private float[] ForgotStateGpu;
+        private float[] ForgotDeltaGpu;
+        private int StateGpuIndex;
+        private float[] StateGpuBackup;
         public float[] StateGpu;
 
-        public float[] BinaryInputGpu;
-        public float[] BinaryWeightsGpu;
+        private float[] BinaryInputGpu;
+        private float[] BinaryWeightsGpu;
 
-        public float[] MeanGpu;
-        public float[] VarianceGpu;
+        private float[] MeanGpu;
+        private float[] VarianceGpu;
 
-        public float[] RollingMeanGpu;
-        public float[] RollingVarianceGpu;
+        private float[] RollingMeanGpu;
+        private float[] RollingVarianceGpu;
 
-        public float[] VarianceDeltaGpu;
-        public float[] MeanDeltaGpu;
+        private float[] VarianceDeltaGpu;
+        private float[] MeanDeltaGpu;
 
-        public float[] ColImageGpu;
+        private float[] ColImageGpu;
 
-        public int XGpuIndex;
-        public float[] XGpuBackup;
-        public float[] XGpu;
-        public int XNormGpuIndex;
-        public float[] XNormGpuBackup;
-        public float[] XNormGpu;
+        private int XGpuIndex;
+        private float[] XGpuBackup;
+        private float[] XGpu;
+        private int XNormGpuIndex;
+        private float[] XNormGpuBackup;
+        private float[] XNormGpu;
         public float[] WeightsGpu;
-        public float[] WeightUpdatesGpu;
+        private float[] WeightUpdatesGpu;
 
         public float[] BiasesGpu;
-        public float[] BiasUpdatesGpu;
+        private float[] BiasUpdatesGpu;
 
         public float[] ScalesGpu;
-        public float[] ScaleUpdatesGpu;
+        private float[] ScaleUpdatesGpu;
 
-        public int OutputGpuIndex;
-        public float[] OutputGpuBackup;
+        private int OutputGpuIndex;
+        private float[] OutputGpuBackup;
         public float[] OutputGpu;
-        public int DeltaGpuIndex;
-        public float[] DeltaGpuBackup;
+        private int DeltaGpuIndex;
+        private float[] DeltaGpuBackup;
         public float[] DeltaGpu;
-        public float[] RandGpu;
-        public float[] SquaredGpu;
-        public float[] NormsGpu;
+        private float[] RandGpu;
+        private float[] SquaredGpu;
+        private float[] NormsGpu;
         public cudnnTensorStruct SrcTensorDesc, DstTensorDesc;
         public cudnnTensorStruct DsrcTensorDesc, DdstTensorDesc;
-        public cudnnFilterStruct WeightDesc;
-        public cudnnFilterStruct DweightDesc;
-        public cudnnConvolutionStruct ConvDesc;
-        public cudnnConvolutionFwdAlgo_t FwAlgo;
-        public cudnnConvolutionBwdDataAlgo_t BdAlgo;
-        public cudnnConvolutionBwdFilterAlgo_t BfAlgo;
+        private cudnnFilterStruct WeightDesc;
+        private cudnnFilterStruct DweightDesc;
+        private cudnnConvolutionStruct ConvDesc;
+        private cudnnConvolutionFwdAlgo_t FwAlgo;
+        private cudnnConvolutionBwdDataAlgo_t BdAlgo;
+        private cudnnConvolutionBwdFilterAlgo_t BfAlgo;
 
-        public int local_out_height()
+        private int local_out_height()
         {
             int h = H;
             if (Pad == 0) h -= Size;
@@ -274,9 +274,11 @@ namespace Yolo_V2.Data
             Inputs = W * H * C;
 
             WeightsComplete = new float[c * n * size * size * locations];
+            WeightsIndex = 0;
             WeightUpdates = new float[c * n * size * size * locations];
 
             BiasesComplete = new float[Outputs];
+            BiasesIndex = 0;
             BiasUpdates = new float[Outputs];
 
             float scale = (float)Math.Sqrt(2.0f / (size * size * c));
@@ -362,7 +364,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void backward_scale_cpu(float[] xNorm, float[] delta, int batch, int n, int size, float[] scaleUpdates)
+        private static void backward_scale_cpu(float[] xNorm, float[] delta, int batch, int n, int size, float[] scaleUpdates)
         {
             int i, b, f;
             for (f = 0; f < n; ++f)
@@ -380,7 +382,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void mean_delta_cpu(float[] delta, float[] variance, int batch, int filters, int spatial, float[] meanDelta)
+        private static void mean_delta_cpu(float[] delta, float[] variance, int batch, int filters, int spatial, float[] meanDelta)
         {
 
             int i, j, k;
@@ -399,7 +401,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void variance_delta_cpu(float[] x, float[] delta, float[] mean, float[] variance, int batch, int filters, int spatial, float[] varianceDelta)
+        private static void variance_delta_cpu(float[] x, float[] delta, float[] mean, float[] variance, int batch, int filters, int spatial, float[] varianceDelta)
         {
 
             int i, j, k;
@@ -418,7 +420,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void normalize_delta_cpu(float[] x, float[] mean, float[] variance, float[] meanDelta, float[] varianceDelta, int batch, int filters, int spatial, float[] delta)
+        private static void normalize_delta_cpu(float[] x, float[] mean, float[] variance, float[] meanDelta, float[] varianceDelta, int batch, int filters, int spatial, float[] delta)
         {
             int f, j, k;
             for (j = 0; j < batch; ++j)
@@ -436,7 +438,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_batchnorm_layer(Layer l, NetworkState state)
+        private static void forward_batchnorm_layer(Layer l, NetworkState state)
         {
             if (l.LayerType == LayerType.Batchnorm)
             {
@@ -468,7 +470,7 @@ namespace Yolo_V2.Data
             Blas.Scale_bias(l.Output, l.Scales, l.Batch, l.OutC, l.OutH * l.OutW);
         }
 
-        public static void backward_batchnorm_layer(Layer l, NetworkState state)
+        private static void backward_batchnorm_layer(Layer l, NetworkState state)
         {
             backward_scale_cpu(l.XNorm, l.Delta, l.Batch, l.OutC, l.OutW * l.OutH, l.ScaleUpdates);
 
@@ -494,7 +496,7 @@ namespace Yolo_V2.Data
             Array.Copy(RollingVariance, RollingVarianceGpu, C);
         }
 
-        public static void forward_batchnorm_layer_gpu(Layer l, NetworkState state)
+        private static void forward_batchnorm_layer_gpu(Layer l, NetworkState state)
         {
             if (l.LayerType == LayerType.Batchnorm)
             {
@@ -527,7 +529,7 @@ namespace Yolo_V2.Data
             Blas.scale_bias_gpu(l.OutputGpu, l.ScalesGpu, l.Batch, l.OutC, l.OutH * l.OutW);
         }
 
-        public static void backward_batchnorm_layer_gpu(Layer l, NetworkState state)
+        private static void backward_batchnorm_layer_gpu(Layer l, NetworkState state)
         {
             Blas.backward_scale_gpu(l.XNormGpu, l.DeltaGpu, l.Batch, l.OutC, l.OutW * l.OutH, l.ScaleUpdatesGpu);
 
@@ -550,7 +552,7 @@ namespace Yolo_V2.Data
             {
                 var index = i * l.Outputs;
                 var output = new float[l.Outputs];
-                Blas.Copy_cpu(l.Outputs, l.BiasesComplete, output, 0, index);
+                Blas.Copy_cpu(l.Outputs, l.BiasesComplete, output, l.BiasesIndex, index);
             }
 
             for (i = 0; i < l.Batch; ++i)
@@ -565,10 +567,10 @@ namespace Yolo_V2.Data
                 for (j = 0; j < locations; ++j)
                 {
                     index = j * l.Size * l.Size * l.C * l.N;
-                    float[] a = new float[l.WeightsComplete.Length - index];
+                    float[] a = new float[l.WeightsComplete.Length - l.WeightsIndex - index];
                     float[] b = new float[l.ColImage.Length - j];
                     float[] c = new float[output.Length - j];
-                    Array.Copy(l.WeightsComplete, index, a, 0, a.Length);
+                    Array.Copy(l.WeightsComplete, l.WeightsIndex + index, a, 0, a.Length);
                     Array.Copy(l.ColImage, j, b, 0, b.Length);
                     Array.Copy(output, j, c, 0, c.Length);
 
@@ -663,11 +665,11 @@ namespace Yolo_V2.Data
         {
             int locations = l.OutW * l.OutH;
             int size = l.Size * l.Size * l.C * l.N * locations;
-            Blas.Axpy_cpu(l.Outputs, learningRate / batch, l.BiasUpdates, l.BiasesComplete);
+            Blas.Axpy_cpu(l.Outputs, learningRate / batch, l.BiasUpdates, l.BiasesComplete, 0, l.BiasesIndex);
             Blas.Scal_cpu(l.Outputs, momentum, l.BiasUpdates, 1);
 
-            Blas.Axpy_cpu(size, -decay * batch, l.WeightsComplete, l.WeightUpdates);
-            Blas.Axpy_cpu(size, learningRate / batch, l.WeightUpdates, l.WeightsComplete);
+            Blas.Axpy_cpu(size, -decay * batch, l.WeightsComplete, l.WeightUpdates, l.WeightsIndex);
+            Blas.Axpy_cpu(size, learningRate / batch, l.WeightUpdates, l.WeightsComplete, 0, l.WeightsIndex);
             Blas.Scal_cpu(size, momentum, l.WeightUpdates, 1);
         }
 
@@ -797,18 +799,20 @@ namespace Yolo_V2.Data
             Blas.scal_ongpu(size, momentum, l.WeightUpdatesGpu, 1);
         }
 
-        public void swap_binary()
+        private void swap_binary()
         {
             float[] swap = WeightsComplete;
-            WeightsComplete = BinaryWeights;
-            BinaryWeights = swap;
+            Array.Resize(ref WeightsComplete, BinaryWeights.Length + WeightsIndex);
+            Array.Copy(BinaryWeights, 0, WeightsComplete, WeightsIndex, BinaryWeights.Length);
+            BinaryWeights = new float[swap.Length - WeightsIndex];
+            Array.Copy(swap, WeightsIndex, BinaryWeights, 0, BinaryWeights.Length);
 
             swap = WeightsGpu;
             WeightsGpu = BinaryWeightsGpu;
             BinaryWeightsGpu = swap;
         }
 
-        public static void binarize_weights(float[] weights, int n, int size, float[] binary, int weightsStart = 0)
+        private static void binarize_weights(float[] weights, int n, int size, float[] binary, int weightsStart = 0)
         {
             int i, f;
             for (f = 0; f < n; ++f)
@@ -826,7 +830,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void binarize_cpu(float[] input, int n, float[] binary)
+        private static void binarize_cpu(float[] input, int n, float[] binary)
         {
             int i;
             for (i = 0; i < n; ++i)
@@ -835,17 +839,17 @@ namespace Yolo_V2.Data
             }
         }
 
-        public int convolutional_out_height()
+        private int convolutional_out_height()
         {
             return (H + 2 * Pad - Size) / Stride + 1;
         }
 
-        public int convolutional_out_width()
+        private int convolutional_out_width()
         {
             return (W + 2 * Pad - Size) / Stride + 1;
         }
 
-        public Image get_convolutional_image()
+        private Image get_convolutional_image()
         {
             int h, w, c;
             h = convolutional_out_height();
@@ -854,7 +858,7 @@ namespace Yolo_V2.Data
             return new Image(w, h, c, Output);
         }
 
-        public unsafe ulong get_workspace_size()
+        private unsafe ulong get_workspace_size()
         {
             if (CudaUtils.UseGpu)
             {
@@ -973,9 +977,11 @@ namespace Yolo_V2.Data
             l.BatchNormalize = batchNormalize;
 
             l.WeightsComplete = new float[c * n * size * size];
+            l.WeightsIndex = 0;
             l.WeightUpdates = new float[c * n * size * size];
 
             l.BiasesComplete = new float[n];
+            l.BiasesIndex = 0;
             l.BiasUpdates = new float[n];
 
             // float scale = 1./(float)Math.Sqrt(size*size*c);
@@ -1119,9 +1125,9 @@ namespace Yolo_V2.Data
                 float scale = Scales[i] / (float)Math.Sqrt(RollingVariance[i] + .00001);
                 for (j = 0; j < C * Size * Size; ++j)
                 {
-                    WeightsComplete[i * C * Size * Size + j] *= scale;
+                    WeightsComplete[WeightsIndex + i * C * Size * Size + j] *= scale;
                 }
-                BiasesComplete[i] -= RollingMean[i] * scale;
+                BiasesComplete[BiasesIndex + i] -= RollingMean[i] * scale;
                 Scales[i] = 1;
                 RollingMean[i] = 0;
                 RollingVariance[i] = 1;
@@ -1161,7 +1167,7 @@ namespace Yolo_V2.Data
             WorkspaceSize = get_workspace_size();
         }
 
-        public static void add_bias(float[] output, float[] biases, int batch, int n, int size)
+        private static void add_bias(float[] output, float[] biases, int batch, int n, int size, int biasesStart = 0)
         {
             int i, j, b;
             for (b = 0; b < batch; ++b)
@@ -1170,13 +1176,13 @@ namespace Yolo_V2.Data
                 {
                     for (j = 0; j < size; ++j)
                     {
-                        output[(b * n + i) * size + j] += biases[i];
+                        output[(b * n + i) * size + j] += biases[biasesStart + i];
                     }
                 }
             }
         }
 
-        public static void scale_bias(float[] output, float[] scales, int batch, int n, int size)
+        private static void scale_bias(float[] output, float[] scales, int batch, int n, int size)
         {
             int i, j, b;
             for (b = 0; b < batch; ++b)
@@ -1191,7 +1197,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_bias(float[] biasUpdates, float[] delta, int batch, int n, int size)
+        private static void backward_bias(float[] biasUpdates, float[] delta, int batch, int n, int size)
         {
             int i, b;
             for (b = 0; b < batch; ++b)
@@ -1205,7 +1211,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_convolutional_layer(Layer l, NetworkState state)
+        private static void forward_convolutional_layer(Layer l, NetworkState state)
         {
             int outH = l.convolutional_out_height();
             int outW = l.convolutional_out_width();
@@ -1215,7 +1221,7 @@ namespace Yolo_V2.Data
 
             if (l.Xnor)
             {
-                binarize_weights(l.WeightsComplete, l.N, l.C * l.Size * l.Size, l.BinaryWeights);
+                binarize_weights(l.WeightsComplete, l.N, l.C * l.Size * l.Size, l.BinaryWeights, l.WeightsIndex);
                 l.swap_binary();
                 binarize_cpu(state.Input, l.C * l.H * l.W * l.Batch, l.BinaryInput);
                 state.Input = l.BinaryInput;
@@ -1226,7 +1232,8 @@ namespace Yolo_V2.Data
             int n = outH * outW;
 
 
-            float[] a = l.WeightsComplete;
+            float[] a = new float[l.WeightsComplete.Length - l.WeightsIndex];
+            Array.Copy(l.WeightsComplete, l.WeightsIndex, a, 0, a.Length);
             float[] b = state.Workspace;
             float[] c = l.Output;
 
@@ -1243,13 +1250,13 @@ namespace Yolo_V2.Data
             {
                 forward_batchnorm_layer(l, state);
             }
-            add_bias(l.Output, l.BiasesComplete, l.Batch, l.N, outH * outW);
+            add_bias(l.Output, l.BiasesComplete, l.Batch, l.N, outH * outW, l.BiasesIndex);
 
             ActivationsHelper.Activate_array(l.Output, m * n * l.Batch, l.Activation);
             if (l.Binary || l.Xnor) l.swap_binary();
         }
 
-        public static void backward_convolutional_layer(Layer l, NetworkState state)
+        private static void backward_convolutional_layer(Layer l, NetworkState state)
         {
             int i;
             int m = l.N;
@@ -1288,10 +1295,10 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void update_convolutional_layer(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_convolutional_layer(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             int size = l.Size * l.Size * l.C * l.N;
-            Blas.Axpy_cpu(l.N, learningRate / batch, l.BiasUpdates, l.BiasesComplete);
+            Blas.Axpy_cpu(l.N, learningRate / batch, l.BiasUpdates, l.BiasesComplete, 0, l.BiasesIndex);
             Blas.Scal_cpu(l.N, momentum, l.BiasUpdates, 1);
 
             if (l.Scales.Any())
@@ -1300,12 +1307,12 @@ namespace Yolo_V2.Data
                 Blas.Scal_cpu(l.N, momentum, l.ScaleUpdates, 1);
             }
 
-            Blas.Axpy_cpu(size, -decay * batch, l.WeightsComplete, l.WeightUpdates);
-            Blas.Axpy_cpu(size, learningRate / batch, l.WeightUpdates, l.WeightsComplete);
+            Blas.Axpy_cpu(size, -decay * batch, l.WeightsComplete, l.WeightUpdates, l.WeightsIndex);
+            Blas.Axpy_cpu(size, learningRate / batch, l.WeightUpdates, l.WeightsComplete, 0, l.WeightsIndex);
             Blas.Scal_cpu(size, momentum, l.WeightUpdates, 1);
         }
 
-        public Image get_convolutional_weight(int i)
+        private Image get_convolutional_weight(int i)
         {
             int h = Size;
             int w = Size;
@@ -1338,12 +1345,12 @@ namespace Yolo_V2.Data
                 {
                     LoadArgs.scale_image(im, scale);
                     float sum = im.Data.Sum();
-                    BiasesComplete[i] += sum * trans;
+                    BiasesComplete[BiasesIndex + i] += sum * trans;
                 }
             }
         }
 
-        public Image[] get_weights()
+        private Image[] get_weights()
         {
             Image[] weights = new Image[N];
             int i;
@@ -1389,25 +1396,25 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void forward_activation_layer(Layer l, NetworkState state)
+        private static void forward_activation_layer(Layer l, NetworkState state)
         {
             Blas.Copy_cpu(l.Outputs * l.Batch, state.Input, l.Output);
             ActivationsHelper.Activate_array(l.Output, l.Outputs * l.Batch, l.Activation);
         }
 
-        public static void backward_activation_layer(Layer l, NetworkState state)
+        private static void backward_activation_layer(Layer l, NetworkState state)
         {
             ActivationsHelper.Gradient_array(l.Output, l.Outputs * l.Batch, l.Activation, l.Delta);
             Blas.Copy_cpu(l.Outputs * l.Batch, l.Delta, state.Delta);
         }
 
-        public static void forward_activation_layer_gpu(Layer l, NetworkState state)
+        private static void forward_activation_layer_gpu(Layer l, NetworkState state)
         {
             Blas.copy_ongpu(l.Outputs * l.Batch, state.Input, l.OutputGpu);
             ActivationsHelper.activate_array_ongpu(l.OutputGpu, l.Outputs * l.Batch, l.Activation);
         }
 
-        public static void backward_activation_layer_gpu(Layer l, NetworkState state)
+        private static void backward_activation_layer_gpu(Layer l, NetworkState state)
         {
             ActivationsHelper.gradient_array_ongpu(l.OutputGpu, l.Outputs * l.Batch, l.Activation, l.DeltaGpu);
             Blas.copy_ongpu(l.Outputs * l.Batch, l.DeltaGpu, state.Delta);
@@ -1446,7 +1453,7 @@ namespace Yolo_V2.Data
             Inputs = h * w * C;
         }
 
-        public static void forward_avgpool_layer(Layer l, NetworkState state)
+        private static void forward_avgpool_layer(Layer l, NetworkState state)
         {
             int b, i, k;
 
@@ -1466,7 +1473,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_avgpool_layer(Layer l, NetworkState state)
+        private static void backward_avgpool_layer(Layer l, NetworkState state)
         {
             int b, i, k;
 
@@ -1509,6 +1516,7 @@ namespace Yolo_V2.Data
 
             l.WeightsComplete = new float[outputs * inputs];
             l.BiasesComplete = new float[outputs];
+            l.WeightsIndex = l.BiasesIndex = 0;
 
             l.Forward = forward_connected_layer;
             l.Backward = backward_connected_layer;
@@ -1518,11 +1526,6 @@ namespace Yolo_V2.Data
             for (i = 0; i < outputs * inputs; ++i)
             {
                 l.WeightsComplete[i] = scale * Utils.rand_uniform(-1, 1);
-            }
-
-            for (i = 0; i < outputs; ++i)
-            {
-                l.BiasesComplete[i] = 0;
             }
 
             if (batchNormalize)
@@ -1580,9 +1583,9 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void update_connected_layer(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_connected_layer(Layer l, int batch, float learningRate, float momentum, float decay)
         {
-            Blas.Axpy_cpu(l.Outputs, learningRate / batch, l.BiasUpdates, l.BiasesComplete);
+            Blas.Axpy_cpu(l.Outputs, learningRate / batch, l.BiasUpdates, l.BiasesComplete, 0, l.BiasesIndex);
             Blas.Scal_cpu(l.Outputs, momentum, l.BiasUpdates, 1);
 
             if (l.BatchNormalize)
@@ -1591,12 +1594,12 @@ namespace Yolo_V2.Data
                 Blas.Scal_cpu(l.Outputs, momentum, l.ScaleUpdates, 1);
             }
 
-            Blas.Axpy_cpu(l.Inputs * l.Outputs, -decay * batch, l.WeightsComplete, l.WeightUpdates);
-            Blas.Axpy_cpu(l.Inputs * l.Outputs, learningRate / batch, l.WeightUpdates, l.WeightsComplete);
+            Blas.Axpy_cpu(l.Inputs * l.Outputs, -decay * batch, l.WeightsComplete, l.WeightUpdates, l.WeightsIndex);
+            Blas.Axpy_cpu(l.Inputs * l.Outputs, learningRate / batch, l.WeightUpdates, l.WeightsComplete, 0, l.WeightsIndex);
             Blas.Scal_cpu(l.Inputs * l.Outputs, momentum, l.WeightUpdates, 1);
         }
 
-        public static void forward_connected_layer(Layer l, NetworkState state)
+        private static void forward_connected_layer(Layer l, NetworkState state)
         {
             int i;
             Blas.Fill_cpu(l.Outputs * l.Batch, 0, l.Output, 1);
@@ -1604,7 +1607,8 @@ namespace Yolo_V2.Data
             int k = l.Inputs;
             int n = l.Outputs;
             float[] a = state.Input;
-            float[] b = l.WeightsComplete;
+            float[] b = new float[l.WeightsComplete.Length - l.WeightsIndex];
+            Array.Copy(l.WeightsComplete, l.WeightsIndex, b, 0, b.Length);
             float[] c = l.Output;
             GemmUtils.Gemm(0, 1, m, n, k, 1, a, k, b, k, 1, c, n);
             if (l.BatchNormalize)
@@ -1631,12 +1635,12 @@ namespace Yolo_V2.Data
             }
             for (i = 0; i < l.Batch; ++i)
             {
-                Blas.Axpy_cpu(l.Outputs, 1, l.BiasesComplete, l.Output, 0, i * l.Outputs);
+                Blas.Axpy_cpu(l.Outputs, 1, l.BiasesComplete, l.Output, l.BiasesIndex, i * l.Outputs);
             }
             ActivationsHelper.Activate_array(l.Output, l.Outputs * l.Batch, l.Activation);
         }
 
-        public static void backward_connected_layer(Layer l, NetworkState state)
+        private static void backward_connected_layer(Layer l, NetworkState state)
         {
             int i;
             ActivationsHelper.Gradient_array(l.Output, l.Outputs * l.Batch, l.Activation, l.Delta);
@@ -1658,20 +1662,19 @@ namespace Yolo_V2.Data
             int m = l.Outputs;
             int k = l.Batch;
             int n = l.Inputs;
-            float[] a = l.Delta;
-            float[] b = state.Input;
-            float[] c = l.WeightUpdates;
-            GemmUtils.Gemm(1, 0, m, n, k, 1, a, m, b, n, 1, c, n);
+            GemmUtils.Gemm(1, 0, m, n, k, 1, l.Delta, m, state.Input, n, 1, l.WeightUpdates, n);
 
             m = l.Batch;
             k = l.Outputs;
             n = l.Inputs;
 
-            a = l.Delta;
-            b = l.WeightsComplete;
-            c = state.Delta;
 
-            if (c.Any()) GemmUtils.Gemm(0, 0, m, n, k, 1, a, k, b, n, 1, c, n);
+            if (state.Delta.Length != 0)
+            {
+                var b = new float[l.WeightsComplete.Length - l.WeightsIndex];
+                Array.Copy(l.WeightsComplete, l.WeightsIndex, b, 0, b.Length);
+                GemmUtils.Gemm(0, 0, m, n, k, 1, l.Delta, k, b, n, 1, state.Delta, n);
+            }
         }
 
         public void denormalize_connected_layer()
@@ -1682,9 +1685,9 @@ namespace Yolo_V2.Data
                 float scale = Scales[i] / (float)Math.Sqrt(RollingVariance[i] + .000001);
                 for (j = 0; j < Inputs; ++j)
                 {
-                    WeightsComplete[i * Inputs + j] *= scale;
+                    WeightsComplete[WeightsIndex + i * Inputs + j] *= scale;
                 }
-                BiasesComplete[i] -= RollingMean[i] * scale;
+                BiasesComplete[BiasesIndex + i] -= RollingMean[i] * scale;
                 Scales[i] = 1;
                 RollingMean[i] = 0;
                 RollingVariance[i] = 1;
@@ -1698,15 +1701,15 @@ namespace Yolo_V2.Data
                 Console.Write($"Scales ");
                 Utils.print_statistics(Scales, Outputs);
             }
-            Console.Write($"BiasesComplete ");
-            Utils.print_statistics(BiasesComplete, Outputs);
-            Console.Write($"WeightsComplete ");
-            Utils.print_statistics(WeightsComplete, Outputs);
+            Console.Write($"Biases ");
+            Utils.print_statistics(BiasesComplete, Outputs, BiasesIndex);
+            Console.Write($"Weights ");
+            Utils.print_statistics(WeightsComplete, Outputs, WeightsIndex);
         }
 
         public void pull_connected_layer()
         {
-            Array.Copy(WeightsGpu, WeightsComplete, Inputs * Outputs);
+            Array.Copy(WeightsGpu, 0, WeightsComplete, WeightsIndex, Inputs * Outputs);
             Array.Copy(BiasesGpu, BiasesComplete, Outputs);
             Array.Copy(WeightUpdatesGpu, WeightUpdates, Inputs * Outputs);
             Array.Copy(BiasUpdatesGpu, BiasUpdates, Outputs);
@@ -1720,8 +1723,8 @@ namespace Yolo_V2.Data
 
         public void push_connected_layer()
         {
-            Array.Copy(WeightsComplete, WeightsGpu, Inputs * Outputs);
-            Array.Copy(BiasesComplete, BiasesGpu, Outputs);
+            Array.Copy(WeightsComplete, WeightsIndex, WeightsGpu, 0, Inputs * Outputs);
+            Array.Copy(BiasesComplete, BiasesIndex, BiasesGpu, 0, Outputs);
             Array.Copy(WeightUpdates, WeightUpdatesGpu, Inputs * Outputs);
             Array.Copy(BiasUpdates, BiasUpdatesGpu, Outputs);
             if (BatchNormalize)
@@ -1732,7 +1735,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void update_connected_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_connected_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             Blas.axpy_ongpu(l.Outputs, learningRate / batch, l.BiasUpdatesGpu, l.BiasesGpu);
             Blas.scal_ongpu(l.Outputs, momentum, l.BiasUpdatesGpu, 1);
@@ -1748,7 +1751,7 @@ namespace Yolo_V2.Data
             Blas.scal_ongpu(l.Inputs * l.Outputs, momentum, l.WeightUpdatesGpu, 1);
         }
 
-        public static void forward_connected_layer_gpu(Layer l, NetworkState state)
+        private static void forward_connected_layer_gpu(Layer l, NetworkState state)
         {
             int i;
             Blas.fill_ongpu(l.Outputs * l.Batch, 0, l.OutputGpu, 1);
@@ -1771,7 +1774,7 @@ namespace Yolo_V2.Data
             ActivationsHelper.activate_array_ongpu(l.OutputGpu, l.Outputs * l.Batch, l.Activation);
         }
 
-        public static void backward_connected_layer_gpu(Layer l, NetworkState state)
+        private static void backward_connected_layer_gpu(Layer l, NetworkState state)
         {
             int i;
             Blas.constrain_ongpu(l.Outputs * l.Batch, 1, l.DeltaGpu, 1);
@@ -1844,7 +1847,7 @@ namespace Yolo_V2.Data
 
         }
 
-        public static void forward_cost_layer(Layer l, NetworkState state)
+        private static void forward_cost_layer(Layer l, NetworkState state)
         {
             if (!state.Truth.Any()) return;
             if (l.CostType == CostType.Masked)
@@ -1866,12 +1869,12 @@ namespace Yolo_V2.Data
             l.Cost = l.Output.Sum();
         }
 
-        public static void backward_cost_layer(Layer l, NetworkState state)
+        private static void backward_cost_layer(Layer l, NetworkState state)
         {
             Blas.Axpy_cpu(l.Batch * l.Inputs, l.Scale, l.Delta, state.Delta);
         }
 
-        public static int float_abs_compare(float a, float b)
+        private static int float_abs_compare(float a, float b)
         {
             a = Math.Abs(a);
             b = Math.Abs(b);
@@ -1880,7 +1883,7 @@ namespace Yolo_V2.Data
             return ag - bg;
         }
 
-        public static void forward_cost_layer_gpu(Layer l, NetworkState state)
+        private static void forward_cost_layer_gpu(Layer l, NetworkState state)
         {
             if (!state.Truth.Any()) return;
             if (l.CostType == CostType.Masked)
@@ -1912,12 +1915,12 @@ namespace Yolo_V2.Data
             l.Cost = l.Output.Sum();
         }
 
-        public static void backward_cost_layer_gpu(Layer l, NetworkState state)
+        private static void backward_cost_layer_gpu(Layer l, NetworkState state)
         {
             Blas.axpy_ongpu(l.Batch * l.Inputs, l.Scale, l.DeltaGpu, state.Delta);
         }
 
-        public static void increment_layer(Layer l, int steps)
+        private static void increment_layer(Layer l, int steps)
         {
             int num = l.Outputs * l.Batch * steps;
             Utils.IncArray(ref l.Output, ref l.OutputBackup, l.OutputIndex, l.OutputIndex += num);
@@ -1986,14 +1989,14 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void update_crnn_layer(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_crnn_layer(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             update_convolutional_layer(l.InputLayer, batch, learningRate, momentum, decay);
             update_convolutional_layer(l.InputLayer, batch, learningRate, momentum, decay);
             update_convolutional_layer(l.OutputLayer, batch, learningRate, momentum, decay);
         }
 
-        public static void forward_crnn_layer(Layer l, NetworkState state)
+        private static void forward_crnn_layer(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -2041,7 +2044,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_crnn_layer(Layer l, NetworkState state)
+        private static void backward_crnn_layer(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -2093,14 +2096,14 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void update_crnn_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_crnn_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             update_convolutional_layer_gpu((l.InputLayer), batch, learningRate, momentum, decay);
             update_convolutional_layer_gpu((l.InputLayer), batch, learningRate, momentum, decay);
             update_convolutional_layer_gpu((l.OutputLayer), batch, learningRate, momentum, decay);
         }
 
-        public static void forward_crnn_layer_gpu(Layer l, NetworkState state)
+        private static void forward_crnn_layer_gpu(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -2148,7 +2151,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_crnn_layer_gpu(Layer l, NetworkState state)
+        private static void backward_crnn_layer_gpu(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -2199,9 +2202,9 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_crop_layer(Layer l, NetworkState state) { }
+        private static void backward_crop_layer(Layer l, NetworkState state) { }
 
-        public static void backward_crop_layer_gpu(Layer l, NetworkState state) { }
+        private static void backward_crop_layer_gpu(Layer l, NetworkState state) { }
 
         public static Layer make_crop_layer(int batch, int h, int w, int c, int cropHeight, int cropWidth, bool flip, float angle, float saturation, float exposure)
         {
@@ -2252,7 +2255,7 @@ namespace Yolo_V2.Data
 
         }
 
-        public static void forward_crop_layer(Layer l, NetworkState state)
+        private static void forward_crop_layer(Layer l, NetworkState state)
         {
             int i, j, c, b, row, col;
             int index;
@@ -2298,18 +2301,6 @@ namespace Yolo_V2.Data
             }
         }
 
-        public int deconvolutional_out_height()
-        {
-            int h = Stride * (H - 1) + Size;
-            return h;
-        }
-
-        public int deconvolutional_out_width()
-        {
-            int w = Stride * (W - 1) + Size;
-            return w;
-        }
-
         public static Layer make_detection_layer(int batch, int inputs, int n, int side, int classes, int coords, bool rescore)
         {
             Layer l = new Layer();
@@ -2343,7 +2334,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void forward_detection_layer(Layer l, NetworkState state)
+        private static void forward_detection_layer(Layer l, NetworkState state)
         {
             int locations = l.Side * l.Side;
             int i, j;
@@ -2499,7 +2490,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_detection_layer(Layer l, NetworkState state)
+        private static void backward_detection_layer(Layer l, NetworkState state)
         {
             Blas.Axpy_cpu(l.Batch * l.Inputs, 1, l.Delta, state.Delta);
         }
@@ -2536,7 +2527,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_detection_layer_gpu(Layer l, NetworkState state)
+        private static void forward_detection_layer_gpu(Layer l, NetworkState state)
         {
             if (!state.Train)
             {
@@ -2562,7 +2553,7 @@ namespace Yolo_V2.Data
             Array.Copy(l.Delta, l.DeltaGpu, l.Batch * l.Inputs);
         }
 
-        public static void backward_detection_layer_gpu(Layer l, NetworkState state)
+        private static void backward_detection_layer_gpu(Layer l, NetworkState state)
         {
             Blas.axpy_ongpu(l.Batch * l.Inputs, 1, l.DeltaGpu, state.Delta);
         }
@@ -2588,7 +2579,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void forward_dropout_layer(Layer l, NetworkState state)
+        private static void forward_dropout_layer(Layer l, NetworkState state)
         {
             int i;
             if (!state.Train) return;
@@ -2601,7 +2592,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_dropout_layer(Layer l, NetworkState state)
+        private static void backward_dropout_layer(Layer l, NetworkState state)
         {
             int i;
             if (state.Delta.Length == 0) return;
@@ -2694,14 +2685,14 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void update_gru_layer(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_gru_layer(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             update_connected_layer(l.InputLayer, batch, learningRate, momentum, decay);
             update_connected_layer(l.InputLayer, batch, learningRate, momentum, decay);
             update_connected_layer(l.OutputLayer, batch, learningRate, momentum, decay);
         }
 
-        public static void forward_gru_layer(Layer l, NetworkState state)
+        private static void forward_gru_layer(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -2777,11 +2768,11 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_gru_layer(Layer l, NetworkState state)
+        private static void backward_gru_layer(Layer l, NetworkState state)
         {
         }
 
-        public static void update_gru_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_gru_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             update_connected_layer_gpu(l.InputRLayer, batch, learningRate, momentum, decay);
             update_connected_layer_gpu(l.InputZLayer, batch, learningRate, momentum, decay);
@@ -2791,7 +2782,7 @@ namespace Yolo_V2.Data
             update_connected_layer_gpu(l.StateHLayer, batch, learningRate, momentum, decay);
         }
 
-        public static void forward_gru_layer_gpu(Layer l, NetworkState state)
+        private static void forward_gru_layer_gpu(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -2867,7 +2858,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_gru_layer_gpu(Layer l, NetworkState state)
+        private static void backward_gru_layer_gpu(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -2991,16 +2982,16 @@ namespace Yolo_V2.Data
         {
             int locations = OutW * OutH;
             int size = Size * Size * C * N * locations;
-            Array.Copy(WeightsGpu, WeightsComplete, size);
-            Array.Copy(BiasesGpu, BiasesComplete, Outputs);
+            Array.Copy(WeightsGpu, 0, WeightsComplete, WeightsIndex, size);
+            Array.Copy(BiasesGpu, 0, BiasesComplete, BiasesIndex, Outputs);
         }
 
         public void push_local_layer()
         {
             int locations = OutW * OutH;
             int size = Size * Size * C * N * locations;
-            Array.Copy(WeightsComplete, WeightsGpu, size);
-            Array.Copy(BiasesComplete, BiasesGpu, Outputs);
+            Array.Copy(WeightsComplete, WeightsIndex, WeightsGpu, 0, size);
+            Array.Copy(BiasesComplete, BiasesIndex, BiasesGpu, 0, Outputs);
         }
 
         public static Layer make_maxpool_layer(int batch, int h, int w, int c, int size, int stride, int padding)
@@ -3057,7 +3048,7 @@ namespace Yolo_V2.Data
 
         }
 
-        public static void forward_maxpool_layer(Layer l, NetworkState state)
+        private static void forward_maxpool_layer(Layer l, NetworkState state)
         {
             int b, i, j, k, m, n;
             int wOffset = -l.Pad;
@@ -3100,7 +3091,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_maxpool_layer(Layer l, NetworkState state)
+        private static void backward_maxpool_layer(Layer l, NetworkState state)
         {
             int i;
             int h = l.OutH;
@@ -3169,7 +3160,7 @@ namespace Yolo_V2.Data
 
         }
 
-        public static void forward_normalization_layer(Layer l, NetworkState state)
+        private static void forward_normalization_layer(Layer l, NetworkState state)
         {
             int k, b;
             int w = l.W;
@@ -3209,7 +3200,7 @@ namespace Yolo_V2.Data
             Blas.Mul_cpu(w * h * c * l.Batch, state.Input, 1, l.Output, 1);
         }
 
-        public static void backward_normalization_layer(Layer l, NetworkState state)
+        private static void backward_normalization_layer(Layer l, NetworkState state)
         {
             // TODO This is approximate ;-)
             // Also this should add in to delta instead of overwritting.
@@ -3221,7 +3212,7 @@ namespace Yolo_V2.Data
             Blas.Mul_cpu(w * h * c * l.Batch, l.Delta, 1, state.Delta, 1);
         }
 
-        public static void forward_normalization_layer_gpu(Layer l, NetworkState state)
+        private static void forward_normalization_layer_gpu(Layer l, NetworkState state)
         {
             int k, b;
             int w = l.W;
@@ -3262,7 +3253,7 @@ namespace Yolo_V2.Data
             Blas.mul_ongpu(w * h * c * l.Batch, state.Input, 1, l.OutputGpu, 1);
         }
 
-        public static void backward_normalization_layer_gpu(Layer l, NetworkState state)
+        private static void backward_normalization_layer_gpu(Layer l, NetworkState state)
         {
             // TODO This is approximate ;-)
 
@@ -3281,7 +3272,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public void binarize_gpu(float[] x, int n, float[] binary)
+        private void binarize_gpu(float[] x, int n, float[] binary)
         {
             var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(binarize_kernel, lp, x, n, binary);
@@ -3305,13 +3296,13 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public void binarize_weights_gpu(float[] weights, int n, int size, float[] binary)
+        private void binarize_weights_gpu(float[] weights, int n, int size, float[] binary)
         {
             var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(binarize_weights_kernel, lp, weights, n, size, binary);
         }
 
-        public static void forward_convolutional_layer_gpu(Layer l, NetworkState state)
+        private static void forward_convolutional_layer_gpu(Layer l, NetworkState state)
         {
             Blas.fill_ongpu(l.Outputs * l.Batch, 0, l.OutputGpu, 1);
             if (l.Binary)
@@ -3391,7 +3382,7 @@ namespace Yolo_V2.Data
             if (l.Binary || l.Xnor) l.swap_binary();
         }
 
-        public static void backward_convolutional_layer_gpu(Layer l, NetworkState state)
+        private static void backward_convolutional_layer_gpu(Layer l, NetworkState state)
         {
             ActivationsHelper.gradient_array_ongpu(l.OutputGpu, l.Outputs * l.Batch, l.Activation, l.DeltaGpu);
 
@@ -3522,9 +3513,9 @@ namespace Yolo_V2.Data
 
         public void pull_convolutional_layer()
         {
-            Array.Copy(WeightsGpu, WeightsComplete, C * N * Size * Size);
-            Array.Copy(BiasesGpu, BiasesComplete, N);
-            Array.Copy(WeightUpdatesGpu, WeightUpdates, C * N * Size * Size);
+            Array.Copy(WeightsGpu, 0, WeightsComplete, WeightsIndex, C * N * Size * Size);
+            Array.Copy(BiasesGpu, 0, BiasesComplete, BiasesIndex, N);
+            Array.Copy(WeightUpdatesGpu, 0, WeightUpdates, WeightsIndex, C * N * Size * Size);
             Array.Copy(BiasUpdatesGpu, BiasUpdates, N);
             if (BatchNormalize)
             {
@@ -3541,8 +3532,8 @@ namespace Yolo_V2.Data
 
         public void push_convolutional_layer()
         {
-            Array.Copy(WeightsComplete, WeightsGpu, C * N * Size * Size);
-            Array.Copy(BiasesComplete, BiasesGpu, N);
+            Array.Copy(WeightsComplete, WeightsIndex, WeightsGpu, 0, C * N * Size * Size);
+            Array.Copy(BiasesComplete, BiasesIndex, BiasesGpu, 0, N);
             Array.Copy(WeightUpdates, WeightUpdatesGpu, C * N * Size * Size);
             Array.Copy(BiasUpdates, BiasUpdatesGpu, N);
             if (BatchNormalize)
@@ -3558,7 +3549,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void update_convolutional_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_convolutional_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             int size = l.Size * l.Size * l.C * l.N;
             Blas.axpy_ongpu(l.N, learningRate / batch, l.BiasUpdatesGpu, l.BiasesGpu);
@@ -3631,7 +3622,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void forward_avgpool_layer_gpu(Layer l, NetworkState state)
+        private static void forward_avgpool_layer_gpu(Layer l, NetworkState state)
         {
             int n = l.C * l.Batch;
 
@@ -3640,7 +3631,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void backward_avgpool_layer_gpu(Layer l, NetworkState state)
+        private static void backward_avgpool_layer_gpu(Layer l, NetworkState state)
         {
             int n = l.C * l.Batch;
 
@@ -3844,7 +3835,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void forward_crop_layer_gpu(Layer l, NetworkState state)
+        private static void forward_crop_layer_gpu(Layer l, NetworkState state)
         {
             CudaUtils.cuda_random(l.RandGpu, (ulong)l.Batch * 8);
 
@@ -3876,7 +3867,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void forward_dropout_layer_gpu(Layer l, NetworkState state)
+        private static void forward_dropout_layer_gpu(Layer l, NetworkState state)
         {
             if (!state.Train) return;
             int size = l.Inputs * l.Batch;
@@ -3887,7 +3878,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void backward_dropout_layer_gpu(Layer l, NetworkState state)
+        private static void backward_dropout_layer_gpu(Layer l, NetworkState state)
         {
             if (state.Delta.Length == 0) return;
             int size = l.Inputs * l.Batch;
@@ -3978,7 +3969,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void forward_maxpool_layer_gpu(Layer l, NetworkState state)
+        private static void forward_maxpool_layer_gpu(Layer l, NetworkState state)
         {
             int h = l.OutH;
             int w = l.OutH;
@@ -3991,7 +3982,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void backward_maxpool_layer_gpu(Layer l, NetworkState state)
+        private static void backward_maxpool_layer_gpu(Layer l, NetworkState state)
         {
             var n = l.H * l.W * l.C * l.Batch;
 
@@ -4012,6 +4003,7 @@ namespace Yolo_V2.Data
             l.Coords = coords;
             l.Cost = 0;
             l.BiasesComplete = new float[n * 2];
+            l.BiasesIndex = 0;
             l.BiasUpdates = new float[n * 2];
             l.Outputs = h * w * n * (classes + coords + 1);
             l.Inputs = l.Outputs;
@@ -4051,32 +4043,32 @@ namespace Yolo_V2.Data
             OutputGpu = (float[])Output.Clone();
         }
 
-        public static Box get_region_box(float[] x, float[] biases, int n, int index, int i, int j, int w, int h)
+        private static Box get_region_box(float[] x, float[] biases, int n, int index, int i, int j, int w, int h, int biasesStart = 0)
         {
             Box b = new Box();
             b.X = (i + ActivationsHelper.Logistic_activate(x[index + 0])) / w;
             b.Y = (j + ActivationsHelper.Logistic_activate(x[index + 1])) / h;
-            b.W = (float)Math.Exp(x[index + 2]) * biases[2 * n];
-            b.H = (float)Math.Exp(x[index + 3]) * biases[2 * n + 1];
+            b.W = (float)Math.Exp(x[index + 2]) * biases[biasesStart + 2 * n];
+            b.H = (float)Math.Exp(x[index + 3]) * biases[biasesStart + 2 * n + 1];
 
-            b.W = (float)Math.Exp(x[index + 2]) * biases[2 * n] / w;
-            b.H = (float)Math.Exp(x[index + 3]) * biases[2 * n + 1] / h;
+            b.W = (float)Math.Exp(x[index + 2]) * biases[biasesStart + 2 * n] / w;
+            b.H = (float)Math.Exp(x[index + 3]) * biases[biasesStart + 2 * n + 1] / h;
 
             return b;
         }
 
-        public static float delta_region_box(Box truth, float[] x, float[] biases, int n, int index, int i, int j, int w, int h, float[] delta, float scale)
+        private static float delta_region_box(Box truth, float[] x, float[] biases, int n, int index, int i, int j, int w, int h, float[] delta, float scale, int biasesStart = 0)
         {
-            Box pred = get_region_box(x, biases, n, index, i, j, w, h);
+            Box pred = get_region_box(x, biases, n, index, i, j, w, h, biasesStart);
             float iou = Box.box_iou(pred, truth);
 
             float tx = (truth.X * w - i);
             float ty = (truth.Y * h - j);
-            float tw = (float)Math.Log(truth.W / biases[2 * n]);
-            float th = (float)Math.Log(truth.H / biases[2 * n + 1]);
+            float tw = (float)Math.Log(truth.W / biases[biasesStart + 2 * n]);
+            float th = (float)Math.Log(truth.H / biases[biasesStart + 2 * n + 1]);
 
-            tw = (float)Math.Log(truth.W * w / biases[2 * n]);
-            th = (float)Math.Log(truth.H * h / biases[2 * n + 1]);
+            tw = (float)Math.Log(truth.W * w / biases[biasesStart + 2 * n]);
+            th = (float)Math.Log(truth.H * h / biases[biasesStart + 2 * n + 1]);
 
             delta[index + 0] = scale * (tx - ActivationsHelper.Logistic_activate(x[index + 0])) * ActivationsHelper.Logistic_gradient(ActivationsHelper.Logistic_activate(x[index + 0]));
             delta[index + 1] = scale * (ty - ActivationsHelper.Logistic_activate(x[index + 1])) * ActivationsHelper.Logistic_gradient(ActivationsHelper.Logistic_activate(x[index + 1]));
@@ -4085,7 +4077,7 @@ namespace Yolo_V2.Data
             return iou;
         }
 
-        public static void delta_region_class(float[] output, float[] delta, int index, int sclass, int classes, Tree hier, float scale, ref float avgCat)
+        private static void delta_region_class(float[] output, float[] delta, int index, int sclass, int classes, Tree hier, float scale, ref float avgCat)
         {
             int i, n;
             if (hier != null)
@@ -4116,7 +4108,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_region_layer(Layer l, NetworkState state)
+        private static void forward_region_layer(Layer l, NetworkState state)
         {
             int i, j, b, t, n;
             int size = l.Coords + l.Classes + 1;
@@ -4181,7 +4173,7 @@ namespace Yolo_V2.Data
                         for (n = 0; n < l.N; ++n)
                         {
                             int index = size * (j * l.W * l.N + i * l.N + n) + b * l.Outputs;
-                            Box pred = get_region_box(l.Output, l.BiasesComplete, n, index, i, j, l.W, l.H);
+                            Box pred = get_region_box(l.Output, l.BiasesComplete, n, index, i, j, l.W, l.H, l.BiasesIndex);
                             float bestIou = 0;
                             int bestClass = -1;
                             for (t = 0; t < 30; ++t)
@@ -4216,13 +4208,13 @@ namespace Yolo_V2.Data
                                 Box truth = new Box();
                                 truth.X = (i + .5f) / l.W;
                                 truth.Y = (j + .5f) / l.H;
-                                truth.W = l.BiasesComplete[2 * n];
-                                truth.H = l.BiasesComplete[2 * n + 1];
+                                truth.W = l.BiasesComplete[l.BiasesIndex + 2 * n];
+                                truth.H = l.BiasesComplete[l.BiasesIndex + 2 * n + 1];
 
-                                truth.W = l.BiasesComplete[2 * n] / l.W;
-                                truth.H = l.BiasesComplete[2 * n + 1] / l.H;
+                                truth.W = l.BiasesComplete[l.BiasesIndex + 2 * n] / l.W;
+                                truth.H = l.BiasesComplete[l.BiasesIndex + 2 * n + 1] / l.H;
 
-                                delta_region_box(truth, l.Output, l.BiasesComplete, n, index, i, j, l.W, l.H, l.Delta, .01f);
+                                delta_region_box(truth, l.Output, l.BiasesComplete, n, index, i, j, l.W, l.H, l.Delta, .01f, l.BiasesIndex);
                             }
                         }
                     }
@@ -4243,14 +4235,14 @@ namespace Yolo_V2.Data
                     for (n = 0; n < l.N; ++n)
                     {
                         int index = size * (j * l.W * l.N + i * l.N + n) + b * l.Outputs;
-                        Box pred = get_region_box(l.Output, l.BiasesComplete, n, index, i, j, l.W, l.H);
+                        Box pred = get_region_box(l.Output, l.BiasesComplete, n, index, i, j, l.W, l.H, l.BiasesIndex);
                         if (l.BiasMatch)
                         {
-                            pred.W = l.BiasesComplete[2 * n];
-                            pred.H = l.BiasesComplete[2 * n + 1];
+                            pred.W = l.BiasesComplete[l.BiasesIndex + 2 * n];
+                            pred.H = l.BiasesComplete[l.BiasesIndex + 2 * n + 1];
 
-                            pred.W = l.BiasesComplete[2 * n] / l.W;
-                            pred.H = l.BiasesComplete[2 * n + 1] / l.H;
+                            pred.W = l.BiasesComplete[l.BiasesIndex + 2 * n] / l.W;
+                            pred.H = l.BiasesComplete[l.BiasesIndex + 2 * n + 1] / l.H;
 
                         }
                         pred.X = 0;
@@ -4263,7 +4255,7 @@ namespace Yolo_V2.Data
                             bestN = n;
                         }
                     }
-                    float iou = delta_region_box(truth, l.Output, l.BiasesComplete, bestN, bestIndex, i, j, l.W, l.H, l.Delta, l.CoordScale);
+                    float iou = delta_region_box(truth, l.Output, l.BiasesComplete, bestN, bestIndex, i, j, l.W, l.H, l.Delta, l.CoordScale, l.BiasesIndex);
                     if (iou > .5) recall += 1;
                     avgIou += iou;
 
@@ -4286,7 +4278,7 @@ namespace Yolo_V2.Data
             Console.Write($"Region Avg IOU: %f, Class: %f, Obj: %f, No Obj: %f, Avg Recall: %f,  count: %d\n", avgIou / count, avgCat / classCount, avgObj / count, avgAnyobj / (l.W * l.H * l.N * l.Batch), recall / count, count);
         }
 
-        public static void backward_region_layer(Layer l, NetworkState state)
+        private static void backward_region_layer(Layer l, NetworkState state)
         {
             Blas.Axpy_cpu(l.Batch * l.Inputs, 1, l.Delta, state.Delta);
         }
@@ -4306,7 +4298,7 @@ namespace Yolo_V2.Data
                     float scale = predictions[pIndex];
                     if (l.Classfix == -1 && scale < .5) scale = 0;
                     int boxIndex = index * (l.Classes + 5);
-                    boxes[index] = get_region_box(predictions, l.BiasesComplete, n, boxIndex, col, row, l.W, l.H);
+                    boxes[index] = get_region_box(predictions, l.BiasesComplete, n, boxIndex, col, row, l.W, l.H, l.BiasesIndex);
                     boxes[index].X *= w;
                     boxes[index].Y *= h;
                     boxes[index].W *= w;
@@ -4358,7 +4350,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_region_layer_gpu(Layer l, NetworkState state)
+        private static void forward_region_layer_gpu(Layer l, NetworkState state)
         {
             Blas.flatten_ongpu(state.Input, l.H * l.W, l.N * (l.Coords + l.Classes + 1), l.Batch, 1, l.OutputGpu);
             if (l.SoftmaxTree != null)
@@ -4395,7 +4387,7 @@ namespace Yolo_V2.Data
             Array.Copy(l.Delta, l.DeltaGpu, l.Batch * l.Outputs);
         }
 
-        public static void backward_region_layer_gpu(Layer l, NetworkState state)
+        private static void backward_region_layer_gpu(Layer l, NetworkState state)
         {
             Blas.flatten_ongpu(l.DeltaGpu, l.H * l.W, l.N * (l.Coords + l.Classes + 1), l.Batch, 0, state.Delta);
         }
@@ -4465,7 +4457,7 @@ namespace Yolo_V2.Data
             l.DeltaGpu = (float[])l.Delta.Clone();
         }
 
-        public static void forward_route_layer(Layer l, NetworkState state)
+        private static void forward_route_layer(Layer l, NetworkState state)
         {
             int i, j;
             int offset = 0;
@@ -4482,7 +4474,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_route_layer(Layer l, NetworkState state)
+        private static void backward_route_layer(Layer l, NetworkState state)
         {
             int i, j;
             int offset = 0;
@@ -4499,7 +4491,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_route_layer_gpu(Layer l, NetworkState state)
+        private static void forward_route_layer_gpu(Layer l, NetworkState state)
         {
             int i, j;
             int offset = 0;
@@ -4516,7 +4508,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_route_layer_gpu(Layer l, NetworkState state)
+        private static void backward_route_layer_gpu(Layer l, NetworkState state)
         {
             int i, j;
             int offset = 0;
@@ -4604,7 +4596,7 @@ namespace Yolo_V2.Data
             l.DeltaGpu = (float[])l.Delta.Clone();
         }
 
-        public static void forward_reorg_layer(Layer l, NetworkState state)
+        private static void forward_reorg_layer(Layer l, NetworkState state)
         {
             if (l.Reverse)
             {
@@ -4616,7 +4608,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_reorg_layer(Layer l, NetworkState state)
+        private static void backward_reorg_layer(Layer l, NetworkState state)
         {
             if (l.Reverse)
             {
@@ -4628,7 +4620,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_reorg_layer_gpu(Layer l, NetworkState state)
+        private static void forward_reorg_layer_gpu(Layer l, NetworkState state)
         {
             if (l.Reverse)
             {
@@ -4640,7 +4632,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_reorg_layer_gpu(Layer l, NetworkState state)
+        private static void backward_reorg_layer_gpu(Layer l, NetworkState state)
         {
             if (l.Reverse)
             {
@@ -4682,28 +4674,28 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void forward_shortcut_layer(Layer l, NetworkState state)
+        private static void forward_shortcut_layer(Layer l, NetworkState state)
         {
             Blas.Copy_cpu(l.Outputs * l.Batch, state.Input, l.Output);
             Blas.Shortcut_cpu(l.Batch, l.W, l.H, l.C, state.Net.Layers[l.Index].Output, l.OutW, l.OutH, l.OutC, l.Output);
             ActivationsHelper.Activate_array(l.Output, l.Outputs * l.Batch, l.Activation);
         }
 
-        public static void backward_shortcut_layer(Layer l, NetworkState state)
+        private static void backward_shortcut_layer(Layer l, NetworkState state)
         {
             ActivationsHelper.Gradient_array(l.Output, l.Outputs * l.Batch, l.Activation, l.Delta);
             Blas.Axpy_cpu(l.Outputs * l.Batch, 1, l.Delta, state.Delta);
             Blas.Shortcut_cpu(l.Batch, l.OutW, l.OutH, l.OutC, l.Delta, l.W, l.H, l.C, state.Net.Layers[l.Index].Delta);
         }
 
-        public static void forward_shortcut_layer_gpu(Layer l, NetworkState state)
+        private static void forward_shortcut_layer_gpu(Layer l, NetworkState state)
         {
             Blas.copy_ongpu(l.Outputs * l.Batch, state.Input, l.OutputGpu);
             Blas.shortcut_gpu(l.Batch, l.W, l.H, l.C, state.Net.Layers[l.Index].OutputGpu, l.OutW, l.OutH, l.OutC, l.OutputGpu);
             ActivationsHelper.activate_array_ongpu(l.OutputGpu, l.Outputs * l.Batch, l.Activation);
         }
 
-        public static void backward_shortcut_layer_gpu(Layer l, NetworkState state)
+        private static void backward_shortcut_layer_gpu(Layer l, NetworkState state)
         {
             ActivationsHelper.gradient_array_ongpu(l.OutputGpu, l.Outputs * l.Batch, l.Activation, l.DeltaGpu);
             Blas.axpy_ongpu(l.Outputs * l.Batch, 1, l.DeltaGpu, state.Delta);
@@ -4732,7 +4724,7 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void softmax_tree(float[] input, int batch, int inputs, float temp, Tree hierarchy, float[] output)
+        private static void softmax_tree(float[] input, int batch, int inputs, float temp, Tree hierarchy, float[] output)
         {
             int b;
             for (b = 0; b < batch; ++b)
@@ -4748,7 +4740,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_softmax_layer(Layer l, NetworkState state)
+        private static void forward_softmax_layer(Layer l, NetworkState state)
         {
             int b;
             int inputs = l.Inputs / l.Groups;
@@ -4766,7 +4758,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_softmax_layer(Layer l, NetworkState state)
+        private static void backward_softmax_layer(Layer l, NetworkState state)
         {
             int i;
             for (i = 0; i < l.Inputs * l.Batch; ++i)
@@ -4775,7 +4767,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void forward_softmax_layer_gpu(Layer l, NetworkState state)
+        private static void forward_softmax_layer_gpu(Layer l, NetworkState state)
         {
             int inputs = l.Inputs / l.Groups;
             int batch = l.Batch * l.Groups;
@@ -4796,7 +4788,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_softmax_layer_gpu(Layer layer, NetworkState state)
+        private static void backward_softmax_layer_gpu(Layer layer, NetworkState state)
         {
             Blas.axpy_ongpu(layer.Batch * layer.Inputs, 1, layer.DeltaGpu, state.Delta);
         }
@@ -4846,14 +4838,14 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        public static void update_rnn_layer(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_rnn_layer(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             update_connected_layer((l.InputLayer), batch, learningRate, momentum, decay);
             update_connected_layer((l.SelfLayer), batch, learningRate, momentum, decay);
             update_connected_layer((l.OutputLayer), batch, learningRate, momentum, decay);
         }
 
-        public static void forward_rnn_layer(Layer l, NetworkState state)
+        private static void forward_rnn_layer(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -4901,7 +4893,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_rnn_layer(Layer l, NetworkState state)
+        private static void backward_rnn_layer(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -4951,14 +4943,14 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void update_rnn_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
+        private static void update_rnn_layer_gpu(Layer l, int batch, float learningRate, float momentum, float decay)
         {
             update_connected_layer_gpu((l.InputLayer), batch, learningRate, momentum, decay);
             update_connected_layer_gpu((l.SelfLayer), batch, learningRate, momentum, decay);
             update_connected_layer_gpu((l.OutputLayer), batch, learningRate, momentum, decay);
         }
 
-        public static void forward_rnn_layer_gpu(Layer l, NetworkState state)
+        private static void forward_rnn_layer_gpu(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;
@@ -5006,7 +4998,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void backward_rnn_layer_gpu(Layer l, NetworkState state)
+        private static void backward_rnn_layer_gpu(Layer l, NetworkState state)
         {
             NetworkState s = new NetworkState();
             s.Train = state.Train;

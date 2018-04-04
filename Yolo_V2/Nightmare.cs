@@ -5,20 +5,9 @@ using Yolo_V2.Data;
 
 namespace Yolo_V2
 {
-    class Nightmare
+    public static class Nightmare
     {
-        private float abs_mean(float[] x, int n)
-        {
-            int i;
-            float sum = 0;
-            for (i = 0; i < n; ++i)
-            {
-                sum += Math.Abs(x[i]);
-            }
-            return sum / n;
-        }
-
-        public static void calculate_loss(float[] output, float[] delta, int n, float thresh)
+        private static void calculate_loss(float[] output, float[] delta, int n, float thresh)
         {
             int i;
             float mean = Utils.mean_array(output, n);
@@ -30,7 +19,7 @@ namespace Yolo_V2
             }
         }
 
-        public static void optimize_picture(Network net, Image orig, int maxLayer, float scale, float rate, float thresh, bool norm)
+        private static void optimize_picture(Network net, Image orig, int maxLayer, float scale, float rate, float thresh, bool norm)
         {
             net.N = maxLayer + 1;
 
@@ -74,7 +63,7 @@ namespace Yolo_V2
             LoadArgs.constrain_image(orig);
         }
 
-        public static void Smooth(Image recon, Image update, float lambda, int num)
+        private static void Smooth(Image recon, Image update, float lambda, int num)
         {
             int i, j, k;
             int ii, jj;
