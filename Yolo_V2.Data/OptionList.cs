@@ -6,7 +6,7 @@ namespace Yolo_V2.Data
 {
     public static class OptionList
     {
-        public static KeyValuePair[] read_data_cfg(string filename)
+        public static List<KeyValuePair> read_data_cfg(string filename)
         {
             if (!File.Exists(filename))
             {
@@ -36,7 +36,7 @@ namespace Yolo_V2.Data
                         break;
                 }
             }
-            return options.ToArray();
+            return options;
         }
 
         public static bool read_option(string s, List<KeyValuePair> options)
@@ -51,7 +51,7 @@ namespace Yolo_V2.Data
             return true;
         }
 
-        public static void option_unused(KeyValuePair[] l)
+        public static void option_unused(List<KeyValuePair> l)
         {
             foreach (var kvp in l)
             {
@@ -62,7 +62,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static string option_find(KeyValuePair[] l, string key)
+        public static string option_find(List<KeyValuePair> l, string key)
         {
             foreach (var kvp in l)
             {
@@ -76,7 +76,7 @@ namespace Yolo_V2.Data
             return null;
         }
 
-        public static string option_find_str(KeyValuePair[] l, string key, string def)
+        public static string option_find_str(List<KeyValuePair> l, string key, string def)
         {
             string v = option_find(l, key);
             if (!string.IsNullOrEmpty(v)) return v;
@@ -84,7 +84,7 @@ namespace Yolo_V2.Data
             return def;
         }
 
-        public static int option_find_int(KeyValuePair[] l, string key, int def)
+        public static int option_find_int(List<KeyValuePair> l, string key, int def)
         {
             string v = option_find(l, key);
             try
@@ -98,7 +98,7 @@ namespace Yolo_V2.Data
             return def;
         }
 
-        public static int option_find_int_quiet(KeyValuePair[] l, string key, int def)
+        public static int option_find_int_quiet(List<KeyValuePair> l, string key, int def)
         {
             string v = option_find(l, key);
             try
@@ -111,7 +111,7 @@ namespace Yolo_V2.Data
             return def;
         }
 
-        public static float option_find_float_quiet(KeyValuePair[] l, string key, float def)
+        public static float option_find_float_quiet(List<KeyValuePair> l, string key, float def)
         {
             string v = option_find(l, key);
             try
@@ -124,7 +124,7 @@ namespace Yolo_V2.Data
             return def;
         }
 
-        public static float option_find_float(KeyValuePair[] l, string key, float def)
+        public static float option_find_float(List<KeyValuePair> l, string key, float def)
         {
             string v = option_find(l, key);
             try

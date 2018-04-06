@@ -103,7 +103,7 @@ namespace Yolo_V2.Data
                 for (j = 0; j < Cols; ++j)
                 {
                     if (j > 0) lines.Append(",");
-                    lines.Append($"{Vals[i][j]:17g}");
+                    lines.Append($"{Vals[i][j]:F17}");
                 }
 
                 lines.AppendLine();

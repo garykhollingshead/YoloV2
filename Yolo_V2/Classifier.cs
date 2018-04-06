@@ -800,7 +800,7 @@ namespace Yolo_V2
 
                     Network.top_predictions(net, top, indexes);
 
-                    string buff = $"/home/pjreddie/tmp/threat_{count:06}";
+                    string buff = $"/home/pjreddie/tmp/threat_{count:D6}";
 
                     Console.Write($"\033[2J");
                     Console.Write($"\033[1;1H");

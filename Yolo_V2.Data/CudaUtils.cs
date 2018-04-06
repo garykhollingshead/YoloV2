@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Alea;
+using Alea.cuDNN;
 using Alea.CudaDnn;
 using Alea.CudaToolkit;
 using dim3 = Alea.dim3;
@@ -12,8 +13,7 @@ namespace Yolo_V2.Data
         public static bool UseGpu = false;
         private static Gpu gpu;
         public static int BlockSize = 512;
-        private static bool cudnnInit;
-        private static unsafe cudnnContext* cudnnHandle;
+
         private static bool cublasInit;
         private static unsafe cublasContext* cublasHandle;
         private static bool curandInit;
@@ -50,17 +50,6 @@ namespace Yolo_V2.Data
             return new dim3(x, y, 1);
         }
 
-        public static unsafe cudnnContext* cudnn_handle()
-        {
-            if (!cudnnInit)
-            {
-                cudnnContext* handle;
-                SafeCall(CuDnn.cudnnCreate(&handle));
-                cudnnInit = true;
-                cudnnHandle = handle;
-            }
-            return cudnnHandle;
-        }
 
         public static unsafe cublasContext* blas_handle()
         {
@@ -96,7 +85,7 @@ namespace Yolo_V2.Data
         {
             x = Gpu.CopyToHost(gpuX);
         }
-        
+
         public static void SafeCall(cublasStatus_t status)
         {
             if (status != cublasStatus_t.CUBLAS_STATUS_SUCCESS)
@@ -104,8 +93,8 @@ namespace Yolo_V2.Data
                 throw new InvalidOperationException(status.ToString());
             }
         }
-
-        private static void SafeCall(curandStatus status)
+        
+        public static void SafeCall(curandStatus status)
         {
             if (status != curandStatus.CURAND_STATUS_SUCCESS)
             {
@@ -113,12 +102,5 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static void SafeCall(cudnnStatus_t status)
-        {
-            if (status != cudnnStatus_t.CUDNN_STATUS_SUCCESS)
-            {
-                throw new InvalidOperationException(status.ToString());
-            }
-        }
     }
 }

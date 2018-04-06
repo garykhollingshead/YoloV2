@@ -12,13 +12,13 @@ namespace Yolo_V2
 
             float avgLoss = -1;
             string basec = Utils.Basecfg(cfgfile);
-            Console.Write($"%s\n", basec);
+            Console.Write($"{basec}\n");
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
             {
                 Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            Console.Write($"Learning Rate: {net.LearningRate}, Momentum: {net.Momentum}, Decay: {net.Decay}\n");
 
             string backupDirectory = "/home/pjreddie/backup/";
             int n = 50000;
@@ -37,7 +37,7 @@ namespace Yolo_V2
                 avgLoss = avgLoss * .95f + loss * .05f;
                 sw.Stop();
                 Console.Write(
-                    $"{Network.get_current_batch(net)}, {net.Seen / n:.3}: {loss}, {avgLoss} avg, {Network.get_current_rate(net)} rate, {sw.Elapsed.Seconds} seconds, {net.Seen} images\n");
+                    $"{Network.get_current_batch(net)}, {net.Seen / n:F3}: {loss}, {avgLoss} avg, {Network.get_current_rate(net)} rate, {sw.Elapsed.Seconds} seconds, {net.Seen} images\n");
                 if (net.Seen / n > epoch)
                 {
                     epoch = net.Seen / n;
@@ -62,13 +62,13 @@ namespace Yolo_V2
 
             float avgLoss = -1;
             string basec = Utils.Basecfg(cfgfile);
-            Console.Write($"%s\n", basec);
+            Console.Write($"{basec}\n");
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
             {
                 Parser.load_weights(net, weightfile);
             }
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
+            Console.Write($"Learning Rate: {net.LearningRate}, Momentum: {net.Momentum}, Decay: {net.Decay}\n");
 
             string backupDirectory = "/home/pjreddie/backup/";
             int n = 50000;
@@ -95,7 +95,7 @@ namespace Yolo_V2
                 avgLoss = avgLoss * .95f + loss * .05f;
                 sw.Stop();
                 Console.Write(
-                    $"{Network.get_current_batch(net)}, {net.Seen / n:.3}: {loss}, {avgLoss} avg, {Network.get_current_rate(net)} rate, {sw.Elapsed.Seconds} seconds, {net.Seen} images\n");
+                    $"{Network.get_current_batch(net)}, {net.Seen / n:F3}: {loss}, {avgLoss} avg, {Network.get_current_rate(net)} rate, {sw.Elapsed.Seconds} seconds, {net.Seen} images\n");
                 if (net.Seen / n > epoch)
                 {
                     epoch = net.Seen / n;
@@ -144,7 +144,7 @@ namespace Yolo_V2
                 int index = Utils.max_index(pred, 10);
                 int sclass = Utils.max_index(test.Y.Vals[i], 10);
                 if (index == sclass) avgAcc += 1;
-                Console.Write($"%4d: %.2f%%\n", i, 100f * avgAcc / (i + 1));
+                Console.Write($"{i}: {avgAcc / (i + 1):P}\n");
             }
         }
 
@@ -166,7 +166,7 @@ namespace Yolo_V2
             float[] acc = Network.network_accuracies(net, test, 2);
             avgAcc += acc[0];
             sw.Stop();
-            Console.Write($"top1: %f, %lf seconds, %d images\n", avgAcc, sw.Elapsed.Seconds, test.X.Rows);
+            Console.Write($"top1: {avgAcc}, {sw.Elapsed.Seconds} seconds, {test.X.Rows} images\n");
         }
 
         private static void extract_cifar()

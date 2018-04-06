@@ -43,12 +43,13 @@ namespace Yolo_V2
                         if (s > score) score = s;
                     }
 
-                    Console.Write($"I APPRECIATE THIS ARTWORK: %10.7f%%\n", score * 100);
+                    Console.Write($"I APPRECIATE THIS ARTWORK: {score:P}\n");
                     Console.Write($"[");
                     int upper = 30;
                     for (i = 0; i < upper; ++i)
                     {
-                        Console.Write($"%c", ((i + .5) < score * upper) ? 219 : ' ');
+                        char c = ((i + .5) < (score * upper)) ? (char)219 : ' ';
+                        Console.Write($"{c}" );
                     }
 
                     Console.Write($"]\n");

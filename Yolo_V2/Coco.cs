@@ -318,7 +318,7 @@ namespace Yolo_V2
                 }
 
                 Console.Error.Write(
-                    $"{i:5} {correct:5} {total:5}\tRPs/Img: {proposals/(i+1):.2}\tIOU: {avgIou * 100:.2}%\tRecall:{100.0 *correct / total:.2}%\n");
+                    $"{i} {correct} {total}\tRPs/Img: {proposals/(i+1):F2}\tIOU: {avgIou:P}\tRecall:{correct / total:P}\n");
                 
             }
         }

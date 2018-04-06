@@ -240,10 +240,6 @@ namespace Yolo_V2.Data
             for (i = 0; i < net.N; ++i)
             {
                 net.Layers[i].Batch = b;
-                if (net.Layers[i].LayerType == LayerType.Convolutional)
-                {
-                    net.Layers[i].cudnn_convolutional_setup();
-                }
             }
         }
 

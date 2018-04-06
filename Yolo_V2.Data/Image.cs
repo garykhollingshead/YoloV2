@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -13,27 +14,20 @@ namespace Yolo_V2.Data
         public int W;
         public int C;
         public float[] Data;
-        
-        public Image(int c = 0, int h = 0, int w = 0, float[] data = null, int start = 0)
+
+        public Image(int w = 0, int h = 0, int c = 0, float[] data = null, int start = 0)
         {
             C = c;
             H = h;
             W = w;
-            if (data != null )
+            if (data != null)
             {
-                if (start != 0)
-                {
-                    Data = new float[data.Length - start];
-                    Array.Copy(data, start, Data, 0, Data.Length);
-                }
-                else
-                {
-                    Data = data;
-                }
+                Data = new float[data.Length - start];
+                Array.Copy(data, start, Data, 0, Data.Length);
             }
             else
             {
-                Data = new float[h*w*c];
+                Data = new float[h * w * c];
             }
         }
 
@@ -42,7 +36,8 @@ namespace Yolo_V2.Data
             C = p.C;
             H = p.H;
             W = p.W;
-            Data = p.Data.ToArray();
+            Data = new float[p.Data.Length];
+            Array.Copy(p.Data, Data, Data.Length);
         }
 
         public Image(Mat src)
@@ -51,20 +46,21 @@ namespace Yolo_V2.Data
             H = src.Height;
             W = src.Width;
             Data = new float[C * W * H];
-            GCHandle hand = GCHandle.Alloc(Data, GCHandleType.Pinned);
-            using (var img2 = new Mat(src.Size, src.Depth, src.NumberOfChannels, hand.AddrOfPinnedObject(), src.Width * src.NumberOfChannels))
+            var byteData = src.GetData();
+            for (var i = 0; i < byteData.Length; ++i)
             {
-                CvInvoke.BitwiseNot(src, img2);
-                CvInvoke.BitwiseNot(img2, img2);
+                Data[i] = byteData[i];
             }
-            hand.Free();
         }
 
         public Mat ToMat()
         {
-            GCHandle hand = GCHandle.Alloc(Data, GCHandleType.Pinned);
-            var newMat = new Mat(new Size(W, H), DepthType.Cv8U, C, hand.AddrOfPinnedObject(), W * C);
-            hand.Free();
+            byte[] byteData = new byte[W * H * C];
+            for (var i = 0; i < Data.Length; ++i)
+            {
+                byteData[i] = (byte)Data[i];
+            }
+            var newMat = new Mat(new Size(W, H), DepthType.Cv8U, C);
             return newMat;
         }
     }

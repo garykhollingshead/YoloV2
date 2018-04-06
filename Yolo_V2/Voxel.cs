@@ -30,9 +30,9 @@ namespace Yolo_V2
                 }
                 Image ls = LoadArgs.crop_image(l, (l.W - w) / 2, (l.H - h) / 2, w, h);
                 Image rs = LoadArgs.crop_image(r, 105 + (r.W - w) / 2, (r.H - h) / 2 + shift, w, h);
-                string buff = $"{prefix}_{count:05}_l";
+                string buff = $"{prefix}_{count:D5}_l";
                 LoadArgs.save_image(ls, buff);
-                buff = $"{prefix}_{count:05}_r";
+                buff = $"{prefix}_{count:D5}_r";
                 LoadArgs.save_image(rs, buff);
                 ++count;
             }

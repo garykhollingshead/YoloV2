@@ -208,11 +208,11 @@ namespace Yolo_V2
                 string buff;
                 if (!string.IsNullOrEmpty(prefix))
                 {
-                    buff = $"{prefix}_{imbase}_{cfgbase}_{maxLayer}_{e:06}%s/%s_%s_%d_%06d";
+                    buff = $"{prefix}_{imbase}_{cfgbase}_{maxLayer}_{e:D6}";
                 }
                 else
                 {
-                    buff = $"{imbase}_{cfgbase}_{maxLayer}_{e:06}";
+                    buff = $"{imbase}_{cfgbase}_{maxLayer}_{e:D6}";
                 }
                 Console.Write($"%d %s\n", e, buff);
                 LoadArgs.save_image(im, buff);

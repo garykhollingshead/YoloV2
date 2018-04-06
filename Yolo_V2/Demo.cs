@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using System.Threading;
 using Emgu.CV;
+using Emgu.CV.CvEnum;
+using Emgu.CV.UI;
 using Yolo_V2.Data;
 using Yolo_V2.Data.Enums;
 
@@ -50,7 +52,7 @@ namespace Yolo_V2
             float[] x = detS.Data;
             float[] prediction = Network.network_predict(net, x);
 
-            Array.Copy(prediction, 0, prediction, demoIndex, l.Outputs);
+            Array.Copy(prediction, 0, predictions[demoIndex], 0, l.Outputs);
             Utils.mean_arrays(predictions, frames, l.Outputs, avg);
             l.Output = avg;
 
@@ -69,7 +71,7 @@ namespace Yolo_V2
             if (nms > 0) Box.do_nms(boxes, probs, l.W * l.H * l.N, l.Classes, nms);
             Console.Write($"\033[2J");
             Console.Write($"\033[1;1H");
-            Console.Write($"\nFPS:%.1f\n", fps);
+            Console.Write($"\nFPS:{fps:F1}\n", fps);
             Console.Write($"Objects:\n\n");
 
             images[demoIndex] = det;
@@ -106,6 +108,9 @@ namespace Yolo_V2
                 : new VideoCapture(camIndex))
             {
                 vidCap = capture;
+
+                CvInvoke.NamedWindow("Demo", NamedWindowType.Normal);
+                
                 if (!vidCap.IsOpened) Utils.Error("Couldn't connect to webcam.\n");
 
                 Layer l = net.Layers[net.N - 1];
@@ -144,7 +149,6 @@ namespace Yolo_V2
                 int count = 0;
                 var sw = new Stopwatch();
                 sw.Stop();
-
                 while (true)
                 {
                     ++count;
@@ -167,7 +171,7 @@ namespace Yolo_V2
                     }
                     else
                     {
-                        var buff = $"{prefix}_{count:08}";
+                        var buff = $"{prefix}_{count:D8}";
                         LoadArgs.save_image(disp, buff);
                     }
 

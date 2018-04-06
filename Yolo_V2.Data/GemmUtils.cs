@@ -1,6 +1,10 @@
 ﻿using System.Linq;
+using System.Runtime.CompilerServices;
 using Alea;
+using Alea.CSharp;
 using Alea.CudaToolkit;
+using Alea.Parallel;
+using dim3 = Alea.dim3;
 
 namespace Yolo_V2.Data
 {
@@ -22,12 +26,17 @@ namespace Yolo_V2.Data
         {
             for (var i = 0; i < m; ++i)
             {
+                var iapart = i * lda;
+                var icpart = i * ldc;
                 for (var ik = 0; ik < k; ++ik)
                 {
-                    float aPart = alpha * a[i * lda + ik];
-                    for (var ij = 0; ij < n; ++ij)
+                    float aPart = alpha * a[iapart + ik];
+                    var kbpart = ik * ldb;
+
+                    for (int ij = 0; ij < n; ++ij)
                     {
-                        c[i * ldc + ij] += aPart * b[ik * ldb + ij];
+
+                        c[icpart + ij] += aPart * b[kbpart + ij];
                     }
                 }
             }
@@ -113,26 +122,30 @@ namespace Yolo_V2.Data
                 gemm_tt(m, n, k, alpha, a, lda, b, ldb, c, ldc);
         }
 
-        public static unsafe void gemm_ongpu(int ta, int tb, int m, int n, int k, float alpha,
+        public static void gemm_ongpu(int ta, int tb, int m, int n, int k, float alpha,
             float[] a, int lda,
             float[] b, int ldb,
             float beta,
-            float[] c, int ldc)
+            ref float[] c, int ldc)
         {
-            using (var gpuA = Gpu.Default.AllocateDevice(a.ToArray()))
-            using (var gpuB = Gpu.Default.AllocateDevice(b.ToArray()))
-            using (var gpuC = Gpu.Default.AllocateDevice(c.ToArray()))
+            unsafe
             {
-                var handle = CudaUtils.blas_handle();
-                CudaUtils.SafeCall(CuBlas.cublasSgemm_v2(handle,
-                    (tb != 0 ? cublasOperation_t.CUBLAS_OP_T : cublasOperation_t.CUBLAS_OP_N),
-                    (ta != 0 ? cublasOperation_t.CUBLAS_OP_T : cublasOperation_t.CUBLAS_OP_N), n, m, k, &alpha, (float*)gpuB.Handle, ldb,
-                    (float*)gpuA.Handle, lda, &beta, (float*)gpuC.Handle, ldc));
-                a = Gpu.CopyToHost(gpuA);
-                b = Gpu.CopyToHost(gpuB);
-                c = Gpu.CopyToHost(gpuC);
+                using (var gpuA = Gpu.Default.AllocateDevice(a.ToArray()))
+                using (var gpuB = Gpu.Default.AllocateDevice(b.ToArray()))
+                using (var gpuC = Gpu.Default.AllocateDevice(c.ToArray()))
+                {
+                    var handle = CudaUtils.blas_handle();
+                    CudaUtils.SafeCall(CuBlas.cublasSgemm_v2(handle,
+                        (tb != 0 ? cublasOperation_t.CUBLAS_OP_T : cublasOperation_t.CUBLAS_OP_N),
+                        (ta != 0 ? cublasOperation_t.CUBLAS_OP_T : cublasOperation_t.CUBLAS_OP_N), n, m, k, &alpha,
+                        (float*)gpuB.Handle, ldb,
+                        (float*)gpuA.Handle, lda, &beta, (float*)gpuC.Handle, ldc));
+                    //a = Gpu.CopyToHost(gpuA);
+                    //b = Gpu.CopyToHost(gpuB);
+                    c = Gpu.CopyToHost(gpuC);
+                }
             }
-            
+
         }
     }
 }

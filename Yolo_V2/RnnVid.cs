@@ -41,7 +41,7 @@ namespace Yolo_V2
                         {
                             Image im = new Image(src);
 
-                            LoadArgs.rgbgr_image(im);
+                            //LoadArgs.rgbgr_image(im);
                             Image re = LoadArgs.resize_image(im, net.W, net.H);
                             Array.Copy(re.Data, 0, input, i * inputSize, inputSize);
                         }

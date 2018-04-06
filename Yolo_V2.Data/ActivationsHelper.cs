@@ -9,40 +9,63 @@ namespace Yolo_V2.Data
     {
         public static Activation Get_activation(string s)
         {
+            s = char.ToUpper(s[0]) + s.Substring(1);
             return (Activation)Enum.Parse(typeof(Activation), s);
         }
 
         private static float Activate(float x, Activation a)
         {
-            switch (a)
+            if (a == Activation.Linear)
+                return Linear_activate(x);
+            else if (a == Activation.Logistic)
             {
-                case Activation.Linear:
-                    return Linear_activate(x);
-                case Activation.Logistic:
-                    return Logistic_activate(x);
-                case Activation.Loggy:
-                    return Loggy_activate(x);
-                case Activation.Relu:
-                    return Relu_activate(x);
-                case Activation.Elu:
-                    return Elu_activate(x);
-                case Activation.Relie:
-                    return Relie_activate(x);
-                case Activation.Ramp:
-                    return Ramp_activate(x);
-                case Activation.Leaky:
-                    return Leaky_activate(x);
-                case Activation.Tanh:
-                    return Tanh_activate(x);
-                case Activation.Plse:
-                    return Plse_activate(x);
-                case Activation.Stair:
-                    return Stair_activate(x);
-                case Activation.Hardtan:
-                    return Hardtan_activate(x);
-                case Activation.Lhtan:
-                    return Lhtan_activate(x);
+                return Logistic_activate(x);
             }
+            else if (a == Activation.Loggy)
+            {
+                return Loggy_activate(x);
+            }
+            else if (a == Activation.Relu)
+            {
+                return Relu_activate(x);
+            }
+            else if (a == Activation.Elu)
+            {
+                return Elu_activate(x);
+            }
+            else if (a == Activation.Relie)
+            {
+                return Relie_activate(x);
+            }
+            else if (a == Activation.Ramp)
+            {
+                return Ramp_activate(x);
+            }
+            else if (a == Activation.Leaky)
+            {
+                return Leaky_activate(x);
+            }
+            else if (a == Activation.Tanh)
+            {
+                return Tanh_activate(x);
+            }
+            else if (a == Activation.Plse)
+            {
+                return Plse_activate(x);
+            }
+            else if (a == Activation.Stair)
+            {
+                return Stair_activate(x);
+            }
+            else if (a == Activation.Hardtan)
+            {
+                return Hardtan_activate(x);
+            }
+            else if (a == Activation.Lhtan)
+            {
+                return Lhtan_activate(x);
+            }
+
             return 0;
         }
 
@@ -152,7 +175,7 @@ namespace Yolo_V2.Data
 
         private static float Leaky_activate(float x)
         {
-            return (x > 0) ? x : 0.1f * x;
+            return (x >= 0) ? x : 0.1f * x;
         }
 
         private static float Tanh_activate(float x)
@@ -249,10 +272,10 @@ namespace Yolo_V2.Data
             if (i < n) x[i] = Activate(x[i], a);
         }
 
-        private static void gradient_array_kernel(float[] x, int n, Activation a, float[] delta)
+        private static void gradient_array_kernel(float[] x, int n, Activation a, float[] delta, int xStart = 0, int deltaStart = 0)
         {
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
-            if (i < n) delta[i] *= Gradient(x[i], a);
+            if (i < n) delta[i + deltaStart] *= Gradient(x[i + xStart], a);
         }
 
         [GpuManaged]
@@ -263,10 +286,10 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void gradient_array_ongpu(float[] x, int n, Activation a, float[] delta)
+        public static void gradient_array_ongpu(float[] x, int n, Activation a, float[] delta, int xStart = 0, int deltaStart = 0)
         {
             var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
-            Gpu.Default.Launch(gradient_array_kernel, lp, x, n, a, delta);
+            Gpu.Default.Launch(gradient_array_kernel, lp, x, n, a, delta, xStart, deltaStart);
         }
     }
 }

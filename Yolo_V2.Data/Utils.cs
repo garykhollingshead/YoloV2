@@ -23,7 +23,8 @@ namespace Yolo_V2.Data
         {
             if (backup == null || backup.Length == 0)
             {
-                backup = (float[])array.Clone();
+                backup = new float[array.Length];
+                Array.Copy(array, backup, backup.Length);
             }
             else
             {
@@ -209,7 +210,7 @@ namespace Yolo_V2.Data
         {
             float m = mean_array(a, n, aStart);
             float v = variance_array(a, n, aStart);
-            Console.WriteLine($"MSE: {mse_array(a, n, aStart):.6}, Mean: {m:.6}f, Variance: {v}f");
+            Console.WriteLine($"MSE: {mse_array(a, n, aStart):F6}, Mean: {m:F6}f, Variance: {v}f");
         }
 
         public static float variance_array(float[] a, int n, int aStart = 0)

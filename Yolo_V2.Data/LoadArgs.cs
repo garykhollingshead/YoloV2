@@ -227,7 +227,7 @@ namespace Yolo_V2.Data
 
                     int width = (int)(im.H * .012);
 
-                    Console.WriteLine($"{names[curClass]}: {prob * 100: .0}%");
+                    Console.WriteLine($"{names[curClass]}: {prob:P}");
                     int offset = curClass * 123457 % classes;
                     float red = get_color(2, offset, classes);
                     float green = get_color(1, offset, classes);
@@ -360,14 +360,15 @@ namespace Yolo_V2.Data
             int x, y, k;
             Image copy = new Image(p);
             constrain_image(copy);
-            if (p.C == 3) rgbgr_image(copy);
+            //if (p.C == 3) rgbgr_image(copy);
 
             string buff = name;
+            CvInvoke.NamedWindow(buff, NamedWindowType.Normal);
 
             using (Mat disp = copy.ToMat())
             {
-                ImageViewer.Show(disp, buff);
-
+                CvInvoke.Imshow(buff, disp);
+                CvInvoke.WaitKey(1);
                 Size size = new Size(disp.Width, disp.Height);
 
                 if (outputVideo == null)
@@ -427,7 +428,7 @@ namespace Yolo_V2.Data
                 using (Mat src = new Mat(filename, flag))
                 {
                     Image retImage = ipl_to_image(src);
-                    rgbgr_image(retImage);
+                    //rgbgr_image(retImage);
                     return retImage;
                 }
             }
@@ -445,8 +446,10 @@ namespace Yolo_V2.Data
             using (Mat src = cap.QueryFrame())
             {
                 if (src.IsEmpty) return new Image();
+
                 Image im = ipl_to_image(src);
-                rgbgr_image(im);
+
+                //rgbgr_image(im);
                 return im;
             }
         }
@@ -592,7 +595,7 @@ namespace Yolo_V2.Data
             Image c2 = crop_image(b, -10, shift, b.W, b.H);
             float d2 = Utils.dist_array(c2.Data, a.Data, a.W * a.H * a.C, 100);
 
-            Console.WriteLine("%d\n", shift);
+            Console.WriteLine($"{shift}\n");
 
             Image c = crop_image(b, delta, shift, a.W, a.H);
             int i;
