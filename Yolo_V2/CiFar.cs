@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using Emgu.CV;
+using Emgu.CV.CvEnum;
 using Yolo_V2.Data;
 
 namespace Yolo_V2
@@ -132,14 +134,16 @@ namespace Yolo_V2
             int i;
             for (i = 0; i < test.X.Rows; ++i)
             {
-                Mat im = new Mat(32, 32, 3, test.X.Vals[i]);
+                Mat im = new Mat(new Size(32, 32), DepthType.Cv8U, 3);
+                im.SetTo(test.X.Vals[i]);
 
-                float[] pred = new float[10];
+                byte[] pred = new byte[10];
 
-                float[] p = Network.network_predict(net, im.Data);
+                byte[] p = Network.network_predict(net, im.GetData());
                 Blas.Axpy_cpu(10, 1, p, pred);
+                im.SetTo(p);
                 LoadArgs.flip_image(im);
-                p = Network.network_predict(net, im.Data);
+                p = Network.network_predict(net, im.GetData());
                 Blas.Axpy_cpu(10, 1, p, pred);
 
                 int index = Utils.max_index(pred, 10);
@@ -178,8 +182,9 @@ namespace Yolo_V2
             Data.Data test = Data.Data.load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
             for (i = 0; i < train.X.Rows; ++i)
             {
-                using (Mat im = new Mat(32, 32, 3, train.X.Vals[i]).ToMat())
+                using (Mat im = new Mat(new Size(32, 32), DepthType.Cv8U, 3))
                 {
+                    im.SetTo(train.X.Vals[i]);
                     int sclass = Utils.max_index(train.Y.Vals[i], 10);
                     string buff = $"Data.Data/cifar/train/{i}_{labels[sclass]}";
                     LoadArgs.save_image_png(im, buff);
@@ -187,8 +192,9 @@ namespace Yolo_V2
             }
             for (i = 0; i < test.X.Rows; ++i)
             {
-                using (Mat im = new Mat(32, 32, 3, test.X.Vals[i]).ToMat())
+                using (Mat im = new Mat(new Size(32, 32), DepthType.Cv8U, 3))
                 {
+                    im.SetTo(train.X.Vals[i]);
                     int sclass = Utils.max_index(test.Y.Vals[i], 10);
                     string buff = $"Data.Data/cifar/test/{i}_{labels[sclass]}";
                     LoadArgs.save_image_png(im, buff);
@@ -212,8 +218,11 @@ namespace Yolo_V2
             int i;
             for (i = 0; i < test.X.Rows; ++i)
             {
-                Mat im = new Mat(32, 32, 3, test.X.Vals[i]);
-                LoadArgs.flip_image(im);
+                using (Mat im = new Mat(new Size(32, 32), DepthType.Cv8U, 3))
+                {
+                    im.SetTo(test.X.Vals[i]);
+                    LoadArgs.flip_image(im);
+                }
             }
             Matrix pred2 = Network.network_predict_data(net, test);
             pred.scale_matrix(.5f);
@@ -240,8 +249,11 @@ namespace Yolo_V2
             int i;
             for (i = 0; i < test.X.Rows; ++i)
             {
-                Mat im = new Mat(32, 32, 3, test.X.Vals[i]);
-                LoadArgs.flip_image(im);
+                using (Mat im = new Mat(new Size(32, 32), DepthType.Cv8U, 3))
+                {
+                    im.SetTo(test.X.Vals[i]);
+                    LoadArgs.flip_image(im);
+                }
             }
             Matrix pred2 = Network.network_predict_data(net, test);
             pred.scale_matrix(.5f);

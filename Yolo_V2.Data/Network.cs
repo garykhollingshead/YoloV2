@@ -713,6 +713,10 @@ namespace Yolo_V2.Data
         {
             //todo check why size
             int size = get_network_input_size(net) * net.Batch;
+            if (size != input.Length)
+            {
+                throw new Exception("input needs to be of size");
+            }
             NetworkState state = new NetworkState
             {
                 Index = 0,

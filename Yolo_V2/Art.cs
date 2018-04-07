@@ -32,7 +32,7 @@ namespace Yolo_V2
                         LoadArgs.show_image(ini, window);
                         CvInvoke.Resize(ini, ini, new System.Drawing.Size(net.W, net.H));
 
-                        float[] p = Network.network_predict(net, ini.GetData());
+                        byte[] p = Network.network_predict(net, ini.GetData());
 
                         Console.Clear();
                         Console.SetCursorPosition(1, 1);

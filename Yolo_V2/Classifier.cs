@@ -6,7 +6,6 @@ using System.Threading;
 using Emgu.CV;
 using Yolo_V2.Data;
 using Yolo_V2.Data.Enums;
-using Mat = Yolo_V2.Data.Mat;
 
 namespace Yolo_V2
 {
@@ -255,10 +254,10 @@ namespace Yolo_V2
                 images[7] = LoadArgs.crop_image(im, 0, 0, w, h);
                 images[8] = LoadArgs.crop_image(im, -shift, shift, w, h);
                 images[9] = LoadArgs.crop_image(im, shift, shift, w, h);
-                float[] pred = new float[classes];
+                byte[] pred = new byte[classes];
                 for (j = 0; j < 10; ++j)
                 {
-                    float[] p = Network.network_predict(net, images[j].Data);
+                    byte[] p = Network.network_predict(net, images[j].GetData());
                     if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(p, 0, net.Outputs, true);
                     Blas.Axpy_cpu(classes, 1, p, pred);
                 }
@@ -315,8 +314,8 @@ namespace Yolo_V2
                 }
                 Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
                 Mat resized = LoadArgs.resize_min(im, size);
-                Network.resize_network(net, resized.W, resized.H);
-                float[] pred = Network.network_predict(net, resized.Data);
+                Network.resize_network(net, resized.Width, resized.Height);
+                byte[] pred = Network.network_predict(net, resized.GetData());
                 if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(pred, 0, net.Outputs, true);
 
                 Utils.top_k(pred, classes, topk, indexes);
@@ -374,9 +373,9 @@ namespace Yolo_V2
                 }
                 Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
                 Mat resized = LoadArgs.resize_min(im, net.W);
-                Mat crop = LoadArgs.crop_image(resized, (resized.W - net.W) / 2, (resized.H - net.H) / 2, net.W, net.H);
-                float[] pred = Network.network_predict(net, crop.Data);
-                if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(pred, 0, net.Outputs, false);
+                Mat crop = LoadArgs.crop_image(resized, (resized.Width - net.W) / 2, (resized.Height - net.H) / 2, net.W, net.H);
+                byte[] pred = Network.network_predict(net, crop.GetData());
+                net.Hierarchy?.Hierarchy_predictions(pred, 0, net.Outputs, false);
 
                 Utils.top_k(pred, classes, topk, indexes);
 
@@ -431,17 +430,17 @@ namespace Yolo_V2
                         break;
                     }
                 }
-                float[] pred = new float[classes];
+                byte[] pred = new byte[classes];
                 Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
                 for (j = 0; j < nscales; ++j)
                 {
                     Mat r = LoadArgs.resize_min(im, scales[j]);
-                    Network.resize_network(net, r.W, r.H);
-                    float[] p = Network.network_predict(net, r.Data);
-                    if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(p, 0, net.Outputs, true);
+                    Network.resize_network(net, r.Width, r.Height);
+                    byte[] p = Network.network_predict(net, r.GetData());
+                    net.Hierarchy?.Hierarchy_predictions(p, 0, net.Outputs, true);
                     Blas.Axpy_cpu(classes, 1, p, pred);
                     LoadArgs.flip_image(r);
-                    p = Network.network_predict(net, r.Data);
+                    p = Network.network_predict(net, r.GetData());
                     Blas.Axpy_cpu(classes, 1, p, pred);
                 }
                 Utils.top_k(pred, classes, topk, indexes);
@@ -493,7 +492,7 @@ namespace Yolo_V2
                 }
                 Mat orig = LoadArgs.load_image_color(input, 0, 0);
                 Mat r = LoadArgs.resize_min(orig, 256);
-                Mat im = LoadArgs.crop_image(r, (r.W - 224 - 1) / 2 + 1, (r.H - 224 - 1) / 2 + 1, 224, 224);
+                Mat im = LoadArgs.crop_image(r, (r.Width - 224 - 1) / 2 + 1, (r.Height - 224 - 1) / 2 + 1, 224, 224);
                 float[] mean = { 0.48263312050943f, 0.45230225481413f, 0.40099074308742f };
                 float[] std = { 0.22590347483426f, 0.22120921437787f, 0.22103996251583f };
                 float[] var = new float[3];
@@ -501,7 +500,8 @@ namespace Yolo_V2
                 var[1] = std[1] * std[1];
                 var[2] = std[2] * std[2];
 
-                Blas.Normalize_cpu(im.Data, mean, var, 1, 3, im.W * im.H);
+                
+                Blas.Normalize_cpu(im.Data, mean, var, 1, 3, im.Width * im.Height);
 
                 float[] x = im.Data;
                 sw.Reset();
