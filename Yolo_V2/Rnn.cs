@@ -44,8 +44,8 @@ namespace Yolo_V2
 
         private static FloatPair get_rnn_token_data(int[] tokens, int[] offsets, int characters, int len, int batch, int steps)
         {
-            float[] x = new float[batch * steps * characters];
-            float[] y = new float[batch * steps * characters];
+            byte[] x = new byte[batch * steps * characters];
+            byte[] y = new byte[batch * steps * characters];
             int i, j;
             for (i = 0; i < batch; ++i)
             {
@@ -73,8 +73,8 @@ namespace Yolo_V2
 
         private static FloatPair get_rnn_data(byte[] text, int[] offsets, int characters, int len, int batch, int steps)
         {
-            float[] x = new float[batch * steps * characters];
-            float[] y = new float[batch * steps * characters];
+            byte[] x = new byte[batch * steps * characters];
+            byte[] y = new byte[batch * steps * characters];
             int i, j;
             for (i = 0; i < batch; ++i)
             {
@@ -246,7 +246,7 @@ namespace Yolo_V2
             for (i = 0; i < net.N; ++i) net.Layers[i].Temperature = temp;
             int c = 0;
             int len = seed.Length;
-            float[] input = new float[inputs];
+            byte[] input = new byte[inputs];
 
 
             for (i = 0; i < len - 1; ++i)
@@ -262,7 +262,7 @@ namespace Yolo_V2
             for (i = 0; i < num; ++i)
             {
                 input[c] = 1;
-                float[] outf = Network.network_predict(net, input);
+                byte[] outf = Network.network_predict(net, input);
                 input[c] = 0;
                 for (j = 0; j < inputs; ++j)
                 {
@@ -295,8 +295,8 @@ namespace Yolo_V2
 
             int i, j;
             for (i = 0; i < net.N; ++i) net.Layers[i].Temperature = temp;
-            float[] input = new float[inputs];
-            float[] outf = new float[0];
+            byte[] input = new byte[inputs];
+            byte[] outf = new byte[0];
             var inStream = Console.OpenStandardInput();
             var bytes = new byte[inStream.Length];
             inStream.Read(bytes, 0, bytes.Length);
@@ -342,7 +342,7 @@ namespace Yolo_V2
             int words = 1;
             int c;
             int len = seed.Length;
-            float[] input = new float[inputs];
+            byte[] input = new byte[inputs];
 
             for (var i = 0; i < len; ++i)
             {
@@ -364,7 +364,7 @@ namespace Yolo_V2
                 var next = readLine[i + 1];
                 if (next < 0 || next >= 255) Utils.Error("Out of range character");
                 input[c] = 1;
-                float[] outf = Network.network_predict(net, input);
+                byte[] outf = Network.network_predict(net, input);
                 input[c] = 0;
 
                 if (c == '.' && next == '\n') iIn = false;
@@ -399,7 +399,7 @@ namespace Yolo_V2
             int words = 1;
             int c;
             int len = seed.Length;
-            float[] input = new float[inputs];
+            byte[] input = new byte[inputs];
             for (var i = 0; i < len; ++i)
             {
                 c = seed[i];
@@ -422,7 +422,7 @@ namespace Yolo_V2
                 ++count;
                 if (next == ' ' || next == '\n' || next == '\t') ++words;
                 input[c] = 1;
-                float[] outf = Network.network_predict(net, input);
+                byte[] outf = Network.network_predict(net, input);
                 input[c] = 0;
                 sum += (float)Math.Log(outf[next]) / log2;
                 Console.Write($"%d Perplexity: %4.4f    Word Perplexity: %4.4f\n", count, (float)Math.Pow(2, -sum / count), (float)Math.Pow(2, -sum / words));
@@ -443,7 +443,7 @@ namespace Yolo_V2
 
             int c;
             int seedLen = seed.Length;
-            float[] input = new float[inputs];
+            byte[] input = new byte[inputs];
             int i;
             var inStream = Console.OpenStandardInput();
             var bytes = new byte[inStream.Length];
@@ -491,14 +491,14 @@ namespace Yolo_V2
                 Console.Error.Write($"usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", args[0], args[1]);
                 return;
             }
-            string filename = Utils.find_int_arg(args, "-file", "Data.Data/shakespeare.txt");
-            string seed = Utils.find_int_arg(args, "-seed", "\n\n");
-            int len = Utils.find_int_arg(args, "-len", 1000);
-            float temp = Utils.find_int_arg(args, "-temp", .7f);
-            int rseed = Utils.find_int_arg(args, "-srand", (int)DateTime.Now.Ticks);
+            string filename = Utils.find_value_arg(args, "-file", "Data.Data/shakespeare.txt");
+            string seed = Utils.find_value_arg(args, "-seed", "\n\n");
+            int len = Utils.find_value_arg(args, "-len", 1000);
+            float temp = Utils.find_value_arg(args, "-temp", .7f);
+            int rseed = Utils.find_value_arg(args, "-srand", (int)DateTime.Now.Ticks);
             bool clear = Utils.find_arg(args, "-clear");
             bool tokenized = Utils.find_arg(args, "-tokenized");
-            string tokens = Utils.find_int_arg(args, "-tokens", "");
+            string tokens = Utils.find_value_arg(args, "-tokens", "");
 
             string cfg = args[3];
             string weights = (args.Count > 4) ? args[4] : "";

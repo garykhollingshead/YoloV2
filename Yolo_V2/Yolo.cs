@@ -146,10 +146,10 @@ namespace Yolo_V2
             float iouThresh = .5f;
 
             int nthreads = 8;
-            Image[] val = new Image[nthreads];
-            Image[] valResized = new Image[nthreads];
-            Image[] buf = new Image[nthreads];
-            Image[] bufResized = new Image[nthreads];
+            Mat[] val = new Mat[nthreads];
+            Mat[] valResized = new Mat[nthreads];
+            Mat[] buf = new Mat[nthreads];
+            Mat[] bufResized = new Mat[nthreads];
             Thread[] thr = new Thread[nthreads];
 
             LoadArgs args = new LoadArgs();
@@ -189,10 +189,10 @@ namespace Yolo_V2
                 {
                     string path = paths[i + t - nthreads];
                     string id = Utils.Basecfg(path);
-                    float[] x = valResized[t].Data;
+                    byte[] x = valResized[t].GetData();
                     Network.network_predict(net, x);
-                    int w = val[t].W;
-                    int h = val[t].H;
+                    int w = val[t].Width;
+                    int h = val[t].Height;
                     l.get_detection_boxes(w, h, thresh, probs, boxes, false);
                     if (nms)
                     {
@@ -249,11 +249,11 @@ namespace Yolo_V2
             for (i = 0; i < m; ++i)
             {
                 string path = paths[i];
-                Image orig = LoadArgs.load_image_color(path, 0, 0);
-                Image sized = LoadArgs.resize_image(orig, net.W, net.H);
+                Mat orig = LoadArgs.load_image_color(path, 0, 0);
+                Mat sized = LoadArgs.resize_image(orig, net.W, net.H);
                 string id = Utils.Basecfg(path);
-                Network.network_predict(net, sized.Data);
-                l.get_detection_boxes(orig.W, orig.H, thresh, probs, boxes, true);
+                Network.network_predict(net, sized.GetData());
+                l.get_detection_boxes(orig.Width, orig.Height, thresh, probs, boxes, true);
 
                 string labelpath;
                 Utils.find_replace(path, "images", "labels", out labelpath);
@@ -296,7 +296,6 @@ namespace Yolo_V2
 
         private static void test_yolo(string cfgfile, string weightfile, string filename, float thresh)
         {
-            var alphabet = LoadArgs.load_alphabet();
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
             {
@@ -320,14 +319,14 @@ namespace Yolo_V2
                 }
                 else
                 {
-                    Console.Write($"Enter Image Path: ");
+                    Console.Write($"Enter Mat Path: ");
                     input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input)) return;
                     input = input.TrimEnd();
                 }
-                Image im = LoadArgs.load_image_color(input, 0, 0);
-                Image sized = LoadArgs.resize_image(im, net.W, net.H);
-                float[] x = sized.Data;
+                Mat im = LoadArgs.load_image_color(input, 0, 0);
+                Mat sized = LoadArgs.resize_image(im, net.W, net.H);
+                byte[] x = sized.GetData();
                 sw.Start();
                 Network.network_predict(net, x);
                 sw.Stop();
@@ -335,22 +334,23 @@ namespace Yolo_V2
                 l.get_detection_boxes(1, 1, thresh, probs, boxes, false);
                 Box.do_nms_sort(boxes, probs, l.Side * l.Side * l.N, l.Classes, nms);
 
-                LoadArgs.draw_detections(im, l.Side * l.Side * l.N, thresh, boxes, probs, VocNames, alphabet, 20);
-                LoadArgs.save_image(im, "predictions");
-                LoadArgs.show_image(im, "predictions");
+                    LoadArgs.draw_detections(im, l.Side * l.Side * l.N, thresh, boxes, probs, VocNames, 20);
+                    LoadArgs.save_image(im, "predictions");
+                    LoadArgs.show_image(im, "predictions");
 
-                CvInvoke.WaitKey();
-                CvInvoke.DestroyAllWindows();
+                    CvInvoke.WaitKey();
+                    CvInvoke.DestroyAllWindows();
+
                 if (!string.IsNullOrEmpty(filename)) break;
             }
         }
 
         public static void run_yolo(List<string> args)
         {
-            string prefix = Utils.find_int_arg(args, "-prefix", "");
-            float thresh = Utils.find_int_arg(args, "-thresh", .2f);
-            int camIndex = Utils.find_int_arg(args, "-c", 0);
-            int frameSkip = Utils.find_int_arg(args, "-s", 0);
+            string prefix = Utils.find_value_arg(args, "-prefix", "");
+            float thresh = Utils.find_value_arg(args, "-thresh", .2f);
+            int camIndex = Utils.find_value_arg(args, "-c", 0);
+            int frameSkip = Utils.find_value_arg(args, "-s", 0);
             if (args.Count < 4)
             {
                 Console.Error.Write($"usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", args[0], args[1]);

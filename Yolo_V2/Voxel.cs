@@ -20,16 +20,16 @@ namespace Yolo_V2
             VideoCapture rcap = new VideoCapture(rfile);
             while (true)
             {
-                Image l = LoadArgs.get_image_from_stream(lcap);
-                Image r = LoadArgs.get_image_from_stream(rcap);
-                if (l.W == 0 || r.W == 0) break;
+                Mat l = LoadArgs.get_image_from_stream(lcap);
+                Mat r = LoadArgs.get_image_from_stream(rcap);
+                if (l.Width == 0 || r.Width == 0) break;
                 if (count % 100 == 0)
                 {
-                    shift = LoadArgs.best_3d_shift_r(l, r, -l.H / 100, l.H / 100);
+                    shift = LoadArgs.best_3d_shift_r(l, r, -l.Height / 100, l.Height / 100);
                     Console.Write($"{shift}\n");
                 }
-                Image ls = LoadArgs.crop_image(l, (l.W - w) / 2, (l.H - h) / 2, w, h);
-                Image rs = LoadArgs.crop_image(r, 105 + (r.W - w) / 2, (r.H - h) / 2 + shift, w, h);
+                Mat ls = LoadArgs.crop_image(l, (l.Width - w) / 2, (l.Height - h) / 2, w, h);
+                Mat rs = LoadArgs.crop_image(r, 105 + (r.Width - w) / 2, (r.Height - h) / 2 + shift, w, h);
                 string buff = $"{prefix}_{count:D5}_l";
                 LoadArgs.save_image(ls, buff);
                 buff = $"{prefix}_{count:D5}_r";
@@ -124,19 +124,19 @@ namespace Yolo_V2
                 }
                 else
                 {
-                    Console.Write($"Enter Image Path: ");
+                    Console.Write($"Enter Mat Path: ");
                     input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input)) return;
                     input = input.TrimEnd();
                 }
-                Image im = LoadArgs.load_image_color(input, 0, 0);
-                Network.resize_network(net, im.W, im.H);
-                Console.Write($"%d %d\n", im.W, im.H);
+                Mat im = LoadArgs.load_image_color(input, 0, 0);
+                Network.resize_network(net, im.Width, im.Height);
+                Console.Write($"%d %d\n", im.Width, im.Height);
 
-                float[] x = im.Data;
+                byte[] x = im.GetData();
                 sw.Start();
                 Network.network_predict(net, x);
-                Image outi = Network.get_network_image(net);
+                Mat outi = Network.get_network_image(net);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
                 LoadArgs.save_image(outi, "outf");

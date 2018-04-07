@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Emgu.CV;
 using Yolo_V2.Data;
 
 namespace Yolo_V2
@@ -131,7 +132,7 @@ namespace Yolo_V2
             int i;
             for (i = 0; i < test.X.Rows; ++i)
             {
-                Image im = new Image(32, 32, 3, test.X.Vals[i]);
+                Mat im = new Mat(32, 32, 3, test.X.Vals[i]);
 
                 float[] pred = new float[10];
 
@@ -177,17 +178,21 @@ namespace Yolo_V2
             Data.Data test = Data.Data.load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
             for (i = 0; i < train.X.Rows; ++i)
             {
-                Image im = new Image(32, 32, 3, train.X.Vals[i]);
-                int sclass = Utils.max_index(train.Y.Vals[i], 10);
-                string buff = $"Data.Data/cifar/train/{i}_{labels[sclass]}";
-                LoadArgs.save_image_png(im, buff);
+                using (Mat im = new Mat(32, 32, 3, train.X.Vals[i]).ToMat())
+                {
+                    int sclass = Utils.max_index(train.Y.Vals[i], 10);
+                    string buff = $"Data.Data/cifar/train/{i}_{labels[sclass]}";
+                    LoadArgs.save_image_png(im, buff);
+                }
             }
             for (i = 0; i < test.X.Rows; ++i)
             {
-                Image im = new Image(32, 32, 3, test.X.Vals[i]);
-                int sclass = Utils.max_index(test.Y.Vals[i], 10);
-                string buff = $"Data.Data/cifar/test/{i}_{labels[sclass]}";
-                LoadArgs.save_image_png(im, buff);
+                using (Mat im = new Mat(32, 32, 3, test.X.Vals[i]).ToMat())
+                {
+                    int sclass = Utils.max_index(test.Y.Vals[i], 10);
+                    string buff = $"Data.Data/cifar/test/{i}_{labels[sclass]}";
+                    LoadArgs.save_image_png(im, buff);
+                }
             }
         }
 
@@ -207,7 +212,7 @@ namespace Yolo_V2
             int i;
             for (i = 0; i < test.X.Rows; ++i)
             {
-                Image im = new Image(32, 32, 3, test.X.Vals[i]);
+                Mat im = new Mat(32, 32, 3, test.X.Vals[i]);
                 LoadArgs.flip_image(im);
             }
             Matrix pred2 = Network.network_predict_data(net, test);
@@ -235,7 +240,7 @@ namespace Yolo_V2
             int i;
             for (i = 0; i < test.X.Rows; ++i)
             {
-                Image im = new Image(32, 32, 3, test.X.Vals[i]);
+                Mat im = new Mat(32, 32, 3, test.X.Vals[i]);
                 LoadArgs.flip_image(im);
             }
             Matrix pred2 = Network.network_predict_data(net, test);

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using Emgu.CV;
 using Yolo_V2.Data;
 using Yolo_V2.Data.Enums;
 
@@ -94,20 +95,19 @@ namespace Yolo_V2
                 }
                 else
                 {
-                    Console.Write($"Enter Image Path: ");
+                    Console.Write($"Enter Mat Path: ");
 
                     input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input)) return;
                     input = input.TrimEnd();
                 }
-                Image im = LoadArgs.load_image_color(input, 0, 0);
-                Network.resize_network(net, im.W, im.H);
-                Console.Write($"%d %d\n", im.W, im.H);
+                Mat im = LoadArgs.load_image_color(input, 0, 0);
+                Network.resize_network(net, im.Width, im.Height);
+                Console.Write($"%d %d\n", im.Width, im.Height);
 
-                float[] x = im.Data;
                 sw.Start();
-                Network.network_predict(net, x);
-                Image outi = Network.get_network_image(net);
+                Network.network_predict(net, im.GetData());
+                Mat outi = Network.get_network_image(net);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
                 LoadArgs.save_image(outi, "outf");

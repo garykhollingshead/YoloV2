@@ -162,11 +162,22 @@ namespace Yolo_V2.Data
             int i;
             for (i = 0; i < n; ++i) to[i + toStart] += alpha * from[i + fromStart];
         }
+        public static void Axpy_cpu(int n, float alpha, byte[] from, byte[] to, int fromStart = 0, int toStart = 0)
+        {
+            int i;
+            for (i = 0; i < n; ++i) to[i + toStart] += (byte)(alpha * from[i + fromStart]);
+        }
 
         public static void Scal_cpu(int n, float alpha, float[] x, int incx, int xStart = 0)
         {
             int i;
             for (i = 0; i < n; ++i) x[xStart + i * incx] *= alpha;
+        }
+
+        public static void Scal_cpu(int n, float alpha, byte[] x, int incx, int xStart = 0)
+        {
+            int i;
+            for (i = 0; i < n; ++i) x[xStart + i * incx] *= (byte)alpha;
         }
 
         public static void Fill_cpu(int n, float alpha, float[] x, int incx)
@@ -518,7 +529,7 @@ namespace Yolo_V2.Data
             if (i < n) x[i * incx] *= alpha;
         }
 
-        private static void fill_kernel(int n, float alpha, float[] x, int incx, int startx = 0)
+        private static void fill_kernel(int n, byte alpha, byte[] x, int incx, int startx = 0)
         {
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
             if (i < n) x[startx + i * incx] = alpha;
@@ -735,7 +746,7 @@ namespace Yolo_V2.Data
         }
 
         [GpuManaged]
-        public static void fill_ongpu(int n, float alpha, float[] x, int incx, int startx = 0)
+        public static void fill_ongpu(int n, byte alpha, byte[] x, int incx, int startx = 0)
         {
             var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
             Gpu.Default.Launch(fill_kernel, lp, n, alpha, x, incx, startx);

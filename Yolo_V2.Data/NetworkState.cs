@@ -2,13 +2,13 @@
 {
     public class NetworkState
     {
-        public float[] Truth;
+        public byte[] Truth;
         public int InputIndex;
-        public float[] InputBackup;
-        public float[] Input;
+        public byte[] InputBackup;
+        public byte[] Input;
         public int DeltaIndex;
-        public float[] DeltaBackup;
-        public float[] Delta;
+        public byte[] DeltaBackup;
+        public byte[] Delta;
         public float[] Workspace;
         public bool Train;
         public int Index;

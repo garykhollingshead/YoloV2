@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2.Data

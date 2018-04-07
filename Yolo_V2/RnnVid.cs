@@ -12,7 +12,7 @@ namespace Yolo_V2
         private static FloatPair get_rnn_vid_data(Network net, string[] files, int n, int batch, int steps)
         {
             int b;
-            Image outIm = Network.get_network_image(net);
+            Mat outIm = Network.get_network_image(net);
             int outputSize = outIm.W * outIm.H * outIm.C;
             Console.Write($"%d %d %d\n", outIm.W, outIm.H, outIm.C);
             float[] feats = new float[net.Batch * batch * outputSize];
@@ -39,10 +39,10 @@ namespace Yolo_V2
                     {
                         using (Mat src = cap.QueryFrame())
                         {
-                            Image im = new Image(src);
+                            Mat im = new Mat(src);
 
                             //LoadArgs.rgbgr_image(im);
-                            Image re = LoadArgs.resize_image(im, net.W, net.H);
+                            Mat re = LoadArgs.resize_image(im, net.W, net.H);
                             Array.Copy(re.Data, 0, input, i * inputSize, inputSize);
                         }
                     }
@@ -122,19 +122,19 @@ namespace Yolo_V2
             Parser.save_weights(net, buff2);
         }
 
-        private static Image save_reconstruction(Network net, Image init, float[] feat, string name, int i)
+        private static Mat save_reconstruction(Network net, Mat init, float[] feat, string name, int i)
         {
-            Image recon;
+            Mat recon;
             if (init != null)
             {
-                recon = new Image(init);
+                recon = new Mat(init);
             }
             else
             {
                 recon = LoadArgs.make_random_image(net.W, net.H, 3);
             }
 
-            Image update = new Image(net.W, net.H, 3);
+            Mat update = new Mat(net.W, net.H, 3);
             Nightmare.reconstruct_picture(net, feat, recon, update, .01f, .9f, .1f, 2, 50);
 
             string buff = $"{name}{i}";
@@ -160,11 +160,11 @@ namespace Yolo_V2
             float[] feat;
             float[] next;
             next = null;
-            Image last = null;
+            Mat last = null;
             for (i = 0; i < 25; ++i)
             {
-                Image im = LoadArgs.get_image_from_stream(cap);
-                Image re = LoadArgs.resize_image(im, extractor.W, extractor.H);
+                Mat im = LoadArgs.get_image_from_stream(cap);
+                Mat re = LoadArgs.resize_image(im, extractor.W, extractor.H);
                 feat = Network.network_predict(extractor, re.Data);
                 if (i > 0)
                 {
@@ -175,12 +175,12 @@ namespace Yolo_V2
                     Console.Write($"%f\n", Utils.mse_array(next, 14 * 14 * 512));
                 }
                 next = Network.network_predict(net, feat);
-                if (i == 24) last = new Image(re);
+                if (i == 24) last = new Mat(re);
             }
             for (i = 0; i < 30; ++i)
             {
                 next = Network.network_predict(net, next);
-                Image newi = save_reconstruction(extractor, last, next, "new", i);
+                Mat newi = save_reconstruction(extractor, last, next, "new", i);
                 last = newi;
             }
         }

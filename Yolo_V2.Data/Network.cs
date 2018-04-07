@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
+using Emgu.CV;
+using Emgu.CV.CvEnum;
 using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2.Data
@@ -17,7 +20,7 @@ namespace Yolo_V2.Data
         public float Decay;
         public Layer[] Layers;
         public int Outputs;
-        public float[] Output;
+        public byte[] Output;
         public LearningRatePolicy Policy;
 
         public float LearningRate;
@@ -49,16 +52,16 @@ namespace Yolo_V2.Data
 
         public Tree Hierarchy;
 
-        private float[] InputGpu;
-        private float[] TruthGpu;
+        private byte[] InputGpu;
+        private byte[] TruthGpu;
 
         public Network(int n)
         {
             N = n;
             Layers = new Layer[n];
             Seen = 0;
-            InputGpu = new float[0];
-            TruthGpu = new float[0];
+            InputGpu = new byte[0];
+            TruthGpu = new byte[0];
         }
 
         public static int get_current_batch(Network net)
@@ -131,7 +134,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static float[] get_network_output(Network net)
+        public static byte[] get_network_output(Network net)
         {
             if (CudaUtils.UseGpu) return get_network_output_gpu(net);
             int i;
@@ -157,11 +160,10 @@ namespace Yolo_V2.Data
 
         private static void backward_network(Network net, NetworkState state)
         {
-            int i;
-            float[] originalInput = state.Input;
-            float[] originalDelta = state.Delta;
+            var originalInput = state.Input;
+            var originalDelta = state.Delta;
             state.Workspace = net.Workspace;
-            for (i = net.N - 1; i >= 0; --i)
+            for (var i = net.N - 1; i >= 0; --i)
             {
                 state.Index = i;
                 if (i == 0)
@@ -180,7 +182,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static float train_network_datum(Network net, float[] x, float[] y)
+        public static float train_network_datum(Network net, byte[] x, byte[] y)
         {
             if (CudaUtils.UseGpu) return train_network_datum_gpu(net, x, y);
             NetworkState state = new NetworkState();
@@ -188,7 +190,7 @@ namespace Yolo_V2.Data
             state.Index = 0;
             state.Net = net;
             state.Input = x;
-            state.Delta = new float[0];
+            state.Delta = new byte[0];
             state.Truth = y;
             state.Train = true;
             forward_network(net, state);
@@ -201,8 +203,8 @@ namespace Yolo_V2.Data
         public static float train_network_sgd(Network net, Data d, int n)
         {
             int batch = net.Batch;
-            float[] x = new float[batch * d.X.Cols];
-            float[] y = new float[batch * d.Y.Cols];
+            byte[] x = new byte[batch * d.X.Cols];
+            byte[] y = new byte[batch * d.Y.Cols];
 
             int i;
             float sum = 0;
@@ -219,8 +221,8 @@ namespace Yolo_V2.Data
         {
             int batch = net.Batch;
             int n = d.X.Rows / batch;
-            float[] x = new float[batch * d.X.Cols];
-            float[] y = new float[batch * d.Y.Cols];
+            byte[] x = new byte[batch * d.X.Cols];
+            byte[] y = new byte[batch * d.Y.Cols];
 
             int i;
             float sum = 0;
@@ -333,25 +335,28 @@ namespace Yolo_V2.Data
             return net.Layers[0].Inputs;
         }
 
-        private static Image get_network_image_layer(Network net, int i)
+        private static Mat get_network_image_layer(Network net, int i)
         {
             Layer l = net.Layers[i];
+            var newMat = new Mat();
             if (l.OutW != 0 && l.OutH != 0 && l.OutC != 0)
             {
-                return new Image(l.OutW, l.OutH, l.OutC, l.Output);
+                newMat = new Mat(new Size(l.OutW, l.OutH), DepthType.Cv8U, l.OutC);
+                newMat.SetTo(l.Output);
             }
-            return new Image();
+            return newMat;
         }
 
-        public static Image get_network_image(Network net)
+        public static Mat get_network_image(Network net)
         {
             int i;
+            var newMat = new Mat();
             for (i = net.N - 1; i >= 0; --i)
             {
-                Image m = get_network_image_layer(net, i);
-                if (m.H != 0) return m;
+                newMat = get_network_image_layer(net, i);
+                if (newMat.Height != 0) break;
             }
-            return new Image();
+            return newMat;
         }
 
         public static void visualize_network(Network net)
@@ -372,11 +377,11 @@ namespace Yolo_V2.Data
         public static void top_predictions(Network net, int k, int[] index)
         {
             int size = get_network_output_size(net);
-            float[] outputF = get_network_output(net);
+            byte[] outputF = get_network_output(net);
             Utils.top_k(outputF, size, k, index);
         }
 
-        public static float[] network_predict(Network net, float[] input)
+        public static byte[] network_predict(Network net, byte[] input)
         {
             if (CudaUtils.UseGpu) return network_predict_gpu(net, input);
 
@@ -388,7 +393,7 @@ namespace Yolo_V2.Data
             state.Train = false;
             state.Delta = null;
             forward_network(net, state);
-            float[] outputF = get_network_output(net);
+            byte[] outputF = get_network_output(net);
             return outputF;
         }
 
@@ -397,7 +402,7 @@ namespace Yolo_V2.Data
             int i, j, b;
             int k = get_network_output_size(net);
             Matrix pred = new Matrix(test.X.Rows, k);
-            float[] x = new float[net.Batch * test.X.Cols];
+            byte[] x = new byte[net.Batch * test.X.Cols];
             for (i = 0; i < test.X.Rows; i += net.Batch)
             {
                 for (b = 0; b < net.Batch; ++b)
@@ -405,7 +410,7 @@ namespace Yolo_V2.Data
                     if (i + b == test.X.Rows) break;
                     Array.Copy(test.X.Vals[i + b], 0, x, b * test.X.Cols, test.X.Cols);
                 }
-                float[] outputF = network_predict(net, x);
+                byte[] outputF = network_predict(net, x);
                 for (b = 0; b < net.Batch; ++b)
                 {
                     if (i + b == test.X.Rows) break;
@@ -448,8 +453,8 @@ namespace Yolo_V2.Data
         {
             state.Workspace = net.Workspace;
             int i;
-            float[] originalInput = state.Input;
-            float[] originalDelta = state.Delta;
+            byte[] originalInput = state.Input;
+            byte[] originalDelta = state.Delta;
             for (i = net.N - 1; i >= 0; --i)
             {
                 state.Index = i;
@@ -482,7 +487,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static void forward_backward_network_gpu(Network net, float[] x, float[] y)
+        private static void forward_backward_network_gpu(Network net, byte[] x, byte[] y)
         {
             NetworkState state = new NetworkState();
             state.Index = 0;
@@ -492,8 +497,8 @@ namespace Yolo_V2.Data
             if (net.Layers[net.N - 1].Truths != 0) ySize = net.Layers[net.N - 1].Truths * net.Batch;
             if (!net.InputGpu.Any())
             {
-                net.InputGpu = (float[])x.Clone(); 
-                net.TruthGpu = (float[])y.Clone();
+                net.InputGpu = (byte[])x.Clone(); 
+                net.TruthGpu = (byte[])y.Clone();
             }
             else
             {
@@ -501,14 +506,14 @@ namespace Yolo_V2.Data
                 Array.Copy(y, net.TruthGpu, ySize);
             }
             state.Input = net.InputGpu;
-            state.Delta = new float[0];
+            state.Delta = new byte[0];
             state.Truth = net.TruthGpu;
             state.Train = true;
             forward_network_gpu(net, state);
             backward_network_gpu(net, state);
         }
 
-        private static float train_network_datum_gpu(Network net, float[] x, float[] y)
+        private static float train_network_datum_gpu(Network net, byte[] x, byte[] y)
         {
             net.Seen += net.Batch;
             forward_backward_network_gpu(net, x, y);
@@ -690,35 +695,35 @@ namespace Yolo_V2.Data
             return sum / (n);
         }
 
-        private static float[] get_network_output_layer_gpu(Network net, int i)
+        private static byte[] get_network_output_layer_gpu(Network net, int i)
         {
             Layer l = net.Layers[i];
             if (l.LayerType != LayerType.Region) Array.Copy(l.Output, l.OutputGpu, l.Outputs * l.Batch);
             return l.Output;
         }
 
-        private static float[] get_network_output_gpu(Network net)
+        private static byte[] get_network_output_gpu(Network net)
         {
             int i;
             for (i = net.N - 1; i > 0; --i) if (net.Layers[i].LayerType != LayerType.Cost) break;
             return get_network_output_layer_gpu(net, i);
         }
 
-        private static float[] network_predict_gpu(Network net, float[] input)
+        private static byte[] network_predict_gpu(Network net, byte[] input)
         {
+            //todo check why size
             int size = get_network_input_size(net) * net.Batch;
             NetworkState state = new NetworkState
             {
                 Index = 0,
                 Net = net,
-                Input = new float[size],
-                Truth = new float[0],
+                Input = input,
+                Truth = new byte[0],
                 Train = false,
-                Delta = new float[0]
+                Delta = new byte[0]
             };
-            Array.Copy(input, 0, state.Input, 0, size);
             forward_network_gpu(net, state);
-            float[] output = get_network_output_gpu(net);
+            byte[] output = get_network_output_gpu(net);
             return output;
         }
     }

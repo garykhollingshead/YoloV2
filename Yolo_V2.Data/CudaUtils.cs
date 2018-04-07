@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using Alea;
-using Alea.cuDNN;
 using Alea.CudaDnn;
 using Alea.CudaToolkit;
 using dim3 = Alea.dim3;
@@ -63,7 +62,7 @@ namespace Yolo_V2.Data
             return cublasHandle;
         }
         
-        public static unsafe void cuda_random(float[] x, ulong n)
+        public static unsafe void cuda_random(byte[] x, ulong n)
         {
             if (!curandInit)
             {
@@ -74,16 +73,20 @@ namespace Yolo_V2.Data
                 gen = handle;
             }
 
-            using (var gpuX = Gpu.Default.AllocateDevice(x.ToArray()))
+            var temp = Image.GetFloats(x);
+            using (var gpuX = Gpu.Default.AllocateDevice(temp))
             {
                 SafeCall(CuRand.curandGenerateUniform(gen, (float*)gpuX.Handle, n));
+
                 CopyValues(x, gpuX);
             }
         }
 
-        private static void CopyValues(float[] x, DeviceMemory<float> gpuX)
+        private static void CopyValues(byte[] x, DeviceMemory<float> gpuX)
         {
-            x = Gpu.CopyToHost(gpuX);
+            var temp = Gpu.CopyToHost(gpuX);
+            for (var i = 0; i < x.Length; ++i)
+                x[i] = (byte)temp[i];
         }
 
         public static void SafeCall(cublasStatus_t status)

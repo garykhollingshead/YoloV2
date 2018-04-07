@@ -2,7 +2,7 @@
 {
     public class FloatPair
     {
-        public float[] X;
-        public float[] Y;
+        public byte[] X;
+        public byte[] Y;
     }
 }

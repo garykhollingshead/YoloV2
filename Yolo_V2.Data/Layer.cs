@@ -1,15 +1,10 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using System.Linq;
 using Alea;
 using Alea.cuDNN;
 using Alea.CSharp;
 using Alea.CudaDnn;
-using Alea.IL.Reflection;
-using Alea.Interop;
 using Yolo_V2.Data.Enums;
-using DataType = Alea.cuDNN.DataType;
-using Marshal = System.Runtime.InteropServices.Marshal;
 
 namespace Yolo_V2.Data
 {
@@ -132,10 +127,10 @@ namespace Yolo_V2.Data
         private int[] InputSizes;
         private int DeltaIndex;
         private float[] DeltaBackup;
-        public float[] Delta;
+        public byte[] Delta;
         private int OutputIndex;
         private float[] OutputBackup;
-        public float[] Output;
+        public byte[] Output;
         private float[] Squared;
         private float[] Norms;
 
@@ -186,7 +181,7 @@ namespace Yolo_V2.Data
         private float[] ForgotDeltaGpu;
         private int StateGpuIndex;
         private float[] StateGpuBackup;
-        public float[] StateGpu;
+        public byte[] StateGpu;
 
         private float[] BinaryInputGpu;
         private float[] BinaryWeightsGpu;
@@ -219,10 +214,10 @@ namespace Yolo_V2.Data
 
         private int OutputGpuIndex;
         private float[] OutputGpuBackup;
-        public float[] OutputGpu;
+        public byte[] OutputGpu;
         private int DeltaGpuIndex;
         private float[] DeltaGpuBackup;
-        public float[] DeltaGpu;
+        public byte[] DeltaGpu;
         private float[] RandGpu;
         private float[] SquaredGpu;
         private float[] NormsGpu;
@@ -311,12 +306,12 @@ namespace Yolo_V2.Data
 
             Activation = activation;
 
-            Console.Error.WriteLine($"Local Layer: {h} x {w} x {c} Image, {n} filters . {outH} x {outW} x {n} Image");
+            Console.Error.WriteLine($"Local Layer: {h} x {w} x {c} Mat, {n} filters . {outH} x {outW} x {n} Mat");
         }
 
         public static Layer make_batchnorm_layer(int batch, int w, int h, int c)
         {
-            Console.Error.Write($"Batch Normalization Layer: {w} x {h} x {c} Image\n");
+            Console.Error.Write($"Batch Normalization Layer: {w} x {h} x {c} Mat\n");
             Layer l = new Layer();
             l.LayerType = LayerType.Batchnorm;
             l.Batch = batch;
@@ -852,13 +847,13 @@ namespace Yolo_V2.Data
             return (W + 2 * Pad - Size) / Stride + 1;
         }
 
-        private Image get_convolutional_image()
+        private Mat get_convolutional_image()
         {
             int h, w, c;
             h = convolutional_out_height();
             w = convolutional_out_width();
             c = N;
-            return new Image(w, h, c, Output);
+            return new Mat(w, h, c, Output);
         }
 
         private ulong get_workspace_size()
@@ -1201,14 +1196,14 @@ namespace Yolo_V2.Data
             Blas.Scal_cpu(size, momentum, l.WeightUpdates, 1);
         }
 
-        private Image get_convolutional_weight(int i)
+        private Mat get_convolutional_weight(int i)
         {
             int h = Size;
             int w = Size;
             int c = C;
             var temp = new float[WeightsComplete.Length - WeightsIndex - i * h * w * c];
             Array.Copy(WeightsComplete, WeightsIndex + i * h * w * c, temp, 0, temp.Length);
-            return new Image(w, h, c, temp);
+            return new Mat(w, h, c, temp);
         }
 
         public void rgbgr_weights()
@@ -1216,7 +1211,7 @@ namespace Yolo_V2.Data
             int i;
             for (i = 0; i < N; ++i)
             {
-                Image im = get_convolutional_weight(i);
+                Mat im = get_convolutional_weight(i);
                 if (im.C == 3)
                 {
                     //LoadArgs.rgbgr_image(im);
@@ -1229,7 +1224,7 @@ namespace Yolo_V2.Data
             int i;
             for (i = 0; i < N; ++i)
             {
-                Image im = get_convolutional_weight(i);
+                Mat im = get_convolutional_weight(i);
                 if (im.C == 3)
                 {
                     LoadArgs.scale_image(im, scale);
@@ -1239,24 +1234,24 @@ namespace Yolo_V2.Data
             }
         }
 
-        private Image[] get_weights()
+        private Mat[] get_weights()
         {
-            Image[] weights = new Image[N];
+            Mat[] weights = new Mat[N];
             int i;
             for (i = 0; i < N; ++i)
             {
-                weights[i] = new Image(get_convolutional_weight(i));
+                weights[i] = new Mat(get_convolutional_weight(i));
             }
             return weights;
         }
 
-        public Image[] visualize_convolutional_layer(string window)
+        public Mat[] visualize_convolutional_layer(string window)
         {
-            Image[] singleWeights = get_weights();
+            Mat[] singleWeights = get_weights();
             LoadArgs.show_images(singleWeights, N, window);
 
-            Image delta = get_convolutional_image();
-            Image dc = LoadArgs.collapse_image_layers(delta, 1);
+            Mat delta = get_convolutional_image();
+            Mat dc = LoadArgs.collapse_image_layers(delta, 1);
             string buff = $"{window}: Output";
             return singleWeights;
         }
@@ -1825,7 +1820,7 @@ namespace Yolo_V2.Data
 
         public static Layer make_crnn_layer(int batch, int h, int w, int c, int hiddenFilters, int outputFilters, int steps, Activation activation, bool batchNormalize)
         {
-            Console.Error.Write($"LayerType.Crnn Layer: {h} x {w} x {c} Image, {outputFilters} filters\n");
+            Console.Error.Write($"LayerType.Crnn Layer: {h} x {w} x {c} Mat, {outputFilters} filters\n");
             batch = batch / steps;
             Layer l = new Layer();
             l.Batch = batch;
@@ -2097,7 +2092,7 @@ namespace Yolo_V2.Data
 
         public static Layer make_crop_layer(int batch, int h, int w, int c, int cropHeight, int cropWidth, bool flip, float angle, float saturation, float exposure)
         {
-            Console.Error.Write($"Crop Layer: {h} x {w} . {cropHeight} x {cropWidth} x {c} Image\n");
+            Console.Error.Write($"Crop Layer: {h} x {w} . {cropHeight} x {cropWidth} x {c} Mat\n");
             Layer l = new Layer();
             l.LayerType = LayerType.Crop;
             l.Batch = batch;
@@ -2995,7 +2990,7 @@ namespace Yolo_V2.Data
 
         public static Layer make_normalization_layer(int batch, int w, int h, int c, int size, float alpha, float beta, float kappa)
         {
-            Console.Error.Write($"Local Response Normalization Layer: %d x %d x %d Image, %d size\n", w, h, c, size);
+            Console.Error.Write($"Local Response Normalization Layer: %d x %d x %d Mat, %d size\n", w, h, c, size);
             Layer l = new Layer();
             l.LayerType = LayerType.Normalization;
             l.Batch = batch;

@@ -27,41 +27,43 @@ namespace Yolo_V2
 
                 while (true)
                 {
-                    Image ini = LoadArgs.get_image_from_stream(cap);
-                    Image inS = LoadArgs.resize_image(ini, net.W, net.H);
-                    LoadArgs.show_image(ini, window);
-
-                    float[] p = Network.network_predict(net, inS.Data);
-
-                    Console.Write($"\033[2J");
-                    Console.Write($"\033[1;1H");
-
-                    float score = 0;
-                    for (i = 0; i < n; ++i)
+                    using (Mat ini = LoadArgs.get_image_from_stream(cap))
                     {
-                        float s = p[idx[i]];
-                        if (s > score) score = s;
+                        LoadArgs.show_image(ini, window);
+                        CvInvoke.Resize(ini, ini, new System.Drawing.Size(net.W, net.H));
+
+                        float[] p = Network.network_predict(net, ini.GetData());
+
+                        Console.Clear();
+                        Console.SetCursorPosition(1, 1);
+
+                        float score = 0;
+                        for (i = 0; i < n; ++i)
+                        {
+                            float s = p[idx[i]];
+                            if (s > score) score = s;
+                        }
+
+                        Console.Write($"I APPRECIATE THIS ARTWORK: {score:P}\n");
+                        Console.Write($"[");
+                        int upper = 30;
+                        for (i = 0; i < upper; ++i)
+                        {
+                            char c = ((i + .5) < (score * upper)) ? (char) 219 : ' ';
+                            Console.Write($"{c}");
+                        }
+
+                        Console.Write($"]\n");
+
+                        CvInvoke.WaitKey(1);
                     }
-
-                    Console.Write($"I APPRECIATE THIS ARTWORK: {score:P}\n");
-                    Console.Write($"[");
-                    int upper = 30;
-                    for (i = 0; i < upper; ++i)
-                    {
-                        char c = ((i + .5) < (score * upper)) ? (char)219 : ' ';
-                        Console.Write($"{c}" );
-                    }
-
-                    Console.Write($"]\n");
-
-                    CvInvoke.WaitKey(1);
                 }
             }
         }
 
         public static void run_art(List<string> args)
         {
-            int camIndex = Utils.find_int_arg(args, "-c", 0);
+            int camIndex = Utils.find_value_arg(args, "-c", 0);
             string cfg = args[2];
             string weights = args[3];
             demo_art(cfg, weights, camIndex);

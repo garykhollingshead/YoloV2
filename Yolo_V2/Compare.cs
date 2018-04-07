@@ -172,8 +172,8 @@ namespace Yolo_V2
             Network net = a.Net;
             int sclass = a.Sclass;
 
-            Image im1 = LoadArgs.load_image_color(a.Filename, net.W, net.H);
-            Image im2 = LoadArgs.load_image_color(b.Filename, net.W, net.H);
+            Mat im1 = LoadArgs.load_image_color(a.Filename, net.W, net.H);
+            Mat im2 = LoadArgs.load_image_color(b.Filename, net.W, net.H);
             float[] x = new float[net.W * net.H * net.C];
             Array.Copy(im1.Data, 0, x, 0, im1.Data.Length);
             Array.Copy(im2.Data, 0, x, im1.Data.Length, im2.Data.Length);
@@ -199,8 +199,8 @@ namespace Yolo_V2
 
         private static void bbox_fight(Network net, SortableBbox a, SortableBbox b, int classes, int sclass)
         {
-            Image im1 = LoadArgs.load_image_color(a.Filename, net.W, net.H);
-            Image im2 = LoadArgs.load_image_color(b.Filename, net.W, net.H);
+            Mat im1 = LoadArgs.load_image_color(a.Filename, net.W, net.H);
+            Mat im2 = LoadArgs.load_image_color(b.Filename, net.W, net.H);
             float[] x = new float[net.W * net.H * net.C];
             Array.Copy(im1.Data, 0, x, 0, im1.Data.Length);
             Array.Copy(im2.Data, 0, x, im1.Data.Length, im2.Data.Length);

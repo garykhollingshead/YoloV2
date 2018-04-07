@@ -180,10 +180,10 @@ namespace Yolo_V2
                 float iouThresh = .5f;
 
                 int nthreads = 8;
-                var val = new Image[nthreads];
-                var valResized = new Image[nthreads];
-                var buf = new Image[nthreads];
-                var bufResized = new Image[nthreads];
+                var val = new Mat[nthreads];
+                var valResized = new Mat[nthreads];
+                var buf = new Mat[nthreads];
+                var bufResized = new Mat[nthreads];
                 var thr = new Thread[nthreads];
 
                 LoadArgs args = new LoadArgs();
@@ -277,8 +277,8 @@ namespace Yolo_V2
             for (i = 0; i < m; ++i)
             {
                 string path = paths[i];
-                Image orig = LoadArgs.load_image_color(path, 0, 0);
-                Image sized = LoadArgs.resize_image(orig, net.W, net.H);
+                Mat orig = LoadArgs.load_image_color(path, 0, 0);
+                Mat sized = LoadArgs.resize_image(orig, net.W, net.H);
                 string id = Utils.Basecfg(path);
                 Network.network_predict(net, sized.Data);
                 l.get_detection_boxes( 1, 1, thresh, probs, boxes, true);
@@ -325,7 +325,6 @@ namespace Yolo_V2
 
         private static void test_coco(string cfgfile, string weightfile, string filename, float thresh)
         {
-            Image[][] alphabet = LoadArgs.load_alphabet();
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
             {
@@ -350,14 +349,14 @@ namespace Yolo_V2
                 }
                 else
                 {
-                    Console.Write($"Enter Image Path: ");
+                    Console.Write($"Enter Mat Path: ");
 
                     input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input)) return;
                     input = input.TrimEnd();
                 }
-                Image im = LoadArgs.load_image_color(input, 0, 0);
-                Image sized = LoadArgs.resize_image(im, net.W, net.H);
+                Mat im = LoadArgs.load_image_color(input, 0, 0);
+                Mat sized = LoadArgs.resize_image(im, net.W, net.H);
                 float[] x = sized.Data;
                 sw.Reset();
                 sw.Start();
@@ -366,21 +365,26 @@ namespace Yolo_V2
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
                 l.get_detection_boxes( 1, 1, thresh, probs, boxes, false);
                 if (nms != 0) Box.do_nms_sort(boxes, probs, l.Side * l.Side * l.N, l.Classes, nms);
-                LoadArgs.draw_detections(im, l.Side * l.Side * l.N, thresh, boxes, probs, CocoClasses, alphabet, 80);
-                LoadArgs.save_image(im, "prediction");
-                LoadArgs.show_image(im, "predictions");
-                CvInvoke.WaitKey();
-                CvInvoke.DestroyAllWindows();
+
+                using (var img = im.ToMat())
+                {
+                    LoadArgs.draw_detections(img, l.Side * l.Side * l.N, thresh, boxes, probs, CocoClasses, 80);
+                    LoadArgs.save_image(img, "prediction");
+                    LoadArgs.show_image(img, "predictions");
+                    CvInvoke.WaitKey();
+                    CvInvoke.DestroyAllWindows();
+                }
+
                 if (!string.IsNullOrEmpty(filename)) break;
             }
         }
 
         public static void run_coco(List<string> args)
         {
-            string prefix = Utils.find_int_arg(args, "-prefix", "");
-            float thresh = Utils.find_int_arg(args, "-thresh", .2f);
-            int camIndex = Utils.find_int_arg( args, "-c", 0);
-            int frameSkip = Utils.find_int_arg( args, "-s", 0);
+            string prefix = Utils.find_value_arg(args, "-prefix", "");
+            float thresh = Utils.find_value_arg(args, "-thresh", .2f);
+            int camIndex = Utils.find_value_arg( args, "-c", 0);
+            int frameSkip = Utils.find_value_arg( args, "-s", 0);
 
             if (args.Count < 4)
             {

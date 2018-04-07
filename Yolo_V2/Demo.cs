@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Threading;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
-using Emgu.CV.UI;
 using Yolo_V2.Data;
 using Yolo_V2.Data.Enums;
 
@@ -14,24 +13,23 @@ namespace Yolo_V2
         private static int frames = 3;
 
         private static string[] demoNames;
-        private static Image[][] demoAlphabet;
         private static int demoClasses;
          
         private static float[][] probs;
         private static Box[] boxes;
         private static Network net;
-        private static Image inputImage;
-        private static Image inS;
-        private static Image det;
-        private static Image detS;
-        private static Image disp = new Image();
+        private static Mat inputImage;
+        private static Mat inS;
+        private static Mat det;
+        private static Mat detS;
+        private static Mat disp = new Mat();
         private static VideoCapture vidCap;
         private static float fps;
         private static float demoThresh;
          
         private static float[][] predictions = new float[frames][];
         private static int demoIndex;
-        private static Image[] images = new Image[frames];
+        private static Mat[] images = new Mat[frames];
         private static float[] avg;
 
         private static void fetch_in_thread()
@@ -69,25 +67,26 @@ namespace Yolo_V2
                 Utils.Error("Last Layer must produce detections\n");
             }
             if (nms > 0) Box.do_nms(boxes, probs, l.W * l.H * l.N, l.Classes, nms);
-            Console.Write($"\033[2J");
-            Console.Write($"\033[1;1H");
+            Console.Clear();
+            Console.SetCursorPosition(1, 1);
             Console.Write($"\nFPS:{fps:F1}\n", fps);
             Console.Write($"Objects:\n\n");
 
             images[demoIndex] = det;
             det = images[(demoIndex + frames / 2 + 1) % frames];
             demoIndex = (demoIndex + 1) % frames;
-
-            LoadArgs.draw_detections(det, l.W * l.H * l.N, demoThresh, boxes, probs, demoNames, demoAlphabet, demoClasses);
+            using (var img = det.ToMat())
+            {
+                LoadArgs.draw_detections(img, l.W * l.H * l.N, demoThresh, boxes, probs, demoNames, demoClasses);
+                det = new Mat(img);
+            }
         }
 
         public static void DemoRun(string cfgfile, string weightfile, float thresh, int camIndex, string filename, string[] names, int classes, int frameSkip, string prefix)
         {
             //skip = frame_skip;
-            Image[][] alphabet = LoadArgs.load_alphabet();
             int delay = frameSkip;
             demoNames = names;
-            demoAlphabet = alphabet;
             demoClasses = classes;
             demoThresh = thresh;
             Console.Write($"Demo\n");
@@ -118,7 +117,7 @@ namespace Yolo_V2
 
                 avg = new float[l.Outputs];
                 for (j = 0; j < frames; ++j) predictions[j] = new float[l.Outputs];
-                for (j = 0; j < frames; ++j) images[j] = new Image(1, 1, 3);
+                for (j = 0; j < frames; ++j) images[j] = new Mat(1, 1, 3);
 
                 boxes = new Box[l.W * l.H * l.N];
                 probs = new float[l.W * l.H * l.N][];
@@ -157,22 +156,25 @@ namespace Yolo_V2
                     fetchThread.Start();
                     detectThread.Start();
 
-                    if (string.IsNullOrEmpty(prefix))
+                    using (var img = disp.ToMat())
                     {
-                        LoadArgs.show_image(disp, "Demo");
-                        int c = CvInvoke.WaitKey(1);
-                        if (c == 10)
+                        if (string.IsNullOrEmpty(prefix))
                         {
-                            if (frameSkip == 0) frameSkip = 60;
-                            else if (frameSkip == 4) frameSkip = 0;
-                            else if (frameSkip == 60) frameSkip = 4;
-                            else frameSkip = 0;
+                            LoadArgs.show_image(img, "Demo");
+                            int c = CvInvoke.WaitKey(1);
+                            if (c == 10)
+                            {
+                                if (frameSkip == 0) frameSkip = 60;
+                                else if (frameSkip == 4) frameSkip = 0;
+                                else if (frameSkip == 60) frameSkip = 4;
+                                else frameSkip = 0;
+                            }
                         }
-                    }
-                    else
-                    {
-                        var buff = $"{prefix}_{count:D8}";
-                        LoadArgs.save_image(disp, buff);
+                        else
+                        {
+                            var buff = $"{prefix}_{count:D8}";
+                            LoadArgs.save_image(img, buff);
+                        }
                     }
 
                     fetchThread.Join();

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using Emgu.CV;
+using Emgu.CV.CvEnum;
 using Yolo_V2.Data;
 
 namespace Yolo_V2
@@ -19,7 +21,7 @@ namespace Yolo_V2
             }
         }
 
-        private static void optimize_picture(Network net, Image orig, int maxLayer, float scale, float rate, float thresh, bool norm)
+        private static void optimize_picture(Network net, Mat orig, int maxLayer, float scale, float rate, float thresh, bool norm)
         {
             net.N = maxLayer + 1;
 
@@ -27,18 +29,21 @@ namespace Yolo_V2
             int dy = Utils.Rand.Next() % 16 - 8;
             bool flip = Utils.Rand.Next() % 2 != 0;
 
-            Image crop = LoadArgs.crop_image(orig, dx, dy, orig.W, orig.H);
-            Image im = LoadArgs.resize_image(crop, (int)(orig.W * scale), (int)(orig.H * scale));
-            if (flip) LoadArgs.flip_image(im);
+            Mat im = new Mat(orig, new Rectangle(dx, dy, orig.Width - dx, orig.Height - dy));
+            CvInvoke.Resize(im, im, new Size((int)(orig.Width * scale), (int)(orig.Height * scale)));
+            if (flip)
+                CvInvoke.Flip(im, im, FlipType.Horizontal);
 
-            Network.resize_network(net, im.W, im.H);
+            Network.resize_network(net, im.Width, im.Height);
             Layer last = net.Layers[net.N - 1];
 
-            Image delta = new Image(im.W, im.H, im.C);
+            Mat delta = new Mat(im.Width, im.Height, im.NumberOfChannels);
 
             NetworkState state = new NetworkState();
-            state.Input = (float[])im.Data.Clone();
-            state.Delta = (float[])im.Data.Clone();
+
+            var copy = new Mat(im);
+            state.Input = (float[])copy.Data.Clone();
+            state.Delta = (float[])copy.Data.Clone();
 
             Network.forward_network_gpu(net, state);
             Blas.copy_ongpu(last.Outputs, last.OutputGpu, last.DeltaGpu);
@@ -49,56 +54,65 @@ namespace Yolo_V2
 
             Network.backward_network_gpu(net, state);
 
-            Array.Copy(state.Delta, delta.Data, im.W * im.H * im.C);
+            Array.Copy(state.Delta, delta.Data, im.Width * im.Height * im.NumberOfChannels);
 
+            using (var outi = delta.ToMat())
+            {
+                if (flip) CvInvoke.Flip(outi, outi, FlipType.Horizontal);
 
-            if (flip) LoadArgs.flip_image(delta);
+                CvInvoke.Resize(outi, outi, new Size(orig.Width, orig.Height));
+                using (var outCrop = new Mat(outi, new Rectangle(-dx, -dy, orig.Width + dx, orig.Height + dy)))
+                {
+                    outi.SetTo(outCrop);
+                }
+                if (norm) CvInvoke.Normalize(outi, outi);
+                var bytes = orig.GetData();
+                Blas.Axpy_cpu(orig.Width * orig.Height * orig.NumberOfChannels, rate, outi.GetData(), bytes);
+                delta = new Mat(orig.Width, orig.Height, orig.NumberOfChannels, bytes);
+                Array.Copy(bytes, 0, state.Delta, 0, im.Width * im.Height * im.NumberOfChannels);
+            }
 
-            Image resized = LoadArgs.resize_image(delta, orig.W, orig.H);
-            Image outi = LoadArgs.crop_image(resized, -dx, -dy, orig.W, orig.H);
-
-            if (norm) Utils.normalize_array(outi.Data, outi.W * outi.H * outi.C);
-            Blas.Axpy_cpu(orig.W * orig.H * orig.C, rate, outi.Data, orig.Data);
-            
             LoadArgs.constrain_image(orig);
         }
 
-        private static void Smooth(Image recon, Image update, float lambda, int num)
+        private static void Smooth(Mat recon, Mat update, float lambda, int num)
         {
             int i, j, k;
             int ii, jj;
-            for (k = 0; k < recon.C; ++k)
+            var updateData = update.GetData();
+            var reconData = recon.GetData();
+            for (k = 0; k < recon.NumberOfChannels; ++k)
             {
-                for (j = 0; j < recon.H; ++j)
+                for (j = 0; j < recon.Height; ++j)
                 {
-                    for (i = 0; i < recon.W; ++i)
+                    for (i = 0; i < recon.Width; ++i)
                     {
-                        int outIndex = i + recon.W * (j + recon.H * k);
-                        for (jj = j - num; jj <= j + num && jj < recon.H; ++jj)
+                        int outIndex = i + recon.Width * (j + recon.Height * k);
+                        for (jj = j - num; jj <= j + num && jj < recon.Height; ++jj)
                         {
                             if (jj < 0) continue;
-                            for (ii = i - num; ii <= i + num && ii < recon.W; ++ii)
+                            for (ii = i - num; ii <= i + num && ii < recon.Width; ++ii)
                             {
                                 if (ii < 0) continue;
-                                int inIndex = ii + recon.W * (jj + recon.H * k);
-                                update.Data[outIndex] += lambda * (recon.Data[inIndex] - recon.Data[outIndex]);
+                                int inIndex = ii + recon.Width * (jj + recon.Height * k);
+                                updateData[outIndex] += (byte)(lambda * (reconData[inIndex] - reconData[outIndex]));
                             }
                         }
                     }
                 }
             }
+            update.SetTo(updateData);
         }
 
-        public static void reconstruct_picture(Network net, float[] features, Image recon, Image update, float rate, float momentum, float lambda, int smoothSize, int iters)
+        public static void reconstruct_picture(Network net, float[] features, Mat recon, Mat update, float rate, float momentum, float lambda, int smoothSize, int iters)
         {
-            int iter = 0;
-            for (iter = 0; iter < iters; ++iter)
+            for (var iter = 0; iter < iters; ++iter)
             {
-                Image delta = new Image(recon.W, recon.H, recon.C);
+                Mat delta = new Mat(recon.Width, recon.Height, recon.NumberOfChannels);
 
                 NetworkState state = new NetworkState();
                 state.Input = (float[])recon.Data.Clone();
-                state.Delta = (float[])delta.Data.Clone();
+                state.Delta = new float[delta.Data.Length];
                 state.Truth = new float[Network.get_network_output_size(net)];
                 Array.Copy(features, 0, state.Truth, 0, state.Truth.Length);
 
@@ -106,13 +120,16 @@ namespace Yolo_V2
                 Network.backward_network_gpu(net, state);
 
                 Array.Copy(state.Delta, delta.Data, delta.W * delta.H * delta.C);
-
-                Blas.Axpy_cpu(recon.W * recon.H * recon.C, 1, delta.Data, update.Data);
+                var updateFloats = Mat.GetFloats(update.GetData());
+                Blas.Axpy_cpu(recon.Width * recon.Height * recon.NumberOfChannels, 1, delta.Data, updateFloats);
+                update.SetTo(Mat.GetBytes(updateFloats));
                 Smooth(recon, update, lambda, smoothSize);
-
-                Blas.Axpy_cpu(recon.W * recon.H * recon.C, rate, update.Data, recon.Data);
-                Blas.Scal_cpu(recon.W * recon.H * recon.C, momentum, update.Data, 1);
-
+                var ubytes = update.GetData();
+                var rbytes = recon.GetData();
+                Blas.Axpy_cpu(recon.Width * recon.Height * recon.NumberOfChannels, rate, ubytes, rbytes);
+                Blas.Scal_cpu(recon.Width * recon.Height * recon.NumberOfChannels, momentum, ubytes, 1);
+                recon.SetTo(rbytes);
+                update.SetTo(ubytes);
                 LoadArgs.constrain_image(recon);
             }
         }
@@ -121,7 +138,7 @@ namespace Yolo_V2
         {
             if (args.Count < 4)
             {
-                Console.Error.Write($"usage: %s %s [cfg] [weights] [Image] [Layer] [options! (optional)]\n", args[0], args[1]);
+                Console.Error.Write($"usage: %s %s [cfg] [weights] [Mat] [Layer] [options! (optional)]\n", args[0], args[1]);
                 return;
             }
 
@@ -130,20 +147,20 @@ namespace Yolo_V2
             string input = args[4];
             int maxLayer = int.Parse(args[5]);
 
-            int range = Utils.find_int_arg(args, "-range", 1);
-            bool norm = Utils.find_int_arg(args, "-norm", 1) != 0;
-            int rounds = Utils.find_int_arg(args, "-rounds", 1);
-            int iters = Utils.find_int_arg(args, "-iters", 10);
-            int octaves = Utils.find_int_arg(args, "-octaves", 4);
-            float zoom = Utils.find_int_arg(args, "-zoom", 1);
-            float rate = Utils.find_int_arg(args, "-rate", .04f);
-            float thresh = Utils.find_int_arg(args, "-thresh", 1);
-            float rotate = Utils.find_int_arg(args, "-rotate", 0);
-            float momentum = Utils.find_int_arg(args, "-momentum", .9f);
-            float lambda = Utils.find_int_arg(args, "-lambda", .01f);
-            string prefix = Utils.find_int_arg(args, "-prefix", "");
+            int range = Utils.find_value_arg(args, "-range", 1);
+            bool norm = Utils.find_value_arg(args, "-norm", 1) != 0;
+            int rounds = Utils.find_value_arg(args, "-rounds", 1);
+            int iters = Utils.find_value_arg(args, "-iters", 10);
+            int octaves = Utils.find_value_arg(args, "-octaves", 4);
+            float zoom = Utils.find_value_arg(args, "-zoom", 1);
+            float rate = Utils.find_value_arg(args, "-rate", .04f);
+            float thresh = Utils.find_value_arg(args, "-thresh", 1);
+            float rotate = Utils.find_value_arg(args, "-rotate", 0);
+            float momentum = Utils.find_value_arg(args, "-momentum", .9f);
+            float lambda = Utils.find_value_arg(args, "-lambda", .01f);
+            string prefix = Utils.find_value_arg(args, "-prefix", "");
             bool reconstruct = Utils.find_arg(args, "-reconstruct");
-            int smoothSize = Utils.find_int_arg(args, "-smooth", 1);
+            int smoothSize = Utils.find_value_arg(args, "-smooth", 1);
 
             Network net = Parser.parse_network_cfg(cfg);
             Parser.load_weights(net, weights);
@@ -151,23 +168,23 @@ namespace Yolo_V2
             string imbase = Utils.Basecfg(input);
 
             Network.set_batch_network(net, 1);
-            Image im = LoadArgs.load_image_color(input, 0, 0);
-            
+            Mat im = LoadArgs.load_image_color(input, 0, 0).ToMat();
+
             float[] features = new float[0];
-            Image update = null;
+            Mat update = null;
             if (reconstruct)
             {
-                Network.resize_network(net, im.W, im.H);
+                Network.resize_network(net, im.Width, im.Height);
 
                 int zz = 0;
-                Network.network_predict(net, im.Data);
-                Image outIm = Network.get_network_image(net);
-                Image crop = LoadArgs.crop_image(outIm, zz, zz, outIm.W - 2 * zz, outIm.H - 2 * zz);
-                Image fIm = LoadArgs.resize_image(crop, outIm.W, outIm.H);
+                var imData = Mat.GetFloats(im.GetData());
+                Network.network_predict(net, imData);
+                Mat outIm = Network.get_network_image(net);
+                Mat crop = LoadArgs.crop_image(outIm, zz, zz, outIm.W - 2 * zz, outIm.H - 2 * zz);
+                Mat fIm = LoadArgs.resize_image(crop, outIm.W, outIm.H);
                 Console.Write($"%d features\n", outIm.W * outIm.H * outIm.C);
 
-
-                im = LoadArgs.resize_image(im, im.W, im.H);
+                CvInvoke.Resize(im, im, new Size(im.Width, im.Height));
                 fIm = LoadArgs.resize_image(fIm, fIm.W, fIm.H);
                 features = fIm.Data;
 
@@ -178,7 +195,7 @@ namespace Yolo_V2
                 }
 
                 im = LoadArgs.make_random_image(im.W, im.H, im.C);
-                update = new Image(im.W, im.H, im.C);
+                update = new Mat(im.W, im.H, im.C).ToMat();
 
             }
 
@@ -216,16 +233,16 @@ namespace Yolo_V2
                 }
                 Console.Write($"%d %s\n", e, buff);
                 LoadArgs.save_image(im, buff);
-                //LoadArgs.show_image(im, buff);
-                //CvInvoke.WaitKey();
+                
+                CvInvoke.WaitKey();
 
                 if (rotate != 0)
                 {
-                    Image rot = LoadArgs.rotate_image(im, rotate);
+                    Mat rot = LoadArgs.rotate_image(im, rotate);
                     im = rot;
                 }
-                Image crop = LoadArgs.crop_image(im, (int)(im.W * (1f - zoom) / 2f), (int)(im.H * (1f - zoom) / 2f), (int)(im.W * zoom), (int)(im.H * zoom));
-                Image resized = LoadArgs.resize_image(crop, im.W, im.H);
+                Mat crop = LoadArgs.crop_image(im, (int)(im.W * (1f - zoom) / 2f), (int)(im.H * (1f - zoom) / 2f), (int)(im.W * zoom), (int)(im.H * zoom));
+                Mat resized = LoadArgs.resize_image(crop, im.W, im.H);
                 im = resized;
             }
         }

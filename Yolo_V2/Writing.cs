@@ -28,15 +28,15 @@ namespace Yolo_V2
             var sw = new Stopwatch();
             int n = paths.Length;
             Console.Write($"N: %d\n", n);
-            Image outf = Network.get_network_image(net);
+            Mat outf = Network.get_network_image(net);
 
             Data.Data buffer = new Data.Data();
 
             LoadArgs args = new LoadArgs();
             args.W = net.W;
             args.H = net.H;
-            args.OutW = outf.W;
-            args.OutH = outf.H;
+            args.OutW = outf.Width;
+            args.OutH = outf.Height;
             args.Paths = paths;
             args.N = imgs;
             args.M = n;
@@ -99,26 +99,26 @@ namespace Yolo_V2
                 }
                 else
                 {
-                    Console.Write($"Enter Image Path: ");
+                    Console.Write($"Enter Mat Path: ");
 
                     input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input)) return;
                     input = input.TrimEnd();
                 }
 
-                Image im = LoadArgs.load_image_color(input, 0, 0);
-                Network.resize_network(net, im.W, im.H);
-                Console.Write($"%d %d %d\n", im.H, im.W, im.C);
-                float[] x = im.Data;
+                Mat im = LoadArgs.load_image_color(input, 0, 0);
+                Network.resize_network(net, im.Width, im.Height);
+                Console.Write($"%d %d %d\n", im.Height, im.Width, im.NumberOfChannels);
+                byte[] x = im.GetData();
                 sw.Reset();
                 sw.Start();
                 Network.network_predict(net, x);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
-                Image pred = Network.get_network_image(net);
+                Mat pred = Network.get_network_image(net);
 
-                Image upsampled = LoadArgs.resize_image(pred, im.W, im.H);
-                Image thresh = LoadArgs.threshold_image(upsampled, .5f);
+                Mat upsampled = LoadArgs.resize_image(pred, im.Width, im.Height);
+                Mat thresh = LoadArgs.threshold_image(upsampled, .5f);
                 pred = thresh;
 
                 LoadArgs.show_image(pred, "prediction");

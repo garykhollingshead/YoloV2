@@ -275,10 +275,10 @@ namespace Yolo_V2
                 float nms = .45f;
 
                 int nthreads = 4;
-                Image[] val = new Image[nthreads];
-                Image[] valResized = new Image[nthreads];
-                Image[] buf = new Image[nthreads];
-                Image[] bufResized = new Image[nthreads];
+                Mat[] val = new Mat[nthreads];
+                Mat[] valResized = new Mat[nthreads];
+                Mat[] buf = new Mat[nthreads];
+                Mat[] bufResized = new Mat[nthreads];
                 Thread[] thr = new Thread[nthreads];
 
                 LoadArgs args = new LoadArgs();
@@ -315,10 +315,10 @@ namespace Yolo_V2
                     {
                         string path = paths[i + t - nthreads];
                         string id = Utils.Basecfg(path);
-                        float[] x = valResized[t].Data;
+                        byte[] x = valResized[t].GetData();
                         Network.network_predict(net, x);
-                        int w = val[t].W;
-                        int h = val[t].H;
+                        int w = val[t].Width;
+                        int h = val[t].Height;
                         Layer.get_region_boxes(l, w, h, thresh, probs, boxes, false, map);
                         if (nms != 0) Box.do_nms_sort(boxes, probs, l.W * l.H * l.N, classes, nms);
                         if (coco)
@@ -391,10 +391,10 @@ namespace Yolo_V2
             for (i = 0; i < m; ++i)
             {
                 string path = paths[i];
-                Image orig = LoadArgs.load_image_color(path, 0, 0);
-                Image sized = LoadArgs.resize_image(orig, net.W, net.H);
+                Mat orig = LoadArgs.load_image_color(path, 0, 0);
+                Mat sized = LoadArgs.resize_image(orig, net.W, net.H);
                 string id = Utils.Basecfg(path);
-                Network.network_predict(net, sized.Data);
+                Network.network_predict(net, sized.GetData());
                 Layer.get_region_boxes(l, 1, 1, thresh, probs, boxes, true, new int[0]);
                 if (nms != 0) Box.do_nms(boxes, probs, l.W * l.H * l.N, 1, nms);
 
@@ -443,7 +443,6 @@ namespace Yolo_V2
             string nameList = OptionList.option_find_str(options, "names", "Data.Data/names.list");
             string[] names = Data.Data.get_labels(nameList);
 
-            Image[][] alphabet = LoadArgs.load_alphabet();
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
             {
@@ -464,43 +463,45 @@ namespace Yolo_V2
                 }
                 else
                 {
-                    Console.Write($"Enter Image Path: ");
+                    Console.Write($"Enter Mat Path: ");
 
                     input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input)) return;
                     input = input.TrimEnd();
                 }
-                Image im = LoadArgs.load_image_color(input, 0, 0);
-                Image sized = LoadArgs.resize_image(im, net.W, net.H);
+                Mat im = LoadArgs.load_image_color(input, 0, 0);
+                Mat sized = LoadArgs.resize_image(im, net.W, net.H);
                 Layer l = net.Layers[net.N - 1];
 
                 Box[] boxes = new Box[l.W * l.H * l.N];
                 float[][] probs = new float[l.W * l.H * l.N][];
                 for (j = 0; j < l.W * l.H * l.N; ++j) probs[j] = new float[l.Classes];
 
-                float[] x = sized.Data;
+                byte[] x = sized.GetData();
                 sw.Start();
                 Network.network_predict(net, x);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
                 Layer.get_region_boxes(l, 1, 1, thresh, probs, boxes, false, new int[0]);
                 if (nms != 0) Box.do_nms_sort(boxes, probs, l.W * l.H * l.N, l.Classes, nms);
-                LoadArgs.draw_detections(im, l.W * l.H * l.N, thresh, boxes, probs, names, alphabet, l.Classes);
-                LoadArgs.save_image(im, "predictions");
-                LoadArgs.show_image(im, "predictions");
 
-                CvInvoke.WaitKey();
-                CvInvoke.DestroyAllWindows();
+                    LoadArgs.draw_detections(im, l.W * l.H * l.N, thresh, boxes, probs, names, l.Classes);
+                    LoadArgs.save_image(im, "predictions");
+                    LoadArgs.show_image(im, "predictions");
+
+                    CvInvoke.WaitKey();
+                    CvInvoke.DestroyAllWindows();
+
                 if (!string.IsNullOrEmpty(filename)) break;
             }
         }
 
         public static void run_detector(List<string> args)
         {
-            string prefix = Utils.find_int_arg(args, "-prefix", "");
-            float thresh = Utils.find_int_arg(args, "-thresh", .24f);
-            int camIndex = Utils.find_int_arg(args, "-c", 0);
-            int frameSkip = Utils.find_int_arg(args, "-s", 0);
+            string prefix = Utils.find_value_arg(args, "-prefix", "");
+            float thresh = Utils.find_value_arg(args, "-thresh", .24f);
+            int camIndex = Utils.find_value_arg(args, "-c", 0);
+            int frameSkip = Utils.find_value_arg(args, "-s", 0);
             if (args.Count < 4)
             {
                 Console.Error.Write($"usage: %s %s [train/test/valid] [cfg] [weights (optional)]\n", args[0], args[1]);

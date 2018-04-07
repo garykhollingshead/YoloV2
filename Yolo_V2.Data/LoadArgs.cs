@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
-using Emgu.CV.UI;
+using Emgu.CV.Structure;
 using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2.Data
@@ -36,8 +35,8 @@ namespace Yolo_V2.Data
         public float Exposure;
         public float Hue;
         public Data D;
-        public Image Im;
-        public Image Resized;
+        public Mat Im;
+        public Mat Resized;
         public DataType Type;
         public Tree Hierarchy;
 
@@ -63,7 +62,7 @@ namespace Yolo_V2.Data
             return (1 - ratio) * colors[i][c] + ratio * colors[j][c];
         }
 
-        private static void composite_image(Image source, Image dest, int dx, int dy)
+        private static void composite_image(Mat source, Mat dest, int dx, int dy)
         {
             int x, y, k;
             for (k = 0; k < source.C; ++k)
@@ -80,9 +79,9 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static Image border_image(Image a, int border)
+        private static Mat border_image(Mat a, int border)
         {
-            Image b = new Image(a.W + 2 * border, a.H + 2 * border, a.C);
+            Mat b = new Mat(a.W + 2 * border, a.H + 2 * border, a.C);
             int x, y, k;
             for (k = 0; k < b.C; ++k)
             {
@@ -100,121 +99,30 @@ namespace Yolo_V2.Data
             return b;
         }
 
-        private static Image tile_images(Image a, Image b, int dx)
+        private static Mat tile_images(Mat a, Mat b, int dx)
         {
             if (a.W == 0)
             {
-                return new Image(b);
+                return new Mat(b);
             }
-            Image c = new Image(a.W + b.W + dx, (a.H > b.H) ? a.H : b.H, (a.C > b.C) ? a.C : b.C);
+            Mat c = new Mat(a.W + b.W + dx, (a.H > b.H) ? a.H : b.H, (a.C > b.C) ? a.C : b.C);
             Blas.Fill_cpu(c.W * c.H * c.C, 1, c.Data, 1);
             embed_image(a, c, 0, 0);
             composite_image(b, c, a.W + dx, 0);
             return c;
         }
 
-        private static Image get_label(Image[][] characters, string lbl, int size)
+        private static void draw_label(Mat img, int x, int y, string label, float blue, float green, float red)
         {
-            if (size > 7) size = 7;
-            Image label = new Image();
-            foreach (var c in lbl)
-            {
-                Image l = characters[size][c];
-                Image n = tile_images(label, l, -size - 1 + (size + 1) / 2);
-                label = n;
-            }
-
-            return border_image(label, (int)(label.H * .25));
+            CvInvoke.PutText(img, label, new Point(x, y - 20), FontFace.HersheyPlain, 1.25, new MCvScalar(blue, green, red), 2);
         }
 
-        private static void draw_label(Image a, int r, int c, Image label, float[] rgb)
+        public static void draw_box(Mat img, int x, int y, int width, int height, int thickness, float blue, float green, float red)
         {
-            int w = label.W;
-            int h = label.H;
-            if (r - h >= 0) r = r - h;
-
-            int i, j, k;
-            for (j = 0; j < h && j + r < a.H; ++j)
-            {
-                for (i = 0; i < w && i + c < a.W; ++i)
-                {
-                    for (k = 0; k < label.C; ++k)
-                    {
-                        float val = get_pixel(label, i, j, k);
-                        set_pixel(a, i + c, j + r, k, rgb[k] * val);
-                    }
-                }
-            }
+            CvInvoke.Rectangle(img, new Rectangle(x, y, width, height), new MCvScalar(blue, green, red), thickness);
         }
 
-        private static void draw_box(Image a, int x1, int y1, int x2, int y2, float r, float g, float b)
-        {
-            //normalize_image(a);
-            int i;
-            if (x1 < 0) x1 = 0;
-            if (x1 >= a.W) x1 = a.W - 1;
-            if (x2 < 0) x2 = 0;
-            if (x2 >= a.W) x2 = a.W - 1;
-
-            if (y1 < 0) y1 = 0;
-            if (y1 >= a.H) y1 = a.H - 1;
-            if (y2 < 0) y2 = 0;
-            if (y2 >= a.H) y2 = a.H - 1;
-
-            for (i = x1; i <= x2; ++i)
-            {
-                a.Data[i + y1 * a.W + 0 * a.W * a.H] = r;
-                a.Data[i + y2 * a.W + 0 * a.W * a.H] = r;
-
-                a.Data[i + y1 * a.W + 1 * a.W * a.H] = g;
-                a.Data[i + y2 * a.W + 1 * a.W * a.H] = g;
-
-                a.Data[i + y1 * a.W + 2 * a.W * a.H] = b;
-                a.Data[i + y2 * a.W + 2 * a.W * a.H] = b;
-            }
-
-            for (i = y1; i <= y2; ++i)
-            {
-                a.Data[x1 + i * a.W + 0 * a.W * a.H] = r;
-                a.Data[x2 + i * a.W + 0 * a.W * a.H] = r;
-
-                a.Data[x1 + i * a.W + 1 * a.W * a.H] = g;
-                a.Data[x2 + i * a.W + 1 * a.W * a.H] = g;
-
-                a.Data[x1 + i * a.W + 2 * a.W * a.H] = b;
-                a.Data[x2 + i * a.W + 2 * a.W * a.H] = b;
-            }
-        }
-
-        public static void draw_box_width(Image a, int x1, int y1, int x2, int y2, int w, float r, float g, float b)
-        {
-            int i;
-            for (i = 0; i < w; ++i)
-            {
-                draw_box(a, x1 + i, y1 + i, x2 - i, y2 - i, r, g, b);
-            }
-        }
-
-        public static Image[][] load_alphabet()
-        {
-            int i, j;
-            int nsize = 8;
-            var alphabets = new Image[nsize][];
-            for (j = 0; j < nsize; ++j)
-            {
-                alphabets[j] = new Image[128];
-                for (i = 32; i < 127; ++i)
-                {
-                    string buff = $"data/labels/{i}_{j}.png";
-                    alphabets[j][i] = load_image_color(buff, 0, 0);
-                }
-            }
-
-            return alphabets;
-        }
-
-        public static void draw_detections(Image im, int num, float thresh, Box[] boxes, float[][] probs, string[] names,
-            Image[][] alphabet, int classes)
+        public static void draw_detections(Mat im, int num, float thresh, Box[] boxes, float[][] probs, string[] names, int classes)
         {
             int i;
 
@@ -225,40 +133,23 @@ namespace Yolo_V2.Data
                 if (prob > thresh)
                 {
 
-                    int width = (int)(im.H * .012);
+                    int width = (int)(im.Height * .012);
 
                     Console.WriteLine($"{names[curClass]}: {prob:P}");
                     int offset = curClass * 123457 % classes;
                     float red = get_color(2, offset, classes);
                     float green = get_color(1, offset, classes);
                     float blue = get_color(0, offset, classes);
-                    var rgb = new[]{
-                        red, green, blue
-                    };
 
                     Box b = boxes[i];
 
-                    int left = (int)(b.X - b.W / 2) * im.W;
-                    int right = (int)(b.X + b.W / 2) * im.W;
-                    int top = (int)(b.Y - b.H / 2) * im.H;
-                    int bot = (int)(b.Y + b.H / 2) * im.H;
-
-                    if (left < 0) left = 0;
-                    if (right > im.W - 1) right = im.W - 1;
-                    if (top < 0) top = 0;
-                    if (bot > im.H - 1) bot = im.H - 1;
-
-                    draw_box_width(im, left, top, right, bot, width, red, green, blue);
-                    if (alphabet.Length != 0)
-                    {
-                        Image label = get_label(alphabet, names[curClass], (int)(im.H * .03) / 10);
-                        draw_label(im, top + width, left, label, rgb);
-                    }
+                    draw_box(im, (int)b.X, (int)b.Y, (int)b.W, (int)b.H, width, blue, green, red);
+                    draw_label(im, (int)b.X, (int)b.Y, names[curClass], blue, green, red);
                 }
             }
         }
 
-        public static void flip_image(Image a)
+        public static void flip_image(Mat a)
         {
             int i, j, k;
             for (k = 0; k < a.C; ++k)
@@ -277,7 +168,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static void embed_image(Image source, Image dest, int dx, int dy)
+        private static void embed_image(Mat source, Mat dest, int dx, int dy)
         {
             int x, y, k;
             for (k = 0; k < source.C; ++k)
@@ -293,15 +184,15 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static Image collapse_image_layers(Image source, int border)
+        public static Mat collapse_image_layers(Mat source, int border)
         {
             int h = source.H;
             h = (h + border) * source.C - border;
-            Image dest = new Image(source.W, h, 1);
+            Mat dest = new Mat(source.W, h, 1);
             int i;
             for (i = 0; i < source.C; ++i)
             {
-                Image layer = get_image_layer(source, i);
+                Mat layer = get_image_layer(source, i);
                 int hOffset = i * (source.H + border);
                 embed_image(layer, dest, 0, hOffset);
             }
@@ -309,17 +200,38 @@ namespace Yolo_V2.Data
             return dest;
         }
 
-        public static void constrain_image(Image im)
+        public static void constrain_image(Mat img)
         {
-            int i;
-            for (i = 0; i < im.W * im.H * im.C; ++i)
+            var bytes = img.GetData();
+            var redo = false;
+            for (var i = 0; i < bytes.Length; ++i)
             {
-                if (im.Data[i] < 0) im.Data[i] = 0;
-                if (im.Data[i] > 1) im.Data[i] = 1;
+                if (bytes[i] < 0)
+                {
+                    redo = true;
+                    bytes[i] = 0;
+                }
+
+                if (bytes[i] > 255)
+                {
+                    redo = true;
+                    bytes[i] = 255;
+                }
+            }
+
+            if (redo)
+            {
+                GCHandle hand = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+                using (var newImg = new Mat(new Size(img.Width, img.Height), DepthType.Cv8U, img.NumberOfChannels,
+                    hand.AddrOfPinnedObject(), img.NumberOfChannels * img.Width))
+                {
+                    img.SetTo(newImg.GetData());
+                }
+                hand.Free();
             }
         }
 
-        private static void normalize_image(Image p)
+        private static void normalize_image(Mat p)
         {
             int i;
             float min = 9999999;
@@ -344,7 +256,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static void rgbgr_image(Image im)
+        public static void rgbgr_image(Mat im)
         {
             int i;
             for (i = 0; i < im.W * im.H; ++i)
@@ -355,44 +267,37 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static void show_image_cv(Image p, string name)
+        private static void show_image_cv(Mat img, string name)
         {
-            int x, y, k;
-            Image copy = new Image(p);
-            constrain_image(copy);
-            //if (p.C == 3) rgbgr_image(copy);
+            constrain_image(img);
 
             string buff = name;
             CvInvoke.NamedWindow(buff, NamedWindowType.Normal);
 
-            using (Mat disp = copy.ToMat())
+            CvInvoke.Imshow(buff, img);
+            CvInvoke.WaitKey(1);
+            Size size = new Size(img.Width, img.Height);
+
+            if (outputVideo == null)
             {
-                CvInvoke.Imshow(buff, disp);
-                CvInvoke.WaitKey(1);
-                Size size = new Size(disp.Width, disp.Height);
-
-                if (outputVideo == null)
-                {
-                    Console.WriteLine($"\n SRC output_video = {outputVideo} ");
-                    string outputName = "test_dnn_out.avi";
-                    outputVideo = new VideoWriter(outputName, 25, size, true);
-                    Console.WriteLine($"\n cvCreateVideoWriter, DST output_video = {outputVideo} ");
-                }
-
-                outputVideo.Write(disp);
+                Console.WriteLine($"\n SRC output_video = {outputVideo} ");
+                string outputName = "test_dnn_out.avi";
+                outputVideo = new VideoWriter(outputName, 25, size, true);
+                Console.WriteLine($"\n cvCreateVideoWriter, DST output_video = {outputVideo} ");
             }
 
+            outputVideo.Write(img);
             Console.WriteLine("\n cvWriteFrame \n");
         }
 
-        public static void show_image(Image p, string name)
+        public static void show_image(Mat img, string name)
         {
-            show_image_cv(p, name);
+            show_image_cv(img, name);
         }
 
-        private static Image ipl_to_image(Mat src)
+        private static Mat ipl_to_image(Mat src)
         {
-            return new Image(src);
+            return new Mat(src);
         }
 
         private static void System(string command)
@@ -418,7 +323,7 @@ namespace Yolo_V2.Data
             Console.WriteLine(cmd.StandardOutput.ReadToEnd());
         }
 
-        private static Image load_image_cv(string filename, int channels)
+        private static Mat load_image_cv(string filename, int channels)
         {
             var flag = (channels == 1)
                 ? ImreadModes.Grayscale
@@ -427,59 +332,51 @@ namespace Yolo_V2.Data
             {
                 using (Mat src = new Mat(filename, flag))
                 {
-                    Image retImage = ipl_to_image(src);
+                    Mat retImage = ipl_to_image(src);
                     //rgbgr_image(retImage);
                     return retImage;
                 }
             }
             catch
             {
-                Console.Error.WriteLine($"Cannot load Image {filename}");
+                Console.Error.WriteLine($"Cannot load Mat {filename}");
                 System($"echo {filename} >> bad.list");
-                return new Image(10, 10, 3);
+                return new Mat(10, 10, 3);
             }
 
         }
 
-        public static Image get_image_from_stream(VideoCapture cap)
+        public static Mat get_image_from_stream(VideoCapture cap)
         {
             using (Mat src = cap.QueryFrame())
             {
-                if (src.IsEmpty) return new Image();
+                if (src.IsEmpty) return new Mat();
 
-                Image im = ipl_to_image(src);
+                Mat im = ipl_to_image(src);
 
                 //rgbgr_image(im);
                 return im;
             }
         }
 
-        private static void save_image_jpg(Image p, string name)
+        private static void save_image_jpg(Mat img, string name)
         {
-
-            using (var img = p.ToMat())
-            {
-                img.Save($"{name}.jpg");
-            }
+            img.Save($"{name}.jpg");
         }
 
-        public static void save_image_png(Image im, string name)
+        public static void save_image_png(Mat img, string name)
         {
-            using (var img = im.ToMat())
-            {
-                img.Save($"{name}.png");
-                //CvInvoke.Imwrite($"{name}.png", img, new KeyValuePair<ImwriteFlags, int>(ImwriteFlags.PngCompression, 5));
-            }
+            img.Save($"{name}.png");
         }
 
-        public static void save_image(Image im, string name)
+        public static void save_image(Mat img, string name)
         {
-            save_image_jpg(im, name);
+            save_image_jpg(img, name);
         }
 
-        public static Image make_random_image(int w, int h, int c)
+        public static Mat make_random_image(int w, int h, int c)
         {
-            Image retImage = new Image(w, h, c);
+            Mat retImage = new Mat(w, h, c);
             int i;
             for (i = 0; i < w * h * c; ++i)
             {
@@ -488,12 +385,12 @@ namespace Yolo_V2.Data
             return retImage;
         }
 
-        private static Image rotate_crop_image(Image im, float rad, float s, int w, int h, float dx, float dy, float aspect)
+        private static Mat rotate_crop_image(Mat im, float rad, float s, int w, int h, float dx, float dy, float aspect)
         {
             int x, y, c;
             float cx = im.W / 2.0f;
             float cy = im.H / 2.0f;
-            Image rot = new Image(w, h, im.C);
+            Mat rot = new Mat(w, h, im.C);
             for (c = 0; c < im.C; ++c)
             {
                 for (y = 0; y < h; ++y)
@@ -510,12 +407,12 @@ namespace Yolo_V2.Data
             return rot;
         }
 
-        public static Image rotate_image(Image im, float rad)
+        public static Mat rotate_image(Mat im, float rad)
         {
             int x, y, c;
             float cx = im.W / 2.0f;
             float cy = im.H / 2.0f;
-            Image rot = new Image(im.W, im.H, im.C);
+            Mat rot = new Mat(im.W, im.H, im.C);
             for (c = 0; c < im.C; ++c)
             {
                 for (y = 0; y < im.H; ++y)
@@ -532,15 +429,15 @@ namespace Yolo_V2.Data
             return rot;
         }
 
-        public static void scale_image(Image m, float s)
+        public static void scale_image(Mat m, float s)
         {
             int i;
             for (i = 0; i < m.H * m.W * m.C; ++i) m.Data[i] *= s;
         }
 
-        public static Image crop_image(Image im, int dx, int dy, int w, int h)
+        public static Mat crop_image(Mat im, int dx, int dy, int w, int h)
         {
-            Image cropped = new Image(w, h, im.C);
+            Mat cropped = new Mat(w, h, im.C);
             int i, j, k;
             for (k = 0; k < im.C; ++k)
             {
@@ -564,15 +461,15 @@ namespace Yolo_V2.Data
             return cropped;
         }
 
-        public static int best_3d_shift_r(Image a, Image b, int min, int max)
+        public static int best_3d_shift_r(Mat a, Mat b, int min, int max)
         {
             if (min == max)
             {
                 return min;
             }
             int mid = (int)Math.Floor((min + max) / 2.0);
-            Image c1 = crop_image(b, 0, mid, b.W, b.H);
-            Image c2 = crop_image(b, 0, mid + 1, b.W, b.H);
+            Mat c1 = crop_image(b, 0, mid, b.W, b.H);
+            Mat c2 = crop_image(b, 0, mid + 1, b.W, b.H);
             float d1 = Utils.dist_array(c1.Data, a.Data, a.W * a.H * a.C, 10);
             float d2 = Utils.dist_array(c2.Data, a.Data, a.W * a.H * a.C, 10);
             return d1 < d2
@@ -586,18 +483,18 @@ namespace Yolo_V2.Data
             {
                 output = "out";
             }
-            Image a = load_image(f1, 0, 0, 0);
-            Image b = load_image(f2, 0, 0, 0);
+            Mat a = load_image(f1, 0, 0, 0);
+            Mat b = load_image(f2, 0, 0, 0);
             int shift = best_3d_shift_r(a, b, -a.H / 100, a.H / 100);
 
-            Image c1 = crop_image(b, 10, shift, b.W, b.H);
+            Mat c1 = crop_image(b, 10, shift, b.W, b.H);
             float d1 = Utils.dist_array(c1.Data, a.Data, a.W * a.H * a.C, 100);
-            Image c2 = crop_image(b, -10, shift, b.W, b.H);
+            Mat c2 = crop_image(b, -10, shift, b.W, b.H);
             float d2 = Utils.dist_array(c2.Data, a.Data, a.W * a.H * a.C, 100);
 
             Console.WriteLine($"{shift}\n");
 
-            Image c = crop_image(b, delta, shift, a.W, a.H);
+            Mat c = crop_image(b, delta, shift, a.W, a.H);
             int i;
             for (i = 0; i < c.W * c.H; ++i)
             {
@@ -606,7 +503,7 @@ namespace Yolo_V2.Data
             save_image_jpg(c, output);
         }
 
-        public static Image resize_min(Image im, int min)
+        public static Mat resize_min(Mat im, int min)
         {
             int w = im.W;
             int h = im.H;
@@ -621,19 +518,19 @@ namespace Yolo_V2.Data
                 h = min;
             }
             if (w == im.W && h == im.H) return im;
-            Image resized = resize_image(im, w, h);
+            Mat resized = resize_image(im, w, h);
             return resized;
         }
 
-        public static Image random_crop_image(Image im, int w, int h)
+        public static Mat random_crop_image(Mat im, int w, int h)
         {
             int dx = Utils.rand_int(0, im.W - w);
             int dy = Utils.rand_int(0, im.H - h);
-            Image crop = crop_image(im, dx, dy, w, h);
+            Mat crop = crop_image(im, dx, dy, w, h);
             return crop;
         }
 
-        public static Image random_augment_image(Image im, float angle, float aspect, int low, int high, int size)
+        public static Mat random_augment_image(Mat im, float angle, float aspect, int low, int high, int size)
         {
             aspect = Utils.rand_scale(aspect);
             int r = Utils.rand_int(low, high);
@@ -651,7 +548,7 @@ namespace Yolo_V2.Data
             dx = Utils.rand_uniform(-dx, dx);
             dy = Utils.rand_uniform(-dy, dy);
 
-            Image crop = rotate_crop_image(im, rad, scale, size, size, dx, dy, aspect);
+            Mat crop = rotate_crop_image(im, rad, scale, size, size, dx, dy, aspect);
 
             return crop;
         }
@@ -666,7 +563,7 @@ namespace Yolo_V2.Data
             return (a < b) ? ((a < c) ? a : c) : ((b < c) ? b : c);
         }
 
-        private static void rgb_to_hsv(Image im)
+        private static void rgb_to_hsv(Mat im)
         {
             int i, j;
             float r, g, b;
@@ -712,7 +609,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static void hsv_to_rgb(Image im)
+        private static void hsv_to_rgb(Mat im)
         {
             int i, j;
             float r, g, b;
@@ -768,10 +665,10 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static Image grayscale_image(Image im)
+        public static Mat grayscale_image(Mat im)
         {
             int i, j, k;
-            Image gray = new Image(im.W, im.H, 1);
+            Mat gray = new Mat(im.W, im.H, 1);
             float[] scale = { 0.587f, 0.299f, 0.114f };
             for (k = 0; k < im.C; ++k)
             {
@@ -786,10 +683,10 @@ namespace Yolo_V2.Data
             return gray;
         }
 
-        public static Image threshold_image(Image im, float thresh)
+        public static Mat threshold_image(Mat im, float thresh)
         {
             int i;
-            Image t = new Image(im.W, im.H, im.C);
+            Mat t = new Mat(im.W, im.H, im.C);
             for (i = 0; i < im.W * im.H * im.C; ++i)
             {
                 t.Data[i] = im.Data[i] > thresh ? 1 : 0;
@@ -797,7 +694,7 @@ namespace Yolo_V2.Data
             return t;
         }
 
-        private static void scale_image_channel(Image im, int c, float v)
+        private static void scale_image_channel(Mat im, int c, float v)
         {
             int i, j;
             for (j = 0; j < im.H; ++j)
@@ -811,7 +708,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        private static void distort_image(Image im, float hue, float sat, float val)
+        private static void distort_image(Mat im, float hue, float sat, float val)
         {
             rgb_to_hsv(im);
             scale_image_channel(im, 1, sat);
@@ -827,7 +724,7 @@ namespace Yolo_V2.Data
             constrain_image(im);
         }
 
-        public static void random_distort_image(Image im, float hue, float saturation, float exposure)
+        public static void random_distort_image(Mat im, float hue, float saturation, float exposure)
         {
             float dhue = Utils.rand_uniform(-hue, hue);
             float dsat = Utils.rand_scale(saturation);
@@ -835,7 +732,7 @@ namespace Yolo_V2.Data
             distort_image(im, dhue, dsat, dexp);
         }
 
-        private static float bilinear_interpolate(Image im, float x, float y, int c)
+        private static float bilinear_interpolate(Mat im, float x, float y, int c)
         {
             int ix = (int)Math.Floor(x);
             int iy = (int)Math.Floor(y);
@@ -850,10 +747,10 @@ namespace Yolo_V2.Data
             return val;
         }
 
-        public static Image resize_image(Image im, int w, int h)
+        public static Mat resize_image(Mat im, int w, int h)
         {
-            Image resized = new Image(w, h, im.C);
-            Image part = new Image(w, im.H, im.C);
+            Mat resized = new Mat(w, h, im.C);
+            Mat part = new Mat(w, im.H, im.C);
             int r, c, k;
             float wScale = (float)(im.W - 1) / (w - 1);
             float hScale = (float)(im.H - 1) / (h - 1);
@@ -905,15 +802,15 @@ namespace Yolo_V2.Data
 
         public static void test_resize(string filename)
         {
-            Image im = load_image(filename, 0, 0, 3);
+            Mat im = load_image(filename, 0, 0, 3);
             float mag = Utils.mag_array(im.Data, im.W * im.H * im.C);
             Console.Write($"L2 Norm: {mag}\n");
             var gray = grayscale_image(im);
 
-            var c1 = new Image(im);
-            var c2 = new Image(im);
-            var c3 = new Image(im);
-            var c4 = new Image(im);
+            var c1 = new Mat(im);
+            var c2 = new Mat(im);
+            var c3 = new Mat(im);
+            var c4 = new Mat(im);
             distort_image(c1, .1f, 1.5f, 1.5f);
             distort_image(c2, -.1f, .66666f, .66666f);
             distort_image(c3, .1f, 1.5f, .66666f);
@@ -936,7 +833,7 @@ namespace Yolo_V2.Data
                 float saturation = 1.15f;
                 float hue = .05f;
 
-                var c = new Image(im);
+                var c = new Mat(im);
 
                 float dexp = Utils.rand_scale(exposure);
                 float dsat = Utils.rand_scale(saturation);
@@ -949,9 +846,9 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static Image load_image(string filename, int w, int h, int c)
+        public static Mat load_image(string filename, int w, int h, int c)
         {
-            Image img = load_image_cv(filename, c);
+            Mat img = load_image_cv(filename, c);
 
             if (h != img.H || w != img.W)
             {
@@ -960,14 +857,14 @@ namespace Yolo_V2.Data
             return img;
         }
 
-        public static Image load_image_color(string filename, int w, int h)
+        public static Mat load_image_color(string filename, int w, int h)
         {
             return load_image(filename, w, h, 3);
         }
 
-        private static Image get_image_layer(Image m, int l)
+        private static Mat get_image_layer(Mat m, int l)
         {
-            Image img = new Image(m.W, m.H, 1);
+            Mat img = new Mat(m.W, m.H, 1);
 
             for (var i = 0; i < m.H * m.W; ++i)
             {
@@ -976,12 +873,12 @@ namespace Yolo_V2.Data
             return img;
         }
 
-        private static float get_pixel(Image m, int x, int y, int c)
+        private static float get_pixel(Mat m, int x, int y, int c)
         {
             return m.Data[c * m.H * m.W + y * m.W + x];
         }
 
-        private static float get_pixel_extend(Image m, int x, int y, int c)
+        private static float get_pixel_extend(Mat m, int x, int y, int c)
         {
             if (x < 0) x = 0;
             if (x >= m.W) x = m.W - 1;
@@ -991,7 +888,7 @@ namespace Yolo_V2.Data
             return get_pixel(m, x, y, c);
         }
 
-        private static void set_pixel(Image m, int x, int y, int c, float val)
+        private static void set_pixel(Mat m, int x, int y, int c, float val)
         {
             if (x < 0 || y < 0 || c < 0 || x >= m.W || y >= m.H || c >= m.C)
             {
@@ -1000,12 +897,12 @@ namespace Yolo_V2.Data
             m.Data[c * m.H * m.W + y * m.W + x] = val;
         }
 
-        private static void add_pixel(Image m, int x, int y, int c, float val)
+        private static void add_pixel(Mat m, int x, int y, int c, float val)
         {
             m.Data[c * m.H * m.W + y * m.W + x] += val;
         }
 
-        private static Image collapse_images_vert(Image[] ims, int n)
+        private static Mat collapse_images_vert(Mat[] ims, int n)
         {
             int border = 1;
             var w = ims[0].W;
@@ -1017,11 +914,11 @@ namespace Yolo_V2.Data
                 c = 1;
             }
 
-            Image filters = new Image(w, h, c);
+            Mat filters = new Mat(w, h, c);
             for (var i = 0; i < n; ++i)
             {
                 int hOffset = i * (ims[0].H + border);
-                Image copy = new Image(ims[i]);
+                Mat copy = new Mat(ims[i]);
                 //normalize_image(copy);
                 if (c == 3)
                 {
@@ -1032,7 +929,7 @@ namespace Yolo_V2.Data
                     for (var j = 0; j < copy.C; ++j)
                     {
                         int wOffset = j * (ims[0].W + border);
-                        Image layer = get_image_layer(copy, j);
+                        Mat layer = get_image_layer(copy, j);
                         embed_image(layer, filters, wOffset, hOffset);
                     }
                 }
@@ -1040,9 +937,9 @@ namespace Yolo_V2.Data
             return filters;
         }
 
-        public static void show_images(Image[] ims, int n, string window)
+        public static void show_images(Mat[] ims, int n, string window)
         {
-            Image m = collapse_images_vert(ims, n);
+            Mat m = collapse_images_vert(ims, n);
             normalize_image(m);
             save_image(m, window);
             show_image(m, window);

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
+using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Yolo_V2.Data;
@@ -16,7 +14,8 @@ namespace Yolo_V2
     {
         public static void Main(string[] argsa)
         {
-            Emgu.CV.CvInvoke.UseOpenCL = true;
+            CvInvoke.UseOpenCL = true;
+            CvInvoke.UseOptimized = true;
             var args = argsa.ToList();
             if (args.Count < 2)
             {
@@ -49,7 +48,7 @@ namespace Yolo_V2
                     Detector.run_detector(args);
                     break;
                 case "detect":
-                    float thresh = Utils.find_int_arg(args, "-thresh", .24f);
+                    float thresh = Utils.find_value_arg(args, "-thresh", .24f);
                     string filename = (args.Count > 4) ? args[4] : null;
                     Detector.test_detector("cfg/coco.Data", args[2], args[3], filename, thresh);
                     break;
@@ -207,10 +206,10 @@ namespace Yolo_V2
             int i;
             var sw = new Stopwatch();
             sw.Start();
-            Image im = new Image(net.W, net.H, net.C);
+            Mat im = new Mat(new Size(net.W, net.H), DepthType.Cv8U, net.C);
             for (i = 0; i < tics; ++i)
             {
-                Network.network_predict(net, im.Data);
+                Network.network_predict(net, im.GetData());
             }
             sw.Stop();
             var t = sw.Elapsed.Seconds;

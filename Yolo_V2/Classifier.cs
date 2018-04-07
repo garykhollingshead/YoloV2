@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Threading;
 using Emgu.CV;
 using Yolo_V2.Data;
 using Yolo_V2.Data.Enums;
+using Mat = Yolo_V2.Data.Mat;
 
 namespace Yolo_V2
 {
@@ -240,8 +242,8 @@ namespace Yolo_V2
                 int w = net.W;
                 int h = net.H;
                 int shift = 32;
-                Image im = LoadArgs.load_image_color(paths[i], w + shift, h + shift);
-                Image[] images = new Image[10];
+                Mat im = LoadArgs.load_image_color(paths[i], w + shift, h + shift);
+                Mat[] images = new Mat[10];
                 images[0] = LoadArgs.crop_image(im, -shift, -shift, w, h);
                 images[1] = LoadArgs.crop_image(im, shift, -shift, w, h);
                 images[2] = LoadArgs.crop_image(im, 0, 0, w, h);
@@ -311,12 +313,12 @@ namespace Yolo_V2
                         break;
                     }
                 }
-                Image im = LoadArgs.load_image_color(paths[i], 0, 0);
-                Image resized = LoadArgs.resize_min(im, size);
+                Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
+                Mat resized = LoadArgs.resize_min(im, size);
                 Network.resize_network(net, resized.W, resized.H);
                 float[] pred = Network.network_predict(net, resized.Data);
                 if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(pred, 0, net.Outputs, true);
-                
+
                 Utils.top_k(pred, classes, topk, indexes);
 
                 if (indexes[0] == class2) avgAcc += 1;
@@ -344,7 +346,7 @@ namespace Yolo_V2
 
             string labelList = OptionList.option_find_str(options, "labels", "Data.Data/labels.list");
             string leafList = OptionList.option_find_str(options, "leaves", "");
-            if (!string.IsNullOrEmpty(leafList)) net.Hierarchy.Change_leaves( leafList);
+            if (!string.IsNullOrEmpty(leafList)) net.Hierarchy.Change_leaves(leafList);
             string validList = OptionList.option_find_str(options, "valid", "Data.Data/train.list");
             int classes = OptionList.option_find_int(options, "classes", 2);
             int topk = OptionList.option_find_int(options, "top", 1);
@@ -364,18 +366,18 @@ namespace Yolo_V2
                 string path = paths[i];
                 for (j = 0; j < classes; ++j)
                 {
-                    if (path.Contains( labels[j]))
+                    if (path.Contains(labels[j]))
                     {
                         class2 = j;
                         break;
                     }
                 }
-                Image im = LoadArgs.load_image_color(paths[i], 0, 0);
-                Image resized = LoadArgs.resize_min(im, net.W);
-                Image crop = LoadArgs.crop_image(resized, (resized.W - net.W) / 2, (resized.H - net.H) / 2, net.W, net.H);
+                Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
+                Mat resized = LoadArgs.resize_min(im, net.W);
+                Mat crop = LoadArgs.crop_image(resized, (resized.W - net.W) / 2, (resized.H - net.H) / 2, net.W, net.H);
                 float[] pred = Network.network_predict(net, crop.Data);
                 if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(pred, 0, net.Outputs, false);
-                
+
                 Utils.top_k(pred, classes, topk, indexes);
 
                 if (indexes[0] == class2) avgAcc += 1;
@@ -423,17 +425,17 @@ namespace Yolo_V2
                 string path = paths[i];
                 for (j = 0; j < classes; ++j)
                 {
-                    if (path.Contains( labels[j]))
+                    if (path.Contains(labels[j]))
                     {
                         class2 = j;
                         break;
                     }
                 }
                 float[] pred = new float[classes];
-                Image im = LoadArgs.load_image_color(paths[i], 0, 0);
+                Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
                 for (j = 0; j < nscales; ++j)
                 {
-                    Image r = LoadArgs.resize_min(im, scales[j]);
+                    Mat r = LoadArgs.resize_min(im, scales[j]);
                     Network.resize_network(net, r.W, r.H);
                     float[] p = Network.network_predict(net, r.Data);
                     if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(p, 0, net.Outputs, true);
@@ -483,15 +485,15 @@ namespace Yolo_V2
                 }
                 else
                 {
-                    Console.Write($"Enter Image Path: ");
+                    Console.Write($"Enter Mat Path: ");
 
                     input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input)) return;
                     input = input.TrimEnd();
                 }
-                Image orig = LoadArgs.load_image_color(input, 0, 0);
-                Image r = LoadArgs.resize_min(orig, 256);
-                Image im = LoadArgs.crop_image(r, (r.W - 224 - 1) / 2 + 1, (r.H - 224 - 1) / 2 + 1, 224, 224);
+                Mat orig = LoadArgs.load_image_color(input, 0, 0);
+                Mat r = LoadArgs.resize_min(orig, 256);
+                Mat im = LoadArgs.crop_image(r, (r.W - 224 - 1) / 2 + 1, (r.H - 224 - 1) / 2 + 1, 224, 224);
                 float[] mean = { 0.48263312050943f, 0.45230225481413f, 0.40099074308742f };
                 float[] std = { 0.22590347483426f, 0.22120921437787f, 0.22103996251583f };
                 float[] var = new float[3];
@@ -560,14 +562,14 @@ namespace Yolo_V2
                 }
                 else
                 {
-                    Console.Write($"Enter Image Path: ");
+                    Console.Write($"Enter Mat Path: ");
 
                     input = Console.ReadLine();
                     if (string.IsNullOrEmpty(input)) return;
                     input = input.TrimEnd();
                 }
-                Image im = LoadArgs.load_image_color(input, 0, 0);
-                Image r = LoadArgs.resize_min(im, size);
+                Mat im = LoadArgs.load_image_color(input, 0, 0);
+                Mat r = LoadArgs.resize_min(im, size);
                 Network.resize_network(net, r.W, r.H);
                 Console.Write($"%d %d\n", r.W, r.H);
 
@@ -616,9 +618,9 @@ namespace Yolo_V2
 
             for (i = 0; i < m; ++i)
             {
-                Image im = LoadArgs.load_image_color(paths[i], 0, 0);
-                Image resized = LoadArgs.resize_min(im, net.W);
-                Image crop = LoadArgs.crop_image(resized, (resized.W - net.W) / 2, (resized.H - net.H) / 2, net.W, net.H);
+                Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
+                Mat resized = LoadArgs.resize_min(im, net.W);
+                Mat crop = LoadArgs.crop_image(resized, (resized.W - net.W) / 2, (resized.H - net.H) / 2, net.W, net.H);
                 float[] pred = Network.network_predict(net, crop.Data);
 
                 int ind = Utils.max_index(pred, classes);
@@ -739,83 +741,89 @@ namespace Yolo_V2
                     var sw = new Stopwatch();
                     sw.Start();
 
-                    Image ini = LoadArgs.get_image_from_stream(cap);
-                    if (ini.Data.Length == 0) break;
-                    Image inS = LoadArgs.resize_image(ini, net.W, net.H);
-
-                    Image outo = ini;
-                    int x1 = outo.W / 20;
-                    int y1 = outo.H / 20;
-                    int x2 = 2 * x1;
-                    int y2 = outo.H - outo.H / 20;
-
-                    int border = (int) (.01f * outo.H);
-                    int h = y2 - y1 - 2 * border;
-                    int w = x2 - x1 - 2 * border;
-
-                    float[] predictions = Network.network_predict(net, inS.Data);
-                    float currThreat = 0;
-                    currThreat = predictions[0] * 0f +
-                                 predictions[1] * .6f +
-                                 predictions[2];
-                    threat = roll * currThreat + (1 - roll) * threat;
-
-                    LoadArgs.draw_box_width(outo, x2 + border, (int)(y1 + .02 * h), (int)(x2 + .5 * w), (int)(y1 + .02 * h + border), border, 0, 0,
-                        0);
-                    if (threat > .97)
+                    using (var ini = LoadArgs.get_image_from_stream(cap).ToMat())
                     {
-                        LoadArgs.draw_box_width(outo, (int)(x2 + .5 * w + border),
+                        if (ini.IsEmpty) break;
+                        Mat inS;
+                        using (var temp = new Mat())
+                        {
+                            CvInvoke.Resize(ini, temp, new Size(net.W, net.H));
+                            inS = new Mat(temp);
+                        }
+
+                        int x1 = ini.Width / 20;
+                        int y1 = ini.Height / 20;
+                        int x2 = 2 * x1;
+                        int y2 = ini.Height - ini.Height / 20;
+
+                        int border = (int)(.01f * ini.Height);
+                        int h = y2 - y1 - 2 * border;
+                        int w = x2 - x1 - 2 * border;
+
+                        float[] predictions = Network.network_predict(net, inS.Data);
+                        float currThreat = 0;
+                        currThreat = predictions[0] * 0f +
+                                     predictions[1] * .6f +
+                                     predictions[2];
+                        threat = roll * currThreat + (1 - roll) * threat;
+
+                        LoadArgs.draw_box(ini, x2 + border, (int)(y1 + .02 * h), (int)(x2 + .5 * w), (int)(y1 + .02 * h + border), border, 0, 0,
+                            0);
+                        if (threat > .97)
+                        {
+                            LoadArgs.draw_box(ini, (int)(x2 + .5 * w + border),
+                                (int)(y1 + .02 * h - 2 * border),
+                                (int)(x2 + .5 * w + 6 * border),
+                                (int)(y1 + .02 * h + 3 * border), 3 * border, 1, 0, 0);
+                        }
+
+                        LoadArgs.draw_box(ini, (int)(x2 + .5 * w + border),
                             (int)(y1 + .02 * h - 2 * border),
                             (int)(x2 + .5 * w + 6 * border),
-                            (int)(y1 + .02 * h + 3 * border), 3 * border, 1, 0, 0);
-                    }
+                            (int)(y1 + .02 * h + 3 * border), (int)(.5 * border), 0, 0, 0);
+                        LoadArgs.draw_box(ini, x2 + border, (int)(y1 + .42 * h), (int)(x2 + .5 * w), (int)(y1 + .42 * h + border), border, 0, 0,
+                            0);
+                        if (threat > .57)
+                        {
+                            LoadArgs.draw_box(ini, (int)(x2 + .5 * w + border),
+                                (int)(y1 + .42 * h - 2 * border),
+                                (int)(x2 + .5 * w + 6 * border),
+                                (int)(y1 + .42 * h + 3 * border), 3 * border, 1, 1, 0);
+                        }
 
-                    LoadArgs.draw_box_width(outo, (int)(x2 + .5 * w + border),
-                        (int)(y1 + .02 * h - 2 * border),
-                        (int)(x2 + .5 * w + 6 * border),
-                        (int)(y1 + .02 * h + 3 * border), (int)(.5 * border), 0, 0, 0);
-                    LoadArgs.draw_box_width(outo, x2 + border, (int)(y1 + .42 * h), (int)(x2 + .5 * w), (int)(y1 + .42 * h + border), border, 0, 0,
-                        0);
-                    if (threat > .57)
-                    {
-                        LoadArgs.draw_box_width(outo, (int)(x2 + .5 * w + border),
+                        LoadArgs.draw_box(ini, (int)(x2 + .5 * w + border),
                             (int)(y1 + .42 * h - 2 * border),
                             (int)(x2 + .5 * w + 6 * border),
-                            (int)(y1 + .42 * h + 3 * border), 3 * border, 1, 1, 0);
+                            (int)(y1 + .42 * h + 3 * border), (int)(.5 * border), 0, 0, 0);
+
+                        LoadArgs.draw_box(ini, x1, y1, x2, y2, border, 0, 0, 0);
+                        for (i = 0; i < threat * h; ++i)
+                        {
+                            float ratio = (float)i / h;
+                            float r = (ratio < .5f) ? (2 * (ratio)) : 1;
+                            float g = (ratio < .5f) ? 1 : 1 - 2 * (ratio - .5f);
+                            LoadArgs.draw_box(ini, x1 + border, y2 - border - i, x2 - border, y2 - border - i, 1, r, g, 0);
+                        }
+
+                        Network.top_predictions(net, top, indexes);
+
+                        string buff = $"/home/pjreddie/tmp/threat_{count:D6}";
+
+                        Console.Clear();
+                        Console.SetCursorPosition(1, 1);
+                        Console.Write($"\nFPS:%.0f\n", fps);
+
+                        for (i = 0; i < top; ++i)
+                        {
+                            int index = indexes[i];
+                            Console.Write($"%.1f%%: %s\n", predictions[index] * 100, names[index]);
+                        }
+
+                        LoadArgs.show_image(ini, "Threat");
+                        CvInvoke.WaitKey(10);
+
+                        sw.Stop();
                     }
-
-                    LoadArgs.draw_box_width(outo, (int)(x2 + .5 * w + border),
-                        (int)(y1 + .42 * h - 2 * border),
-                        (int)(x2 + .5 * w + 6 * border),
-                        (int)(y1 + .42 * h + 3 * border), (int)(.5 * border), 0, 0, 0);
-
-                    LoadArgs.draw_box_width(outo, x1, y1, x2, y2, border, 0, 0, 0);
-                    for (i = 0; i < threat * h; ++i)
-                    {
-                        float ratio = (float) i / h;
-                        float r = (ratio < .5f) ? (2 * (ratio)) : 1;
-                        float g = (ratio < .5f) ? 1 : 1 - 2 * (ratio - .5f);
-                        LoadArgs.draw_box_width(outo, x1 + border, y2 - border - i, x2 - border, y2 - border - i, 1, r, g, 0);
-                    }
-
-                    Network.top_predictions(net, top, indexes);
-
-                    string buff = $"/home/pjreddie/tmp/threat_{count:D6}";
-
-                    Console.Write($"\033[2J");
-                    Console.Write($"\033[1;1H");
-                    Console.Write($"\nFPS:%.0f\n", fps);
-
-                    for (i = 0; i < top; ++i)
-                    {
-                        int index = indexes[i];
-                        Console.Write($"%.1f%%: %s\n", predictions[index] * 100, names[index]);
-                    }
-
-                    LoadArgs.show_image(outo, "Threat");
-                    CvInvoke.WaitKey(10);
-
-                    sw.Stop();
                     float curr = 1000.0f / sw.ElapsedMilliseconds;
                     fps = .9f * fps + .1f * curr;
                 }
@@ -837,7 +845,7 @@ namespace Yolo_V2
 
             Utils.Rand = new Random(2222222);
             using (VideoCapture cap = !string.IsNullOrEmpty(filename)
-                ?  new VideoCapture(filename)
+                ? new VideoCapture(filename)
                 : new VideoCapture(camIndex))
             {
 
@@ -858,15 +866,20 @@ namespace Yolo_V2
                     var sw = new Stopwatch();
                     sw.Start();
 
-                    Image ini = LoadArgs.get_image_from_stream(cap);
-                    Image inS = LoadArgs.resize_image(ini, net.W, net.H);
-                    LoadArgs.show_image(ini, "Threat Detection");
+                    Mat inS;
+                    using (Mat ini = LoadArgs.get_image_from_stream(cap).ToMat())
+                    {
+                        LoadArgs.show_image(ini, "Threat Detection");
+                        CvInvoke.Resize(ini, ini, new Size(net.W, net.H));
+                        inS = new Mat(ini);
+                    }
 
                     float[] predictions = Network.network_predict(net, inS.Data);
                     Network.top_predictions(net, top, indexes);
-
-                    Console.Write($"\033[2J");
-                    Console.Write($"\033[1;1H");
+                    
+                    Console.Clear(); // clear screen
+                    
+                    Console.SetCursorPosition(1, 1); // move cursor to row 1 col 1
 
                     bool threat = false;
                     for (i = 0; i < badCats.Length; ++i)
@@ -932,16 +945,20 @@ namespace Yolo_V2
                     var sw = new Stopwatch();
                     sw.Start();
 
-                    Image ini = LoadArgs.get_image_from_stream(cap);
-                    Image inS = LoadArgs.resize_image(ini, net.W, net.H);
-                    LoadArgs.show_image(ini, "Classifier");
+                    Mat inS;
+                    using (Mat ini = LoadArgs.get_image_from_stream(cap).ToMat())
+                    {
+                        LoadArgs.show_image(ini, "Classifier");
+                        CvInvoke.Resize(ini, ini, new Size(net.W, net.H));
+                        inS = new Mat(ini);
+                    }
 
                     float[] predictions = Network.network_predict(net, inS.Data);
                     if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(predictions, 0, net.Outputs, true);
                     Network.top_predictions(net, top, indexes);
 
-                    Console.Write($"\033[2J");
-                    Console.Write($"\033[1;1H");
+                    Console.Clear();
+                    Console.SetCursorPosition(1, 1);
                     Console.Write($"\nFPS:%.0f\n", fps);
 
                     for (i = 0; i < top; ++i)
@@ -967,8 +984,8 @@ namespace Yolo_V2
                 return;
             }
 
-            int camIndex = Utils.find_int_arg(args, "-c", 0);
-            int top = Utils.find_int_arg(args, "-t", 0);
+            int camIndex = Utils.find_value_arg(args, "-c", 0);
+            int top = Utils.find_value_arg(args, "-t", 0);
             bool clear = Utils.find_arg(args, "-clear");
             string data = args[3];
             string cfg = args[4];

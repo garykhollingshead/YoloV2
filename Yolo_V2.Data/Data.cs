@@ -66,9 +66,9 @@ namespace Yolo_V2.Data
 
             for (i = 0; i < n; ++i)
             {
-                Image im = LoadArgs.load_image(paths[i], w, h, 3);
+                Mat im = LoadArgs.load_image(paths[i], w, h, 3);
 
-                Image gray = LoadArgs.grayscale_image(im);
+                Mat gray = LoadArgs.grayscale_image(im);
                 im = gray;
 
                 x.Vals[i] = im.Data;
@@ -84,7 +84,7 @@ namespace Yolo_V2.Data
 
             for (i = 0; i < n; ++i)
             {
-                Image im = LoadArgs.load_image_color(paths[i], w, h);
+                Mat im = LoadArgs.load_image_color(paths[i], w, h);
                 x.Vals[i] = im.Data;
                 x.Cols = im.H * im.W * im.C;
             }
@@ -98,8 +98,8 @@ namespace Yolo_V2.Data
 
             for (i = 0; i < n; ++i)
             {
-                Image im = LoadArgs.load_image_color(paths[i], 0, 0);
-                Image crop = LoadArgs.random_augment_image(im, angle, aspect, min, max, size);
+                Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
+                Mat crop = LoadArgs.random_augment_image(im, angle, aspect, min, max, size);
                 int flip = Utils.Rand.Next() % 2;
                 if (flip != 0) LoadArgs.flip_image(crop);
                 LoadArgs.random_distort_image(crop, hue, saturation, exposure);
@@ -448,7 +448,7 @@ namespace Yolo_V2.Data
             d.Y = new Matrix(n, k);
             for (i = 0; i < n; ++i)
             {
-                Image orig = LoadArgs.load_image_color(randomPaths[i], 0, 0);
+                Mat orig = LoadArgs.load_image_color(randomPaths[i], 0, 0);
 
                 int oh = orig.H;
                 int ow = orig.W;
@@ -468,12 +468,12 @@ namespace Yolo_V2.Data
                 float sy = (float)sheight / oh;
 
                 int flip = Utils.Rand.Next() % 2;
-                Image cropped = LoadArgs.crop_image(orig, pleft, ptop, swidth, sheight);
+                Mat cropped = LoadArgs.crop_image(orig, pleft, ptop, swidth, sheight);
 
                 float dx = ((float)pleft / ow) / sx;
                 float dy = ((float)ptop / oh) / sy;
 
-                Image sized = LoadArgs.resize_image(cropped, w, h);
+                Mat sized = LoadArgs.resize_image(cropped, w, h);
                 if (flip != 0) LoadArgs.flip_image(sized);
                 LoadArgs.random_distort_image(sized, hue, saturation, exposure);
                 d.X.Vals[i] = sized.Data;
@@ -498,8 +498,8 @@ namespace Yolo_V2.Data
             d.Y = new Matrix(n, k);
             for (i = 0; i < n; ++i)
             {
-                Image im1 = LoadArgs.load_image_color(paths[i * 2], w, h);
-                Image im2 = LoadArgs.load_image_color(paths[i * 2 + 1], w, h);
+                Mat im1 = LoadArgs.load_image_color(paths[i * 2], w, h);
+                Mat im2 = LoadArgs.load_image_color(paths[i * 2 + 1], w, h);
 
                 d.X.Vals[i] = new float[d.X.Cols];
                 Array.Copy(im1.Data, d.X.Vals[i], im1.Data.Length);
@@ -574,7 +574,7 @@ namespace Yolo_V2.Data
             int index = Utils.Rand.Next() % n;
             string randomPath = paths[index];
 
-            Image orig = LoadArgs.load_image_color(randomPath, 0, 0);
+            Mat orig = LoadArgs.load_image_color(randomPath, 0, 0);
             int h = orig.H;
             int w = orig.W;
 
@@ -605,12 +605,12 @@ namespace Yolo_V2.Data
             float sy = (float)sheight / h;
 
             int flip = Utils.Rand.Next() % 2;
-            Image cropped = LoadArgs.crop_image(orig, pleft, ptop, swidth, sheight);
+            Mat cropped = LoadArgs.crop_image(orig, pleft, ptop, swidth, sheight);
 
             float dx = ((float)pleft / w) / sx;
             float dy = ((float)ptop / h) / sy;
 
-            Image sized = LoadArgs.resize_image(cropped, w, h);
+            Mat sized = LoadArgs.resize_image(cropped, w, h);
             if (flip != 0) LoadArgs.flip_image(sized);
             d.X.Vals[0] = sized.Data;
 
@@ -633,7 +633,7 @@ namespace Yolo_V2.Data
             d.Y = new Matrix(n, 5 * boxes);
             for (i = 0; i < n; ++i)
             {
-                Image orig = LoadArgs.load_image_color(randomPaths[i], 0, 0);
+                Mat orig = LoadArgs.load_image_color(randomPaths[i], 0, 0);
 
                 int oh = orig.H;
                 int ow = orig.W;
@@ -653,12 +653,12 @@ namespace Yolo_V2.Data
                 float sy = (float)sheight / oh;
 
                 int flip = Utils.Rand.Next() % 2;
-                Image cropped = LoadArgs.crop_image(orig, pleft, ptop, swidth, sheight);
+                Mat cropped = LoadArgs.crop_image(orig, pleft, ptop, swidth, sheight);
 
                 float dx = ((float)pleft / ow) / sx;
                 float dy = ((float)ptop / oh) / sy;
 
-                Image sized = LoadArgs.resize_image(cropped, w, h);
+                Mat sized = LoadArgs.resize_image(cropped, w, h);
                 if (flip != 0) LoadArgs.flip_image(sized);
                 LoadArgs.random_distort_image(sized, hue, saturation, exposure);
                 d.X.Vals[i] = sized.Data;
@@ -794,11 +794,11 @@ namespace Yolo_V2.Data
 
             for (i = 0; i < n; ++i)
             {
-                Image im = LoadArgs.load_image_color(paths[i], 0, 0);
-                Image crop = LoadArgs.random_crop_image(im, w * scale, h * scale);
+                Mat im = LoadArgs.load_image_color(paths[i], 0, 0);
+                Mat crop = LoadArgs.random_crop_image(im, w * scale, h * scale);
                 int flip = Utils.Rand.Next() % 2;
                 if (flip != 0) LoadArgs.flip_image(crop);
-                Image resize = LoadArgs.resize_image(crop, w, h);
+                Mat resize = LoadArgs.resize_image(crop, w, h);
                 d.X.Vals[i] = resize.Data;
                 d.Y.Vals[i] = crop.Data;
             }
@@ -898,7 +898,7 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        public void get_random_batch(int n, float[] x, float[] y)
+        public void get_random_batch(int n, byte[] x, byte[] y)
         {
             int j;
             for (j = 0; j < n; ++j)
@@ -919,7 +919,7 @@ namespace Yolo_V2.Data
             }
         }
 
-        public void get_next_batch(int n, int offset, float[] x, float[] y)
+        public void get_next_batch(int n, int offset, byte[] x, byte[] y)
         {
             int j;
             for (j = 0; j < n; ++j)

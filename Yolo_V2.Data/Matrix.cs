@@ -8,7 +8,7 @@ namespace Yolo_V2.Data
     {
         public int Rows;
         public int Cols;
-        public float[][] Vals;
+        public byte[][] Vals;
 
         public static float matrix_topk_accuracy(Matrix truth, Matrix guess, int k)
         {
@@ -39,7 +39,7 @@ namespace Yolo_V2.Data
             {
                 for (j = 0; j < Cols; ++j)
                 {
-                    Vals[i][j] *= scale;
+                    Vals[i][j] = (byte)(Vals[i][j] * scale);
                 }
             }
         }
@@ -60,10 +60,10 @@ namespace Yolo_V2.Data
         {
             Rows = rows;
             Cols = cols;
-            Vals = new float[Rows][];
+            Vals = new byte[Rows][];
             for (var i = 0; i < Rows; ++i)
             {
-                Vals[i] = new float[Cols];
+                Vals[i] = new byte[Cols];
             }
         }
 
@@ -78,7 +78,7 @@ namespace Yolo_V2.Data
             
             int n = 0;
             int size = 1024;
-            Vals = new float[size][]; 
+            Vals = new byte[size][]; 
             foreach (var line in File.ReadAllLines(filename))
             {
                 if (Cols == -1) Cols = Utils.count_fields(line);
