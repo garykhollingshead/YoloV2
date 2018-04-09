@@ -47,7 +47,7 @@ namespace Yolo_V2.Data
                 return false;
             }
 
-            options.Add(new KeyValuePair(parts[0], parts[1]));
+            options.Add(new KeyValuePair(parts[0].Trim(), parts[1].Trim()));
             return true;
         }
 

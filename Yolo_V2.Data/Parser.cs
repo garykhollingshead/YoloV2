@@ -703,7 +703,6 @@ namespace Yolo_V2.Data
                         current = new Section(line);
                         sections.Add(current);
                         break;
-                    case '\0':
                     case '#':
                     case ';':
                         break;
