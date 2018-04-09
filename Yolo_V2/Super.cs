@@ -81,7 +81,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             Utils.Rand = new Random(2222222);
 
             var sw = new Stopwatch();
@@ -101,12 +101,12 @@ namespace Yolo_V2
                     input = input.TrimEnd();
                 }
                 Image im = LoadArgs.load_image_color(input, 0, 0);
-                Network.resize_network(net, im.W, im.H);
-                Console.Write($"%d %d\n", im.W, im.H);
+                Network.resize_network(ref net, im.Width, im.Height);
+                Console.Write($"%d %d\n", im.Width, im.Height);
 
                 float[] x = im.Data;
                 sw.Start();
-                Network.network_predict(net, x);
+                Network.network_predict(ref net, ref x);
                 Image outi = Network.get_network_image(net);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);

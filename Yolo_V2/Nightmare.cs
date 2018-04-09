@@ -27,38 +27,38 @@ namespace Yolo_V2
             int dy = Utils.Rand.Next() % 16 - 8;
             bool flip = Utils.Rand.Next() % 2 != 0;
 
-            Image crop = LoadArgs.crop_image(orig, dx, dy, orig.W, orig.H);
-            Image im = LoadArgs.resize_image(crop, (int)(orig.W * scale), (int)(orig.H * scale));
-            if (flip) LoadArgs.flip_image(im);
+            Image crop = LoadArgs.crop_image(orig, dx, dy, orig.Width, orig.Height);
+            Image im = LoadArgs.resize_image(crop, (int)(orig.Width * scale), (int)(orig.Height * scale));
+            if (flip) LoadArgs.flip_image(ref im);
 
-            Network.resize_network(net, im.W, im.H);
+            Network.resize_network(ref net, im.Width, im.Height);
             Layer last = net.Layers[net.N - 1];
 
-            Image delta = new Image(im.W, im.H, im.C);
+            Image delta = new Image(im.Width, im.Height, im.NumberOfChannels);
 
             NetworkState state = new NetworkState();
             state.Input = (float[])im.Data.Clone();
             state.Delta = (float[])im.Data.Clone();
 
-            Network.forward_network_gpu(net, state);
+            Network.forward_network_gpu(ref net, ref state);
             Blas.copy_ongpu(last.Outputs, last.OutputGpu, last.DeltaGpu);
 
             Array.Copy(last.DeltaGpu, last.Delta, last.Outputs);
             calculate_loss(last.Delta, last.Delta, last.Outputs, thresh);
             Array.Copy(last.Delta, last.DeltaGpu, last.Outputs);
 
-            Network.backward_network_gpu(net, state);
+            Network.backward_network_gpu(ref net, ref state);
 
-            Array.Copy(state.Delta, delta.Data, im.W * im.H * im.C);
+            Array.Copy(state.Delta, delta.Data, im.Width * im.Height * im.NumberOfChannels);
 
 
-            if (flip) LoadArgs.flip_image(delta);
+            if (flip) LoadArgs.flip_image(ref delta);
 
-            Image resized = LoadArgs.resize_image(delta, orig.W, orig.H);
-            Image outi = LoadArgs.crop_image(resized, -dx, -dy, orig.W, orig.H);
+            Image resized = LoadArgs.resize_image(delta, orig.Width, orig.Height);
+            Image outi = LoadArgs.crop_image(resized, -dx, -dy, orig.Width, orig.Height);
 
-            if (norm) Utils.normalize_array(outi.Data, outi.W * outi.H * outi.C);
-            Blas.Axpy_cpu(orig.W * orig.H * orig.C, rate, outi.Data, orig.Data);
+            if (norm) Utils.normalize_array(ref outi.Data, outi.Width * outi.Height * outi.NumberOfChannels);
+            Blas.Axpy_cpu(orig.Width * orig.Height * orig.NumberOfChannels, rate, outi.Data, orig.Data);
             
             LoadArgs.constrain_image(orig);
         }
@@ -67,20 +67,20 @@ namespace Yolo_V2
         {
             int i, j, k;
             int ii, jj;
-            for (k = 0; k < recon.C; ++k)
+            for (k = 0; k < recon.NumberOfChannels; ++k)
             {
-                for (j = 0; j < recon.H; ++j)
+                for (j = 0; j < recon.Height; ++j)
                 {
-                    for (i = 0; i < recon.W; ++i)
+                    for (i = 0; i < recon.Width; ++i)
                     {
-                        int outIndex = i + recon.W * (j + recon.H * k);
-                        for (jj = j - num; jj <= j + num && jj < recon.H; ++jj)
+                        int outIndex = i + recon.Width * (j + recon.Height * k);
+                        for (jj = j - num; jj <= j + num && jj < recon.Height; ++jj)
                         {
                             if (jj < 0) continue;
-                            for (ii = i - num; ii <= i + num && ii < recon.W; ++ii)
+                            for (ii = i - num; ii <= i + num && ii < recon.Width; ++ii)
                             {
                                 if (ii < 0) continue;
-                                int inIndex = ii + recon.W * (jj + recon.H * k);
+                                int inIndex = ii + recon.Width * (jj + recon.Height * k);
                                 update.Data[outIndex] += lambda * (recon.Data[inIndex] - recon.Data[outIndex]);
                             }
                         }
@@ -94,7 +94,7 @@ namespace Yolo_V2
             int iter = 0;
             for (iter = 0; iter < iters; ++iter)
             {
-                Image delta = new Image(recon.W, recon.H, recon.C);
+                Image delta = new Image(recon.Width, recon.Height, recon.NumberOfChannels);
 
                 NetworkState state = new NetworkState();
                 state.Input = (float[])recon.Data.Clone();
@@ -102,16 +102,16 @@ namespace Yolo_V2
                 state.Truth = new float[Network.get_network_output_size(net)];
                 Array.Copy(features, 0, state.Truth, 0, state.Truth.Length);
 
-                Network.forward_network_gpu(net, state);
-                Network.backward_network_gpu(net, state);
+                Network.forward_network_gpu(ref net, ref state);
+                Network.backward_network_gpu(ref net, ref state);
 
-                Array.Copy(state.Delta, delta.Data, delta.W * delta.H * delta.C);
+                Array.Copy(state.Delta, delta.Data, delta.Width * delta.Height * delta.NumberOfChannels);
 
-                Blas.Axpy_cpu(recon.W * recon.H * recon.C, 1, delta.Data, update.Data);
+                Blas.Axpy_cpu(recon.Width * recon.Height * recon.NumberOfChannels, 1, delta.Data, update.Data);
                 Smooth(recon, update, lambda, smoothSize);
 
-                Blas.Axpy_cpu(recon.W * recon.H * recon.C, rate, update.Data, recon.Data);
-                Blas.Scal_cpu(recon.W * recon.H * recon.C, momentum, update.Data, 1);
+                Blas.Axpy_cpu(recon.Width * recon.Height * recon.NumberOfChannels, rate, update.Data, recon.Data);
+                Blas.Scal_cpu(recon.Width * recon.Height * recon.NumberOfChannels, momentum, update.Data, 1);
 
                 LoadArgs.constrain_image(recon);
             }
@@ -150,25 +150,25 @@ namespace Yolo_V2
             string cfgbase = Utils.Basecfg(cfg);
             string imbase = Utils.Basecfg(input);
 
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             Image im = LoadArgs.load_image_color(input, 0, 0);
             
             float[] features = new float[0];
             Image update = null;
             if (reconstruct)
             {
-                Network.resize_network(net, im.W, im.H);
+                Network.resize_network(ref net, im.Width, im.Height);
 
                 int zz = 0;
-                Network.network_predict(net, im.Data);
+                Network.network_predict(ref net, ref im.Data);
                 Image outIm = Network.get_network_image(net);
-                Image crop = LoadArgs.crop_image(outIm, zz, zz, outIm.W - 2 * zz, outIm.H - 2 * zz);
-                Image fIm = LoadArgs.resize_image(crop, outIm.W, outIm.H);
-                Console.Write($"%d features\n", outIm.W * outIm.H * outIm.C);
+                Image crop = LoadArgs.crop_image(outIm, zz, zz, outIm.Width - 2 * zz, outIm.Height - 2 * zz);
+                Image fIm = LoadArgs.resize_image(crop, outIm.Width, outIm.Height);
+                Console.Write($"%d features\n", outIm.Width * outIm.Height * outIm.NumberOfChannels);
 
 
-                im = LoadArgs.resize_image(im, im.W, im.H);
-                fIm = LoadArgs.resize_image(fIm, fIm.W, fIm.H);
+                im = LoadArgs.resize_image(im, im.Width, im.Height);
+                fIm = LoadArgs.resize_image(fIm, fIm.Width, fIm.Height);
                 features = fIm.Data;
 
                 int i;
@@ -177,8 +177,8 @@ namespace Yolo_V2
                     features[i] += Utils.rand_uniform(-.19f, .19f);
                 }
 
-                im = LoadArgs.make_random_image(im.W, im.H, im.C);
-                update = new Image(im.W, im.H, im.C);
+                im = LoadArgs.make_random_image(im.Width, im.Height, im.NumberOfChannels);
+                update = new Image(im.Width, im.Height, im.NumberOfChannels);
 
             }
 
@@ -224,8 +224,8 @@ namespace Yolo_V2
                     Image rot = LoadArgs.rotate_image(im, rotate);
                     im = rot;
                 }
-                Image crop = LoadArgs.crop_image(im, (int)(im.W * (1f - zoom) / 2f), (int)(im.H * (1f - zoom) / 2f), (int)(im.W * zoom), (int)(im.H * zoom));
-                Image resized = LoadArgs.resize_image(crop, im.W, im.H);
+                Image crop = LoadArgs.crop_image(im, (int)(im.Width * (1f - zoom) / 2f), (int)(im.Height * (1f - zoom) / 2f), (int)(im.Width * zoom), (int)(im.Height * zoom));
+                Image resized = LoadArgs.resize_image(crop, im.Width, im.Height);
                 im = resized;
             }
         }

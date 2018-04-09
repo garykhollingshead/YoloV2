@@ -14,7 +14,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
 
             Utils.Rand = new Random(2222222);
             using (VideoCapture cap = new VideoCapture(camIndex))
@@ -31,7 +31,7 @@ namespace Yolo_V2
                     Image inS = LoadArgs.resize_image(ini, net.W, net.H);
                     LoadArgs.show_image(ini, window);
 
-                    float[] p = Network.network_predict(net, inS.Data);
+                    float[] p = Network.network_predict(ref net, ref inS.Data);
 
                     Console.Write($"\033[2J");
                     Console.Write($"\033[1;1H");

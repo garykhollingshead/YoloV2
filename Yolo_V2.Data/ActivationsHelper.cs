@@ -278,18 +278,22 @@ namespace Yolo_V2.Data
             if (i < n) delta[i + deltaStart] *= Gradient(x[i + xStart], a);
         }
 
-        [GpuManaged]
-        public static void activate_array_ongpu(float[] x, int n, Activation a)
+        public static void activate_array_ongpu(ref float[] x, int n, Activation a)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
-            Gpu.Default.Launch(activate_array_kernel, lp, x, n, a);
+            var lp = CudaUtils.cuda_gridsize(n);
+            var tempOutput = Gpu.Default.Allocate(x);
+            Gpu.Default.Launch(activate_array_kernel, lp, tempOutput, n, a);
+            x = Gpu.CopyToHost(tempOutput);
+            Gpu.Free(tempOutput);
         }
 
-        [GpuManaged]
-        public static void gradient_array_ongpu(float[] x, int n, Activation a, float[] delta, int xStart = 0, int deltaStart = 0)
+        public static void gradient_array_ongpu(float[] x, int n, Activation a,ref float[] delta, int xStart = 0, int deltaStart = 0)
         {
-            var lp = new LaunchParam(CudaUtils.cuda_gridsize(n), new dim3(CudaUtils.BlockSize));
-            Gpu.Default.Launch(gradient_array_kernel, lp, x, n, a, delta, xStart, deltaStart);
+            var lp = CudaUtils.cuda_gridsize(n);
+            var tempOutput = Gpu.Default.Allocate(delta);
+            Gpu.Default.Launch(gradient_array_kernel, lp, x, n, a, tempOutput, xStart, deltaStart);
+            delta = Gpu.CopyToHost(tempOutput);
+            Gpu.Free(tempOutput);
         }
     }
 }

@@ -37,17 +37,11 @@ namespace Yolo_V2.Data
             return false;
         }
 
-        public static dim3 cuda_gridsize(int n)
+        public static LaunchParam cuda_gridsize(int n)
         {
-            int k = (n - 1) / BlockSize + 1;
-            int x = k;
-            int y = 1;
-            if (x > 65535)
-            {
-                x = (int)Math.Ceiling(Math.Sqrt(k));
-                y = (n - 1) / (x * BlockSize) + 1;
-            }
-            return new dim3(x, y, 1);
+            if (n > 65535)
+                n = 65535;
+            return new LaunchParam(32, 512);
         }
 
 

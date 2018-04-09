@@ -72,7 +72,7 @@ namespace Yolo_V2.Data
                 im = gray;
 
                 x.Vals[i] = im.Data;
-                x.Cols = im.H * im.W * im.C;
+                x.Cols = im.Height * im.Width * im.NumberOfChannels;
             }
             return x;
         }
@@ -86,7 +86,7 @@ namespace Yolo_V2.Data
             {
                 Image im = LoadArgs.load_image_color(paths[i], w, h);
                 x.Vals[i] = im.Data;
-                x.Cols = im.H * im.W * im.C;
+                x.Cols = im.Height * im.Width * im.NumberOfChannels;
             }
             return x;
         }
@@ -101,11 +101,11 @@ namespace Yolo_V2.Data
                 Image im = LoadArgs.load_image_color(paths[i], 0, 0);
                 Image crop = LoadArgs.random_augment_image(im, angle, aspect, min, max, size);
                 int flip = Utils.Rand.Next() % 2;
-                if (flip != 0) LoadArgs.flip_image(crop);
+                if (flip != 0) LoadArgs.flip_image(ref crop);
                 LoadArgs.random_distort_image(crop, hue, saturation, exposure);
 
                 x.Vals[i] = crop.Data;
-                x.Cols = crop.H * crop.W * crop.C;
+                x.Cols = crop.Height * crop.Width * crop.NumberOfChannels;
             }
             return x;
         }
@@ -450,8 +450,8 @@ namespace Yolo_V2.Data
             {
                 Image orig = LoadArgs.load_image_color(randomPaths[i], 0, 0);
 
-                int oh = orig.H;
-                int ow = orig.W;
+                int oh = orig.Height;
+                int ow = orig.Width;
 
                 int dw = (int)(ow * jitter);
                 int dh = (int)(oh * jitter);
@@ -474,7 +474,7 @@ namespace Yolo_V2.Data
                 float dy = ((float)ptop / oh) / sy;
 
                 Image sized = LoadArgs.resize_image(cropped, w, h);
-                if (flip != 0) LoadArgs.flip_image(sized);
+                if (flip != 0) LoadArgs.flip_image(ref sized);
                 LoadArgs.random_distort_image(sized, hue, saturation, exposure);
                 d.X.Vals[i] = sized.Data;
 
@@ -575,8 +575,8 @@ namespace Yolo_V2.Data
             string randomPath = paths[index];
 
             Image orig = LoadArgs.load_image_color(randomPath, 0, 0);
-            int h = orig.H;
-            int w = orig.W;
+            int h = orig.Height;
+            int w = orig.Width;
 
             Data d = new Data();
             d.Shallow = 0;
@@ -611,7 +611,7 @@ namespace Yolo_V2.Data
             float dy = ((float)ptop / h) / sy;
 
             Image sized = LoadArgs.resize_image(cropped, w, h);
-            if (flip != 0) LoadArgs.flip_image(sized);
+            if (flip != 0) LoadArgs.flip_image(ref sized);
             d.X.Vals[0] = sized.Data;
 
             fill_truth_swag(randomPath, d.Y.Vals[0], classes, flip, dx, dy, 1.0f / sx, 1.0f / sy);
@@ -635,8 +635,8 @@ namespace Yolo_V2.Data
             {
                 Image orig = LoadArgs.load_image_color(randomPaths[i], 0, 0);
 
-                int oh = orig.H;
-                int ow = orig.W;
+                int oh = orig.Height;
+                int ow = orig.Width;
 
                 int dw = (int)(ow * jitter);
                 int dh = (int)(oh * jitter);
@@ -659,7 +659,7 @@ namespace Yolo_V2.Data
                 float dy = ((float)ptop / oh) / sy;
 
                 Image sized = LoadArgs.resize_image(cropped, w, h);
-                if (flip != 0) LoadArgs.flip_image(sized);
+                if (flip != 0) LoadArgs.flip_image(ref sized);
                 LoadArgs.random_distort_image(sized, hue, saturation, exposure);
                 d.X.Vals[i] = sized.Data;
 
@@ -797,7 +797,7 @@ namespace Yolo_V2.Data
                 Image im = LoadArgs.load_image_color(paths[i], 0, 0);
                 Image crop = LoadArgs.random_crop_image(im, w * scale, h * scale);
                 int flip = Utils.Rand.Next() % 2;
-                if (flip != 0) LoadArgs.flip_image(crop);
+                if (flip != 0) LoadArgs.flip_image(ref crop);
                 Image resize = LoadArgs.resize_image(crop, w, h);
                 d.X.Vals[i] = resize.Data;
                 d.Y.Vals[i] = crop.Data;

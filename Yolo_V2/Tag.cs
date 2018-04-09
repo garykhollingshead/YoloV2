@@ -102,7 +102,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             Utils.Rand = new Random(2222222);
             int i = 0;
             string[] names = Data.Data.get_labels("Data.Data/tags.txt");
@@ -127,15 +127,15 @@ namespace Yolo_V2
                 }
                 Image im = LoadArgs.load_image_color(input, 0, 0);
                 Image r = LoadArgs.resize_min(im, size);
-                Network.resize_network(net, r.W, r.H);
-                Console.Write($"%d %d\n", r.W, r.H);
+                Network.resize_network(ref net, r.Width, r.Height);
+                Console.Write($"%d %d\n", r.Width, r.Height);
 
                 float[] x = r.Data;
 
                 sw.Reset();
                 sw.Start();
-                float[] predictions = Network.network_predict(net, x);
-                Network.top_predictions(net, 10, indexes);
+                float[] predictions = Network.network_predict(ref net, ref x);
+                Network.top_predictions(ref net, 10, ref indexes);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
                 for (i = 0; i < 10; ++i)

@@ -120,7 +120,7 @@ namespace Yolo_V2
                 Parser.load_weights(net, weightfile);
             }
 
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum,
                 net.Decay);
 
@@ -190,10 +190,10 @@ namespace Yolo_V2
                     string path = paths[i + t - nthreads];
                     string id = Utils.Basecfg(path);
                     float[] x = valResized[t].Data;
-                    Network.network_predict(net, x);
-                    int w = val[t].W;
-                    int h = val[t].H;
-                    l.get_detection_boxes(w, h, thresh, probs, boxes, false);
+                    Network.network_predict(ref net, ref x);
+                    int w = val[t].Width;
+                    int h = val[t].Height;
+                    l.get_detection_boxes(w, h, thresh, ref probs, ref boxes, false);
                     if (nms)
                     {
                         Box.do_nms_sort(boxes, probs, l.Side * l.Side * l.N, classes, iouThresh);
@@ -221,7 +221,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             Console.Error.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
             
             string[] paths = Data.Data.GetPaths("Data.Data/voc.2007.test");
@@ -252,8 +252,8 @@ namespace Yolo_V2
                 Image orig = LoadArgs.load_image_color(path, 0, 0);
                 Image sized = LoadArgs.resize_image(orig, net.W, net.H);
                 string id = Utils.Basecfg(path);
-                Network.network_predict(net, sized.Data);
-                l.get_detection_boxes(orig.W, orig.H, thresh, probs, boxes, true);
+                Network.network_predict(ref net, ref sized.Data);
+                l.get_detection_boxes(orig.Width, orig.Height, thresh, ref probs, ref boxes, true);
 
                 string labelpath;
                 Utils.find_replace(path, "images", "labels", out labelpath);
@@ -296,14 +296,13 @@ namespace Yolo_V2
 
         private static void test_yolo(string cfgfile, string weightfile, string filename, float thresh)
         {
-            var alphabet = LoadArgs.load_alphabet();
             Network net = Parser.parse_network_cfg(cfgfile);
             if (string.IsNullOrEmpty(weightfile))
             {
                 Parser.load_weights(net, weightfile);
             }
             Layer l = net.Layers[net.N - 1];
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             Utils.Rand = new Random(2222222);
             var sw = new Stopwatch();
             string input = "";
@@ -329,13 +328,13 @@ namespace Yolo_V2
                 Image sized = LoadArgs.resize_image(im, net.W, net.H);
                 float[] x = sized.Data;
                 sw.Start();
-                Network.network_predict(net, x);
+                Network.network_predict(ref net, ref x);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
-                l.get_detection_boxes(1, 1, thresh, probs, boxes, false);
+                l.get_detection_boxes(1, 1, thresh, ref probs, ref boxes, false);
                 Box.do_nms_sort(boxes, probs, l.Side * l.Side * l.N, l.Classes, nms);
 
-                LoadArgs.draw_detections(im, l.Side * l.Side * l.N, thresh, boxes, probs, VocNames, alphabet, 20);
+                LoadArgs.draw_detections(ref im, l.Side * l.Side * l.N, thresh, boxes, probs, VocNames, 20);
                 LoadArgs.save_image(im, "predictions");
                 LoadArgs.show_image(im, "predictions");
 

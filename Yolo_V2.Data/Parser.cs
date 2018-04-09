@@ -8,65 +8,65 @@ namespace Yolo_V2.Data
 {
     public static class Parser
     {
-        private static LayerType string_to_layer_type(string type)
+        private static Layers string_to_layer_type(string type)
         {
             switch (type)
             {
                 case "[shortcut]":
-                    return LayerType.Shortcut;
+                    return Layers.Shortcut;
                 case "[crop]":
-                    return LayerType.Crop;
+                    return Layers.Crop;
                 case "[cost]":
-                    return LayerType.Cost;
+                    return Layers.Cost;
                 case "[detection]":
-                    return LayerType.Detection;
+                    return Layers.Detection;
                 case "[region]":
-                    return LayerType.Region;
+                    return Layers.Region;
                 case "[local]":
-                    return LayerType.Local;
+                    return Layers.Local;
                 case "[conv]":
                 case "[convolutional]":
-                    return LayerType.Convolutional;
+                    return Layers.Convolutional;
                 case "[activation]":
-                    return LayerType.Active;
+                    return Layers.Active;
                 case "[net]":
                 case "[Network]":
-                    return LayerType.Network;
+                    return Layers.Network;
                 case "[crnn]":
-                    return LayerType.Crnn;
+                    return Layers.Crnn;
                 case "[gru]":
-                    return LayerType.Gru;
+                    return Layers.Gru;
                 case "[rnn]":
-                    return LayerType.Rnn;
+                    return Layers.Rnn;
                 case "[conn]":
                 case "[connected]":
-                    return LayerType.Connected;
+                    return Layers.Connected;
                 case "[max]":
                 case "[maxpool]":
-                    return LayerType.Maxpool;
+                    return Layers.Maxpool;
                 case "[reorg]":
-                    return LayerType.Reorg;
+                    return Layers.Reorg;
                 case "[avg]":
                 case "[avgpool]":
-                    return LayerType.Avgpool;
+                    return Layers.Avgpool;
                 case "[dropout]":
-                    return LayerType.Dropout;
+                    return Layers.Dropout;
                 case "[lrn]":
                 case "[normalization]":
-                    return LayerType.Normalization;
+                    return Layers.Normalization;
                 case "[batchnorm]":
-                    return LayerType.Batchnorm;
+                    return Layers.Batchnorm;
                 case "[soft]":
                 case "[softmax]":
-                    return LayerType.Softmax;
+                    return Layers.Softmax;
                 case "[route]":
-                    return LayerType.Route;
+                    return Layers.Route;
             }
 
-            return LayerType.Blank;
+            return Layers.Blank;
         }
 
-        private static Layer parse_local(List<KeyValuePair> options, SizeParams parameters)
+        private static LocalLayer parse_local(List<KeyValuePair> options, SizeParams parameters)
         {
             int n = OptionList.option_find_int(options, "filters", 1);
             int size = OptionList.option_find_int(options, "size", 1);
@@ -82,7 +82,7 @@ namespace Yolo_V2.Data
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before local Layer must output image.");
 
-            Layer layer = new Layer(batch, h, w, c, n, size, stride, pad, activation);
+            LocalLayer layer = new LocalLayer(batch, h, w, c, n, size, stride, pad, activation);
 
             return layer;
         }
@@ -109,7 +109,7 @@ namespace Yolo_V2.Data
             bool binary = OptionList.option_find_int_quiet(options, "binary", 0) != 0;
             bool xnor = OptionList.option_find_int_quiet(options, "xnor", 0) != 0;
 
-            Layer layer = Layer.make_convolutional_layer(batch, h, w, c, n, size, stride, padding, activation, batchNormalize, binary, xnor, parameters.Net.Adam);
+            Layer layer = new ConvolutionalLayer(batch, h, w, c, n, size, stride, padding, activation, batchNormalize, binary, xnor, parameters.Net.Adam);
             layer.Flipped = OptionList.option_find_int_quiet(options, "flipped", 0);
             layer.Dot = OptionList.option_find_float_quiet(options, "dot", 0);
             if (parameters.Net.Adam)
@@ -122,7 +122,7 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        private static Layer parse_crnn(List<KeyValuePair> options, SizeParams parameters)
+        private static CrnnLayer parse_crnn(List<KeyValuePair> options, SizeParams parameters)
         {
             int outputFilters = OptionList.option_find_int(options, "output_filters", 1);
             int hiddenFilters = OptionList.option_find_int(options, "hidden_filters", 1);
@@ -130,14 +130,14 @@ namespace Yolo_V2.Data
             Activation activation = ActivationsHelper.Get_activation(activationS);
             bool batchNormalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
 
-            Layer l = Layer.make_crnn_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, hiddenFilters, outputFilters, parameters.TimeSteps, activation, batchNormalize);
+            CrnnLayer l = new CrnnLayer(parameters.Batch, parameters.W, parameters.H, parameters.C, hiddenFilters, outputFilters, parameters.TimeSteps, activation, batchNormalize);
 
             l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0) != 0;
 
             return l;
         }
 
-        private static Layer parse_rnn(List<KeyValuePair> options, SizeParams parameters)
+        private static RnnLayer parse_rnn(List<KeyValuePair> options, SizeParams parameters)
         {
             int output = OptionList.option_find_int(options, "output", 1);
             int hidden = OptionList.option_find_int(options, "hidden", 1);
@@ -146,50 +146,50 @@ namespace Yolo_V2.Data
             bool batchNormalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
             int logistic = OptionList.option_find_int_quiet(options, "logistic", 0);
 
-            Layer l = Layer.make_rnn_layer(parameters.Batch, parameters.Inputs, hidden, output, parameters.TimeSteps, activation, batchNormalize, logistic);
+            RnnLayer l = new RnnLayer(parameters.Batch, parameters.Inputs, hidden, output, parameters.TimeSteps, activation, batchNormalize, logistic);
 
             l.Shortcut = OptionList.option_find_int_quiet(options, "shortcut", 0) != 0;
 
             return l;
         }
 
-        private static Layer parse_gru(List<KeyValuePair> options, SizeParams parameters)
+        private static GruLayer parse_gru(List<KeyValuePair> options, SizeParams parameters)
         {
             int output = OptionList.option_find_int(options, "output", 1);
             bool batchNormalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
 
-            Layer l = Layer.make_gru_layer(parameters.Batch, parameters.Inputs, output, parameters.TimeSteps, batchNormalize);
+            GruLayer l = new GruLayer(parameters.Batch, parameters.Inputs, output, parameters.TimeSteps, batchNormalize);
 
             return l;
         }
 
-        private static Layer parse_connected(List<KeyValuePair> options, SizeParams parameters)
+        private static ConnectedLayer parse_connected(List<KeyValuePair> options, SizeParams parameters)
         {
             int output = OptionList.option_find_int(options, "output", 1);
             string activationS = OptionList.option_find_str(options, "activation", "logistic");
             Activation activation = ActivationsHelper.Get_activation(activationS);
             bool batchNormalize = OptionList.option_find_int_quiet(options, "batch_normalize", 0) != 0;
 
-            return Layer.make_connected_layer(parameters.Batch, parameters.Inputs, output, activation, batchNormalize);
+            return new ConnectedLayer(parameters.Batch, parameters.Inputs, output, activation, batchNormalize);
         }
 
-        private static Layer parse_softmax(List<KeyValuePair> options, SizeParams parameters)
+        private static SoftmaxLayer parse_softmax(List<KeyValuePair> options, SizeParams parameters)
         {
             int groups = OptionList.option_find_int_quiet(options, "groups", 1);
-            Layer layer = Layer.make_softmax_layer(parameters.Batch, parameters.Inputs, groups);
+            SoftmaxLayer layer = new SoftmaxLayer(parameters.Batch, parameters.Inputs, groups);
             layer.Temperature = OptionList.option_find_float_quiet(options, "temperature", 1);
             string treeFile = OptionList.option_find_str(options, "tree", "");
             if (!string.IsNullOrEmpty(treeFile)) layer.SoftmaxTree = new Tree(treeFile);
             return layer;
         }
 
-        private static Layer parse_region(List<KeyValuePair> options, SizeParams parameters)
+        private static RegionLayer parse_region(List<KeyValuePair> options, SizeParams parameters)
         {
             int coords = OptionList.option_find_int(options, "coords", 4);
             int classes = OptionList.option_find_int(options, "classes", 20);
             int num = OptionList.option_find_int(options, "num", 1);
 
-            Layer l = Layer.make_region_layer(parameters.Batch, parameters.W, parameters.H, num, classes, coords);
+            RegionLayer l = new RegionLayer(parameters.Batch, parameters.W, parameters.H, num, classes, coords);
 
             l.Log = OptionList.option_find_int_quiet(options, "log", 0);
             l.Sqrt = OptionList.option_find_int_quiet(options, "sqrt", 0) != 0;
@@ -227,14 +227,14 @@ namespace Yolo_V2.Data
             return l;
         }
 
-        private static Layer parse_detection(List<KeyValuePair> options, SizeParams parameters)
+        private static DetectionLayer parse_detection(List<KeyValuePair> options, SizeParams parameters)
         {
             int coords = OptionList.option_find_int(options, "coords", 1);
             int classes = OptionList.option_find_int(options, "classes", 1);
             bool rescore = OptionList.option_find_int(options, "rescore", 0) != 0;
             int num = OptionList.option_find_int(options, "num", 1);
             int side = OptionList.option_find_int(options, "side", 7);
-            Layer layer = Layer.make_detection_layer(parameters.Batch, parameters.Inputs, num, side, classes, coords, rescore);
+            DetectionLayer layer = new DetectionLayer(parameters.Batch, parameters.Inputs, num, side, classes, coords, rescore);
 
             layer.Softmax = OptionList.option_find_int(options, "softmax", 0) != 0;
             layer.Sqrt = OptionList.option_find_int(options, "sqrt", 0) != 0;
@@ -251,17 +251,17 @@ namespace Yolo_V2.Data
             return layer;
         }
 
-        private static Layer parse_cost(List<KeyValuePair> options, SizeParams parameters)
+        private static CostLayer parse_cost(List<KeyValuePair> options, SizeParams parameters)
         {
             string typeS = OptionList.option_find_str(options, "type", "sse");
             CostType type = (CostType)Enum.Parse(typeof(CostType), typeS);
             float scale = OptionList.option_find_float_quiet(options, "scale", 1);
-            Layer layer = Layer.make_cost_layer(parameters.Batch, parameters.Inputs, type, scale);
+            CostLayer layer = new CostLayer(parameters.Batch, parameters.Inputs, type, scale);
             layer.Ratio = OptionList.option_find_float_quiet(options, "ratio", 0);
             return layer;
         }
 
-        private static Layer parse_crop(List<KeyValuePair> options, SizeParams parameters)
+        private static CropLayer parse_crop(List<KeyValuePair> options, SizeParams parameters)
         {
             int cropHeight = OptionList.option_find_int(options, "crop_height", 1);
             int cropWidth = OptionList.option_find_int(options, "crop_width", 1);
@@ -279,13 +279,13 @@ namespace Yolo_V2.Data
 
             bool noadjust = OptionList.option_find_int_quiet(options, "noadjust", 0) != 0;
 
-            Layer l = Layer.make_crop_layer(batch, h, w, c, cropHeight, cropWidth, flip, angle, saturation, exposure);
+            CropLayer l = new CropLayer(batch, h, w, c, cropHeight, cropWidth, flip, angle, saturation, exposure);
             l.Shift = OptionList.option_find_float(options, "shift", 0);
             l.Noadjust = noadjust;
             return l;
         }
 
-        private static Layer parse_reorg(List<KeyValuePair> options, SizeParams parameters)
+        private static ReorgLayer parse_reorg(List<KeyValuePair> options, SizeParams parameters)
         {
             int stride = OptionList.option_find_int(options, "stride", 1);
             bool reverse = OptionList.option_find_int_quiet(options, "reverse", 0) != 0;
@@ -297,10 +297,10 @@ namespace Yolo_V2.Data
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before reorg Layer must output image.");
 
-            return Layer.make_reorg_layer(batch, w, h, c, stride, reverse);
+            return new ReorgLayer(batch, w, h, c, stride, reverse);
         }
 
-        private static Layer parse_maxpool(List<KeyValuePair> options, SizeParams parameters)
+        private static MaxpoolLayer parse_maxpool(List<KeyValuePair> options, SizeParams parameters)
         {
             int stride = OptionList.option_find_int(options, "stride", 1);
             int size = OptionList.option_find_int(options, "size", stride);
@@ -313,10 +313,10 @@ namespace Yolo_V2.Data
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before maxpool Layer must output image.");
 
-            return Layer.make_maxpool_layer(batch, h, w, c, size, stride, padding);
+            return new MaxpoolLayer(batch, h, w, c, size, stride, padding);
         }
 
-        private static Layer parse_avgpool(List<KeyValuePair> options, SizeParams parameters)
+        private static AvgpoolLayer parse_avgpool(List<KeyValuePair> options, SizeParams parameters)
         {
             int batch, w, h, c;
             w = parameters.W;
@@ -325,34 +325,34 @@ namespace Yolo_V2.Data
             batch = parameters.Batch;
             if (!(h != 0 && w != 0 && c != 0)) Utils.Error("Layer before avgpool Layer must output image.");
 
-            return Layer.make_avgpool_layer(batch, w, h, c);
+            return new AvgpoolLayer(batch, w, h, c);
         }
 
-        private static Layer parse_dropout(List<KeyValuePair> options, SizeParams parameters)
+        private static DropoutLayer parse_dropout(List<KeyValuePair> options, SizeParams parameters)
         {
             float probability = OptionList.option_find_float(options, "probability", .5f);
-            Layer layer = Layer.make_dropout_layer(parameters.Batch, parameters.Inputs, probability);
+            DropoutLayer layer = new DropoutLayer(parameters.Batch, parameters.Inputs, probability);
             layer.OutW = parameters.W;
             layer.OutH = parameters.H;
             layer.OutC = parameters.C;
             return layer;
         }
 
-        private static Layer parse_normalization(List<KeyValuePair> options, SizeParams parameters)
+        private static NormalizationLayer parse_normalization(List<KeyValuePair> options, SizeParams parameters)
         {
             float alpha = OptionList.option_find_float(options, "alpha", .0001f);
             float beta = OptionList.option_find_float(options, "beta", .75f);
             float kappa = OptionList.option_find_float(options, "kappa", 1);
             int size = OptionList.option_find_int(options, "size", 5);
-            return Layer.make_normalization_layer(parameters.Batch, parameters.W, parameters.H, parameters.C, size, alpha, beta, kappa);
+            return new NormalizationLayer(parameters.Batch, parameters.W, parameters.H, parameters.C, size, alpha, beta, kappa);
         }
 
-        private static Layer parse_batchnorm(List<KeyValuePair> options, SizeParams parameters)
+        private static BatchnormLayer parse_batchnorm(List<KeyValuePair> options, SizeParams parameters)
         {
-            return Layer.make_batchnorm_layer(parameters.Batch, parameters.W, parameters.H, parameters.C);
+            return new BatchnormLayer(parameters.Batch, parameters.W, parameters.H, parameters.C);
         }
 
-        private static Layer parse_shortcut(List<KeyValuePair> options, SizeParams parameters, Network net)
+        private static ShortcutLayer parse_shortcut(List<KeyValuePair> options, SizeParams parameters, Network net)
         {
             string l = OptionList.option_find(options, "from");
             int index = int.Parse(l);
@@ -361,7 +361,7 @@ namespace Yolo_V2.Data
             int batch = parameters.Batch;
             Layer from = net.Layers[index];
 
-            Layer s = Layer.make_shortcut_layer(batch, index, parameters.W, parameters.H, parameters.C, from.OutW, from.OutH, from.OutC);
+            ShortcutLayer s = new ShortcutLayer(batch, index, parameters.W, parameters.H, parameters.C, from.OutW, from.OutH, from.OutC);
 
             string activationS = OptionList.option_find_str(options, "activation", "linear");
             Activation activation = ActivationsHelper.Get_activation(activationS);
@@ -369,24 +369,24 @@ namespace Yolo_V2.Data
             return s;
         }
 
-        private static Layer parse_activation(List<KeyValuePair> options, SizeParams parameters)
+        private static ActivationLayer parse_activation(List<KeyValuePair> options, SizeParams parameters)
         {
             string activationS = OptionList.option_find_str(options, "activation", "linear");
             Activation activation = ActivationsHelper.Get_activation(activationS);
 
-            Layer l = Layer.make_activation_layer(parameters.Batch, parameters.Inputs, activation);
+            ActivationLayer l = new ActivationLayer(parameters.Batch, parameters.Inputs, activation);
 
             l.OutH = parameters.H;
             l.OutW = parameters.W;
             l.OutC = parameters.C;
-            l.H = parameters.H;
-            l.W = parameters.W;
-            l.C = parameters.C;
+            l.Height = parameters.H;
+            l.Width = parameters.W;
+            l.NumberOfChannels = parameters.C;
 
             return l;
         }
 
-        private static Layer parse_route(List<KeyValuePair> options, SizeParams parameters, Network net)
+        private static RouteLayer parse_route(List<KeyValuePair> options, SizeParams parameters, Network net)
         {
             string l = OptionList.option_find(options, "layers");
             if (string.IsNullOrEmpty(l)) Utils.Error("Route Layer must specify input layers");
@@ -407,7 +407,7 @@ namespace Yolo_V2.Data
 
             int batch = parameters.Batch;
 
-            Layer layer = Layer.make_route_layer(batch, n, layers, sizes);
+            RouteLayer layer = new RouteLayer(batch, n, layers, sizes);
 
             var first = net.Layers[layers[0]];
             layer.OutW = first.OutW;
@@ -560,86 +560,86 @@ namespace Yolo_V2.Data
                 Console.Error.Write($"{count} ");
                 s = new Section(n);
                 options = s.Options;
-                Layer l = new Layer();
-                LayerType lt = string_to_layer_type(s.Type);
-                if (lt == LayerType.Convolutional)
+                Layer l;
+                Layers lt = string_to_layer_type(s.Type);
+                if (lt == Layers.Convolutional)
                 {
                     l = parse_convolutional(options, parameters);
                 }
-                else if (lt == LayerType.Local)
+                else if (lt == Layers.Local)
                 {
                     l = parse_local(options, parameters);
                 }
-                else if (lt == LayerType.Avgpool)
+                else if (lt == Layers.Avgpool)
                 {
                     l = parse_activation(options, parameters);
                 }
-                else if (lt == LayerType.Rnn)
+                else if (lt == Layers.Rnn)
                 {
                     l = parse_rnn(options, parameters);
                 }
-                else if (lt == LayerType.Gru)
+                else if (lt == Layers.Gru)
                 {
                     l = parse_gru(options, parameters);
                 }
-                else if (lt == LayerType.Crnn)
+                else if (lt == Layers.Crnn)
                 {
                     l = parse_crnn(options, parameters);
                 }
-                else if (lt == LayerType.Connected)
+                else if (lt == Layers.Connected)
                 {
                     l = parse_connected(options, parameters);
                 }
-                else if (lt == LayerType.Crop)
+                else if (lt == Layers.Crop)
                 {
                     l = parse_crop(options, parameters);
                 }
-                else if (lt == LayerType.Cost)
+                else if (lt == Layers.Cost)
                 {
                     l = parse_cost(options, parameters);
                 }
-                else if (lt == LayerType.Region)
+                else if (lt == Layers.Region)
                 {
                     l = parse_region(options, parameters);
                 }
-                else if (lt == LayerType.Detection)
+                else if (lt == Layers.Detection)
                 {
                     l = parse_detection(options, parameters);
                 }
-                else if (lt == LayerType.Softmax)
+                else if (lt == Layers.Softmax)
                 {
                     l = parse_softmax(options, parameters);
                     net.Hierarchy = l.SoftmaxTree;
                 }
-                else if (lt == LayerType.Normalization)
+                else if (lt == Layers.Normalization)
                 {
                     l = parse_normalization(options, parameters);
                 }
-                else if (lt == LayerType.Batchnorm)
+                else if (lt == Layers.Batchnorm)
                 {
                     l = parse_batchnorm(options, parameters);
                 }
-                else if (lt == LayerType.Maxpool)
+                else if (lt == Layers.Maxpool)
                 {
                     l = parse_maxpool(options, parameters);
                 }
-                else if (lt == LayerType.Reorg)
+                else if (lt == Layers.Reorg)
                 {
                     l = parse_reorg(options, parameters);
                 }
-                else if (lt == LayerType.Avgpool)
+                else if (lt == Layers.Avgpool)
                 {
                     l = parse_avgpool(options, parameters);
                 }
-                else if (lt == LayerType.Route)
+                else if (lt == Layers.Route)
                 {
                     l = parse_route(options, parameters, net);
                 }
-                else if (lt == LayerType.Shortcut)
+                else if (lt == Layers.Shortcut)
                 {
                     l = parse_shortcut(options, parameters, net);
                 }
-                else if (lt == LayerType.Dropout)
+                else if (lt == Layers.Dropout)
                 {
                     l = parse_dropout(options, parameters);
                     l.Output = net.Layers[count - 1].Output;
@@ -649,7 +649,8 @@ namespace Yolo_V2.Data
                 }
                 else
                 {
-                    Console.Error.Write($"LayerType not recognized: {s.Type}\n");
+                    Console.Error.Write($"Layers not recognized: {s.Type}\n");
+                    continue;
                 }
                 l.Dontload = OptionList.option_find_int_quiet(options, "dontload", 0) != 0;
                 l.Dontloadscales = OptionList.option_find_int_quiet(options, "dontloadscales", 0) != 0;
@@ -732,7 +733,7 @@ namespace Yolo_V2.Data
                 l.pull_convolutional_layer();
             }
 
-            int num = l.N * l.C * l.Size * l.Size;
+            int num = l.N * l.NumberOfChannels * l.Size * l.Size;
             var biases = FloatArrayToByteArray(l.BiasesComplete, l.BiasesIndex);
             fstream.Write(biases, 0, biases.Length);
 
@@ -820,29 +821,29 @@ namespace Yolo_V2.Data
                 for (i = 0; i < net.N && i < cutoff; ++i)
                 {
                     Layer l = net.Layers[i];
-                    if (l.LayerType == LayerType.Convolutional)
+                    if (l.LayerType == Layers.Convolutional)
                     {
                         save_convolutional_weights(l, fstream);
                     }
 
-                    if (l.LayerType == LayerType.Connected)
+                    if (l.LayerType == Layers.Connected)
                     {
                         save_connected_weights(l, fstream);
                     }
 
-                    if (l.LayerType == LayerType.Batchnorm)
+                    if (l.LayerType == Layers.Batchnorm)
                     {
                         save_batchnorm_weights(l, fstream);
                     }
 
-                    if (l.LayerType == LayerType.Rnn)
+                    if (l.LayerType == Layers.Rnn)
                     {
                         save_connected_weights((l.InputLayer), fstream);
                         save_connected_weights((l.SelfLayer), fstream);
                         save_connected_weights((l.OutputLayer), fstream);
                     }
 
-                    if (l.LayerType == LayerType.Gru)
+                    if (l.LayerType == Layers.Gru)
                     {
                         save_connected_weights((l.InputZLayer), fstream);
                         save_connected_weights((l.InputRLayer), fstream);
@@ -852,14 +853,14 @@ namespace Yolo_V2.Data
                         save_connected_weights((l.StateHLayer), fstream);
                     }
 
-                    if (l.LayerType == LayerType.Crnn)
+                    if (l.LayerType == Layers.Crnn)
                     {
                         save_convolutional_weights((l.InputLayer), fstream);
                         save_convolutional_weights((l.SelfLayer), fstream);
                         save_convolutional_weights((l.OutputLayer), fstream);
                     }
 
-                    if (l.LayerType == LayerType.Local)
+                    if (l.LayerType == Layers.Local)
                     {
                         if (CudaUtils.UseGpu)
                         {
@@ -867,7 +868,7 @@ namespace Yolo_V2.Data
                         }
 
                         int locations = l.OutW * l.OutH;
-                        int size = l.Size * l.Size * l.C * l.N * locations;
+                        int size = l.Size * l.Size * l.NumberOfChannels * l.N * locations;
 
                         var biases = FloatArrayToByteArray(l.BiasesComplete, l.BiasesIndex);
 
@@ -941,9 +942,9 @@ namespace Yolo_V2.Data
 
         private static void load_batchnorm_weights(Layer l, FileStream fread)
         {
-            l.Scales = ReadFloat(fread, l.C);
-            l.RollingMean = ReadFloat(fread, l.C);
-            l.RollingVariance = ReadFloat(fread, l.C);
+            l.Scales = ReadFloat(fread, l.NumberOfChannels);
+            l.RollingMean = ReadFloat(fread, l.NumberOfChannels);
+            l.RollingVariance = ReadFloat(fread, l.NumberOfChannels);
             if (CudaUtils.UseGpu)
             {
                 l.push_batchnorm_layer();
@@ -952,7 +953,7 @@ namespace Yolo_V2.Data
 
         private static void load_convolutional_weights(Layer l, FileStream fread)
         {
-            int num = l.N * l.C * l.Size * l.Size;
+            int num = l.N * l.NumberOfChannels * l.Size * l.Size;
             l.BiasesComplete = ReadFloat(fread, l.N);
             l.BiasesIndex = 0;
             if (l.BatchNormalize  && (!l.Dontloadscales))
@@ -971,7 +972,7 @@ namespace Yolo_V2.Data
             }
             if (l.Flipped != 0)
             {
-                transpose_matrix(l.WeightsComplete, l.C * l.Size * l.Size, l.N, l.WeightsIndex);
+                transpose_matrix(l.WeightsComplete, l.NumberOfChannels * l.Size * l.Size, l.N, l.WeightsIndex);
             }
             if (CudaUtils.UseGpu)
             {
@@ -1001,36 +1002,36 @@ namespace Yolo_V2.Data
                 {
                     Layer l = net.Layers[i];
                     if (l.Dontload) continue;
-                    if (l.LayerType == LayerType.Convolutional)
+                    if (l.LayerType == Layers.Convolutional)
                     {
                         load_convolutional_weights(l, fread);
                     }
 
-                    if (l.LayerType == LayerType.Connected)
+                    if (l.LayerType == Layers.Connected)
                     {
                         load_connected_weights(l, fread, transpose);
                     }
 
-                    if (l.LayerType == LayerType.Batchnorm)
+                    if (l.LayerType == Layers.Batchnorm)
                     {
                         load_batchnorm_weights(l, fread);
                     }
 
-                    if (l.LayerType == LayerType.Crnn)
+                    if (l.LayerType == Layers.Crnn)
                     {
                         load_convolutional_weights((l.InputLayer), fread);
                         load_convolutional_weights((l.SelfLayer), fread);
                         load_convolutional_weights((l.OutputLayer), fread);
                     }
 
-                    if (l.LayerType == LayerType.Rnn)
+                    if (l.LayerType == Layers.Rnn)
                     {
                         load_connected_weights((l.InputLayer), fread, transpose);
                         load_connected_weights((l.SelfLayer), fread, transpose);
                         load_connected_weights((l.OutputLayer), fread, transpose);
                     }
 
-                    if (l.LayerType == LayerType.Gru)
+                    if (l.LayerType == Layers.Gru)
                     {
                         load_connected_weights((l.InputZLayer), fread, transpose);
                         load_connected_weights((l.InputRLayer), fread, transpose);
@@ -1040,10 +1041,10 @@ namespace Yolo_V2.Data
                         load_connected_weights((l.StateHLayer), fread, transpose);
                     }
 
-                    if (l.LayerType == LayerType.Local)
+                    if (l.LayerType == Layers.Local)
                     {
                         int locations = l.OutW * l.OutH;
-                        int size = l.Size * l.Size * l.C * l.N * locations;
+                        int size = l.Size * l.Size * l.NumberOfChannels * l.N * locations;
                         l.BiasesComplete = ReadFloat(fread, l.Outputs);
                         l.WeightsComplete = ReadFloat(fread, size);
                         l.BiasesIndex = 0;

@@ -202,7 +202,7 @@ namespace Yolo_V2
         {
             int i, j;
             Network net = Parser.parse_network_cfg(filename);
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             if (string.IsNullOrEmpty(weightfile))
             {
                 Parser.load_weights(net, weightfile);
@@ -247,7 +247,7 @@ namespace Yolo_V2
                 images[2] = LoadArgs.crop_image(im, 0, 0, w, h);
                 images[3] = LoadArgs.crop_image(im, -shift, shift, w, h);
                 images[4] = LoadArgs.crop_image(im, shift, shift, w, h);
-                LoadArgs.flip_image(im);
+                LoadArgs.flip_image(ref im);
                 images[5] = LoadArgs.crop_image(im, -shift, -shift, w, h);
                 images[6] = LoadArgs.crop_image(im, shift, -shift, w, h);
                 images[7] = LoadArgs.crop_image(im, 0, 0, w, h);
@@ -256,7 +256,7 @@ namespace Yolo_V2
                 float[] pred = new float[classes];
                 for (j = 0; j < 10; ++j)
                 {
-                    float[] p = Network.network_predict(net, images[j].Data);
+                    float[] p = Network.network_predict(ref net, ref images[j].Data);
                     if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(p, 0, net.Outputs, true);
                     Blas.Axpy_cpu(classes, 1, p, pred);
                 }
@@ -275,7 +275,7 @@ namespace Yolo_V2
         {
             int i, j;
             Network net = Parser.parse_network_cfg(filename);
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             if (string.IsNullOrEmpty(weightfile))
             {
                 Parser.load_weights(net, weightfile);
@@ -313,10 +313,10 @@ namespace Yolo_V2
                 }
                 Image im = LoadArgs.load_image_color(paths[i], 0, 0);
                 Image resized = LoadArgs.resize_min(im, size);
-                Network.resize_network(net, resized.W, resized.H);
-                float[] pred = Network.network_predict(net, resized.Data);
+                Network.resize_network(ref net, resized.Width, resized.Height);
+                float[] pred = Network.network_predict(ref net, ref resized.Data);
                 if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(pred, 0, net.Outputs, true);
-                
+
                 Utils.top_k(pred, classes, topk, indexes);
 
                 if (indexes[0] == class2) avgAcc += 1;
@@ -337,14 +337,14 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
 
 
             var options = OptionList.read_data_cfg(datacfg);
 
             string labelList = OptionList.option_find_str(options, "labels", "Data.Data/labels.list");
             string leafList = OptionList.option_find_str(options, "leaves", "");
-            if (!string.IsNullOrEmpty(leafList)) net.Hierarchy.Change_leaves( leafList);
+            if (!string.IsNullOrEmpty(leafList)) net.Hierarchy.Change_leaves(leafList);
             string validList = OptionList.option_find_str(options, "valid", "Data.Data/train.list");
             int classes = OptionList.option_find_int(options, "classes", 2);
             int topk = OptionList.option_find_int(options, "top", 1);
@@ -364,7 +364,7 @@ namespace Yolo_V2
                 string path = paths[i];
                 for (j = 0; j < classes; ++j)
                 {
-                    if (path.Contains( labels[j]))
+                    if (path.Contains(labels[j]))
                     {
                         class2 = j;
                         break;
@@ -372,10 +372,10 @@ namespace Yolo_V2
                 }
                 Image im = LoadArgs.load_image_color(paths[i], 0, 0);
                 Image resized = LoadArgs.resize_min(im, net.W);
-                Image crop = LoadArgs.crop_image(resized, (resized.W - net.W) / 2, (resized.H - net.H) / 2, net.W, net.H);
-                float[] pred = Network.network_predict(net, crop.Data);
+                Image crop = LoadArgs.crop_image(resized, (resized.Width - net.W) / 2, (resized.Height - net.H) / 2, net.W, net.H);
+                float[] pred = Network.network_predict(ref net, ref crop.Data);
                 if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(pred, 0, net.Outputs, false);
-                
+
                 Utils.top_k(pred, classes, topk, indexes);
 
                 if (indexes[0] == class2) avgAcc += 1;
@@ -392,7 +392,7 @@ namespace Yolo_V2
         {
             int i, j;
             Network net = Parser.parse_network_cfg(filename);
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             if (string.IsNullOrEmpty(weightfile))
             {
                 Parser.load_weights(net, weightfile);
@@ -423,7 +423,7 @@ namespace Yolo_V2
                 string path = paths[i];
                 for (j = 0; j < classes; ++j)
                 {
-                    if (path.Contains( labels[j]))
+                    if (path.Contains(labels[j]))
                     {
                         class2 = j;
                         break;
@@ -434,12 +434,12 @@ namespace Yolo_V2
                 for (j = 0; j < nscales; ++j)
                 {
                     Image r = LoadArgs.resize_min(im, scales[j]);
-                    Network.resize_network(net, r.W, r.H);
-                    float[] p = Network.network_predict(net, r.Data);
+                    Network.resize_network(ref net, r.Width, r.Height);
+                    float[] p = Network.network_predict(ref net, ref r.Data);
                     if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(p, 0, net.Outputs, true);
                     Blas.Axpy_cpu(classes, 1, p, pred);
-                    LoadArgs.flip_image(r);
-                    p = Network.network_predict(net, r.Data);
+                    LoadArgs.flip_image(ref r);
+                    p = Network.network_predict(ref net, ref r.Data);
                     Blas.Axpy_cpu(classes, 1, p, pred);
                 }
                 Utils.top_k(pred, classes, topk, indexes);
@@ -460,7 +460,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             Utils.Rand = new Random(2222222);
 
             var options = OptionList.read_data_cfg(datacfg);
@@ -491,7 +491,7 @@ namespace Yolo_V2
                 }
                 Image orig = LoadArgs.load_image_color(input, 0, 0);
                 Image r = LoadArgs.resize_min(orig, 256);
-                Image im = LoadArgs.crop_image(r, (r.W - 224 - 1) / 2 + 1, (r.H - 224 - 1) / 2 + 1, 224, 224);
+                Image im = LoadArgs.crop_image(r, (r.Width - 224 - 1) / 2 + 1, (r.Height - 224 - 1) / 2 + 1, 224, 224);
                 float[] mean = { 0.48263312050943f, 0.45230225481413f, 0.40099074308742f };
                 float[] std = { 0.22590347483426f, 0.22120921437787f, 0.22103996251583f };
                 float[] var = new float[3];
@@ -499,15 +499,15 @@ namespace Yolo_V2
                 var[1] = std[1] * std[1];
                 var[2] = std[2] * std[2];
 
-                Blas.Normalize_cpu(im.Data, mean, var, 1, 3, im.W * im.H);
+                Blas.Normalize_cpu(im.Data, mean, var, 1, 3, im.Width * im.Height);
 
                 float[] x = im.Data;
                 sw.Reset();
                 sw.Start();
-                float[] predictions = Network.network_predict(net, x);
+                float[] predictions = Network.network_predict(ref net, ref x);
 
                 Layer l = net.Layers[layerNum];
-                for (i = 0; i < l.C; ++i)
+                for (i = 0; i < l.NumberOfChannels; ++i)
                 {
                     if (l.RollingMean.Length > i) Console.Write($"%f %f %f\n", l.RollingMean[i], l.RollingVariance[i], l.Scales[i]);
                 }
@@ -517,7 +517,7 @@ namespace Yolo_V2
                     Console.Write($"%f\n", l.Output[i]);
                 }
 
-                Network.top_predictions(net, top, indexes);
+                Network.top_predictions(ref net, top, ref indexes);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
                 for (i = 0; i < top; ++i)
@@ -536,7 +536,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             Utils.Rand = new Random(2222222);
 
             var options = OptionList.read_data_cfg(datacfg);
@@ -568,13 +568,13 @@ namespace Yolo_V2
                 }
                 Image im = LoadArgs.load_image_color(input, 0, 0);
                 Image r = LoadArgs.resize_min(im, size);
-                Network.resize_network(net, r.W, r.H);
-                Console.Write($"%d %d\n", r.W, r.H);
+                Network.resize_network(ref net, r.Width, r.Height);
+                Console.Write($"%d %d\n", r.Width, r.Height);
 
                 float[] x = r.Data;
                 sw.Reset();
                 sw.Start();
-                float[] predictions = Network.network_predict(net, x);
+                float[] predictions = Network.network_predict(ref net, ref x);
                 if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(predictions, 0, net.Outputs, false);
                 Utils.top_k(predictions, net.Outputs, top, indexes);
                 sw.Stop();
@@ -596,7 +596,7 @@ namespace Yolo_V2
         {
             int i;
             Network net = Parser.parse_network_cfg(filename);
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             if (string.IsNullOrEmpty(weightfile))
             {
                 Parser.load_weights(net, weightfile);
@@ -618,8 +618,8 @@ namespace Yolo_V2
             {
                 Image im = LoadArgs.load_image_color(paths[i], 0, 0);
                 Image resized = LoadArgs.resize_min(im, net.W);
-                Image crop = LoadArgs.crop_image(resized, (resized.W - net.W) / 2, (resized.H - net.H) / 2, net.W, net.H);
-                float[] pred = Network.network_predict(net, crop.Data);
+                Image crop = LoadArgs.crop_image(resized, (resized.Width - net.W) / 2, (resized.Height - net.H) / 2, net.W, net.H);
+                float[] pred = Network.network_predict(ref net, ref crop.Data);
 
                 int ind = Utils.max_index(pred, classes);
 
@@ -681,7 +681,7 @@ namespace Yolo_V2
 
                 sw.Reset();
                 sw.Start();
-                Matrix pred = Network.network_predict_data(net, val);
+                Matrix pred = Network.network_predict_data(ref net, ref val);
 
                 int i, j;
 
@@ -711,7 +711,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             var options = OptionList.read_data_cfg(datacfg);
 
             Utils.Rand = new Random(2222222);
@@ -744,61 +744,61 @@ namespace Yolo_V2
                     Image inS = LoadArgs.resize_image(ini, net.W, net.H);
 
                     Image outo = ini;
-                    int x1 = outo.W / 20;
-                    int y1 = outo.H / 20;
+                    int x1 = outo.Width / 20;
+                    int y1 = outo.Height / 20;
                     int x2 = 2 * x1;
-                    int y2 = outo.H - outo.H / 20;
+                    int y2 = outo.Height - outo.Height / 20;
 
-                    int border = (int) (.01f * outo.H);
+                    int border = (int)(.01f * outo.Height);
                     int h = y2 - y1 - 2 * border;
                     int w = x2 - x1 - 2 * border;
 
-                    float[] predictions = Network.network_predict(net, inS.Data);
+                    float[] predictions = Network.network_predict(ref net, ref inS.Data);
                     float currThreat = 0;
                     currThreat = predictions[0] * 0f +
                                  predictions[1] * .6f +
                                  predictions[2];
                     threat = roll * currThreat + (1 - roll) * threat;
 
-                    LoadArgs.draw_box_width(outo, x2 + border, (int)(y1 + .02 * h), (int)(x2 + .5 * w), (int)(y1 + .02 * h + border), border, 0, 0,
+                    LoadArgs.draw_box(ref outo, x2 + border, (int)(y1 + .02 * h), (int)(x2 + .5 * w), (int)(y1 + .02 * h + border), border, 0, 0,
                         0);
                     if (threat > .97)
                     {
-                        LoadArgs.draw_box_width(outo, (int)(x2 + .5 * w + border),
+                        LoadArgs.draw_box(ref outo, (int)(x2 + .5 * w + border),
                             (int)(y1 + .02 * h - 2 * border),
                             (int)(x2 + .5 * w + 6 * border),
                             (int)(y1 + .02 * h + 3 * border), 3 * border, 1, 0, 0);
                     }
 
-                    LoadArgs.draw_box_width(outo, (int)(x2 + .5 * w + border),
+                    LoadArgs.draw_box(ref outo, (int)(x2 + .5 * w + border),
                         (int)(y1 + .02 * h - 2 * border),
                         (int)(x2 + .5 * w + 6 * border),
                         (int)(y1 + .02 * h + 3 * border), (int)(.5 * border), 0, 0, 0);
-                    LoadArgs.draw_box_width(outo, x2 + border, (int)(y1 + .42 * h), (int)(x2 + .5 * w), (int)(y1 + .42 * h + border), border, 0, 0,
+                    LoadArgs.draw_box(ref outo, x2 + border, (int)(y1 + .42 * h), (int)(x2 + .5 * w), (int)(y1 + .42 * h + border), border, 0, 0,
                         0);
                     if (threat > .57)
                     {
-                        LoadArgs.draw_box_width(outo, (int)(x2 + .5 * w + border),
+                        LoadArgs.draw_box(ref outo, (int)(x2 + .5 * w + border),
                             (int)(y1 + .42 * h - 2 * border),
                             (int)(x2 + .5 * w + 6 * border),
                             (int)(y1 + .42 * h + 3 * border), 3 * border, 1, 1, 0);
                     }
 
-                    LoadArgs.draw_box_width(outo, (int)(x2 + .5 * w + border),
+                    LoadArgs.draw_box(ref outo, (int)(x2 + .5 * w + border),
                         (int)(y1 + .42 * h - 2 * border),
                         (int)(x2 + .5 * w + 6 * border),
                         (int)(y1 + .42 * h + 3 * border), (int)(.5 * border), 0, 0, 0);
 
-                    LoadArgs.draw_box_width(outo, x1, y1, x2, y2, border, 0, 0, 0);
+                    LoadArgs.draw_box(ref outo, x1, y1, x2, y2, border, 0, 0, 0);
                     for (i = 0; i < threat * h; ++i)
                     {
-                        float ratio = (float) i / h;
+                        float ratio = (float)i / h;
                         float r = (ratio < .5f) ? (2 * (ratio)) : 1;
                         float g = (ratio < .5f) ? 1 : 1 - 2 * (ratio - .5f);
-                        LoadArgs.draw_box_width(outo, x1 + border, y2 - border - i, x2 - border, y2 - border - i, 1, r, g, 0);
+                        LoadArgs.draw_box(ref outo, x1 + border, y2 - border - i, x2 - border, y2 - border - i, 1, r, g, 0);
                     }
 
-                    Network.top_predictions(net, top, indexes);
+                    Network.top_predictions(ref net, top, ref indexes);
 
                     string buff = $"/home/pjreddie/tmp/threat_{count:D6}";
 
@@ -832,12 +832,12 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             var options = OptionList.read_data_cfg(datacfg);
 
             Utils.Rand = new Random(2222222);
             using (VideoCapture cap = !string.IsNullOrEmpty(filename)
-                ?  new VideoCapture(filename)
+                ? new VideoCapture(filename)
                 : new VideoCapture(camIndex))
             {
 
@@ -862,8 +862,8 @@ namespace Yolo_V2
                     Image inS = LoadArgs.resize_image(ini, net.W, net.H);
                     LoadArgs.show_image(ini, "Threat Detection");
 
-                    float[] predictions = Network.network_predict(net, inS.Data);
-                    Network.top_predictions(net, top, indexes);
+                    float[] predictions = Network.network_predict(ref net, ref inS.Data);
+                    Network.top_predictions(ref net, top, ref indexes);
 
                     Console.Write($"\033[2J");
                     Console.Write($"\033[1;1H");
@@ -907,7 +907,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             var options = OptionList.read_data_cfg(datacfg);
 
             Utils.Rand = new Random(2222222);
@@ -936,9 +936,9 @@ namespace Yolo_V2
                     Image inS = LoadArgs.resize_image(ini, net.W, net.H);
                     LoadArgs.show_image(ini, "Classifier");
 
-                    float[] predictions = Network.network_predict(net, inS.Data);
+                    float[] predictions = Network.network_predict(ref net, ref inS.Data);
                     if (net.Hierarchy != null) net.Hierarchy.Hierarchy_predictions(predictions, 0, net.Outputs, true);
-                    Network.top_predictions(net, top, indexes);
+                    Network.top_predictions(ref net, top, ref indexes);
 
                     Console.Write($"\033[2J");
                     Console.Write($"\033[1;1H");

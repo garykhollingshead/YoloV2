@@ -122,7 +122,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
 
 
             float avgAcc = 0;
@@ -135,10 +135,10 @@ namespace Yolo_V2
 
                 float[] pred = new float[10];
 
-                float[] p = Network.network_predict(net, im.Data);
+                float[] p = Network.network_predict(ref net, ref im.Data);
                 Blas.Axpy_cpu(10, 1, p, pred);
-                LoadArgs.flip_image(im);
-                p = Network.network_predict(net, im.Data);
+                LoadArgs.flip_image(ref im);
+                p = Network.network_predict(ref net, ref im.Data);
                 Blas.Axpy_cpu(10, 1, p, pred);
 
                 int index = Utils.max_index(pred, 10);
@@ -202,15 +202,15 @@ namespace Yolo_V2
 
             Data.Data test = Data.Data.load_cifar10_data("Data.Data/cifar/cifar-10-batches-bin/test_batch.bin");
 
-            Matrix pred = Network.network_predict_data(net, test);
+            Matrix pred = Network.network_predict_data(ref net, ref test);
 
             int i;
             for (i = 0; i < test.X.Rows; ++i)
             {
                 Image im = new Image(32, 32, 3, test.X.Vals[i]);
-                LoadArgs.flip_image(im);
+                LoadArgs.flip_image(ref im);
             }
-            Matrix pred2 = Network.network_predict_data(net, test);
+            Matrix pred2 = Network.network_predict_data(ref net, ref test);
             pred.scale_matrix(.5f);
             pred2.scale_matrix(.5f);
             Matrix.matrix_add_matrix(pred2, pred);
@@ -230,15 +230,15 @@ namespace Yolo_V2
 
             Data.Data test = Data.Data.load_all_cifar10();
 
-            Matrix pred = Network.network_predict_data(net, test);
+            Matrix pred = Network.network_predict_data(ref net, ref test);
 
             int i;
             for (i = 0; i < test.X.Rows; ++i)
             {
                 Image im = new Image(32, 32, 3, test.X.Vals[i]);
-                LoadArgs.flip_image(im);
+                LoadArgs.flip_image(ref im);
             }
-            Matrix pred2 = Network.network_predict_data(net, test);
+            Matrix pred2 = Network.network_predict_data(ref net, ref test);
             pred.scale_matrix(.5f);
             pred2.scale_matrix(.5f);
             Matrix.matrix_add_matrix(pred2, pred);

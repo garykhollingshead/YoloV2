@@ -16,7 +16,8 @@ namespace Yolo_V2
     {
         public static void Main(string[] argsa)
         {
-            Emgu.CV.CvInvoke.UseOpenCL = true;
+            CvInvoke.UseOpenCL = true;
+            CvInvoke.UseOptimized = true;
             var args = argsa.ToList();
             if (args.Count < 2)
             {
@@ -155,9 +156,9 @@ namespace Yolo_V2
                 {
                     Layer l = net.Layers[j];
                     Layer outl = sum.Layers[j];
-                    if (l.LayerType == LayerType.Convolutional)
+                    if (l.LayerType == Layers.Convolutional)
                     {
-                        int num = l.N * l.C * l.Size * l.Size;
+                        int num = l.N * l.NumberOfChannels * l.Size * l.Size;
                         Blas.Axpy_cpu(l.N, 1, l.BiasesComplete, outl.BiasesComplete, l.BiasesIndex, outl.BiasesIndex);
                         Blas.Axpy_cpu(num, 1, l.WeightsComplete, outl.WeightsComplete, l.WeightsIndex, outl.WeightsIndex);
                         if (l.BatchNormalize)
@@ -167,7 +168,7 @@ namespace Yolo_V2
                             Blas.Axpy_cpu(l.N, 1, l.RollingVariance, outl.RollingVariance);
                         }
                     }
-                    if (l.LayerType == LayerType.Connected)
+                    if (l.LayerType == Layers.Connected)
                     {
                         Blas.Axpy_cpu(l.Outputs, 1, l.BiasesComplete, outl.BiasesComplete, l.BiasesIndex, outl.BiasesIndex);
                         Blas.Axpy_cpu(l.Outputs * l.Inputs, 1, l.WeightsComplete, outl.WeightsComplete, l.WeightsIndex, outl.WeightsIndex);
@@ -178,9 +179,9 @@ namespace Yolo_V2
             for (j = 0; j < net.N; ++j)
             {
                 Layer l = sum.Layers[j];
-                if (l.LayerType == LayerType.Convolutional)
+                if (l.LayerType == Layers.Convolutional)
                 {
-                    int num = l.N * l.C * l.Size * l.Size;
+                    int num = l.N * l.NumberOfChannels * l.Size * l.Size;
                     Blas.Scal_cpu(l.N, 1.0f / n, l.BiasesComplete, 1, l.BiasesIndex);
                     Blas.Scal_cpu(num, 1.0f / n, l.WeightsComplete, 1, l.WeightsIndex);
                     if (l.BatchNormalize)
@@ -190,7 +191,7 @@ namespace Yolo_V2
                         Blas.Scal_cpu(l.N, 1.0f / n, l.RollingVariance, 1);
                     }
                 }
-                if (l.LayerType == LayerType.Connected)
+                if (l.LayerType == Layers.Connected)
                 {
                     Blas.Scal_cpu(l.Outputs, 1.0f / n, l.BiasesComplete, 1, l.BiasesIndex);
                     Blas.Scal_cpu(l.Outputs * l.Inputs, 1.0f / n, l.WeightsComplete, 1, l.WeightsIndex);
@@ -203,14 +204,14 @@ namespace Yolo_V2
         {
             if (tics == 0) tics = 1000;
             Network net = Parser.parse_network_cfg(cfgfile);
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
             int i;
             var sw = new Stopwatch();
             sw.Start();
             Image im = new Image(net.W, net.H, net.C);
             for (i = 0; i < tics; ++i)
             {
-                Network.network_predict(net, im.Data);
+                Network.network_predict(ref net, ref im.Data);
             }
             sw.Stop();
             var t = sw.Elapsed.Seconds;
@@ -228,11 +229,11 @@ namespace Yolo_V2
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                if (l.LayerType == LayerType.Convolutional)
+                if (l.LayerType == Layers.Convolutional)
                 {
-                    ops += 2L * l.N * l.Size * l.Size * l.C * l.OutH * l.OutW;
+                    ops += 2L * l.N * l.Size * l.Size * l.NumberOfChannels * l.OutH * l.OutW;
                 }
-                else if (l.LayerType == LayerType.Connected)
+                else if (l.LayerType == Layers.Connected)
                 {
                     ops += 2L * l.Inputs * l.Outputs;
                 }
@@ -246,7 +247,7 @@ namespace Yolo_V2
             CudaUtils.UseGpu = false;
             Network net = Parser.parse_network_cfg(cfgfile);
             int oldn = net.Layers[net.N - 2].N;
-            int c = net.Layers[net.N - 2].C;
+            int c = net.Layers[net.N - 2].NumberOfChannels;
             net.Layers[net.N - 2].N = 9372;
             net.Layers[net.N - 2].BiasesIndex += 5;
             net.Layers[net.N - 2].WeightsIndex += 5 * c;
@@ -261,8 +262,8 @@ namespace Yolo_V2
             Layer l = net.Layers[net.N - 2];
             Blas.Copy_cpu(l.N / 3, l.BiasesComplete, l.BiasesComplete, l.BiasesIndex, l.BiasesIndex + l.N / 3);
             Blas.Copy_cpu(l.N / 3, l.BiasesComplete, l.BiasesComplete, l.BiasesIndex, l.BiasesIndex + 2 * l.N / 3);
-            Blas.Copy_cpu(l.N / 3 * l.C, l.WeightsComplete, l.WeightsComplete, l.WeightsIndex, l.WeightsIndex + l.N / 3 * l.C);
-            Blas.Copy_cpu(l.N / 3 * l.C, l.WeightsComplete, l.WeightsComplete, l.WeightsIndex, l.WeightsIndex + 2 * l.N / 3 * l.C);
+            Blas.Copy_cpu(l.N / 3 * l.NumberOfChannels, l.WeightsComplete, l.WeightsComplete, l.WeightsIndex, l.WeightsIndex + l.N / 3 * l.NumberOfChannels);
+            Blas.Copy_cpu(l.N / 3 * l.NumberOfChannels, l.WeightsComplete, l.WeightsComplete, l.WeightsIndex, l.WeightsIndex + 2 * l.N / 3 * l.NumberOfChannels);
             net.Seen = 0;
             Parser.save_weights(net, outfile);
         }
@@ -291,7 +292,7 @@ namespace Yolo_V2
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                if (l.LayerType == LayerType.Convolutional)
+                if (l.LayerType == Layers.Convolutional)
                 {
                     l.rescale_weights(2, -.5f);
                     break;
@@ -312,7 +313,7 @@ namespace Yolo_V2
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                if (l.LayerType == LayerType.Convolutional)
+                if (l.LayerType == Layers.Convolutional)
                 {
                     l.rgbgr_weights();
                     break;
@@ -333,15 +334,15 @@ namespace Yolo_V2
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                if (l.LayerType == LayerType.Convolutional && l.BatchNormalize)
+                if (l.LayerType == Layers.Convolutional && l.BatchNormalize)
                 {
                     l.denormalize_convolutional_layer();
                 }
-                if (l.LayerType == LayerType.Connected && l.BatchNormalize)
+                if (l.LayerType == Layers.Connected && l.BatchNormalize)
                 {
                     l.denormalize_connected_layer();
                 }
-                if (l.LayerType == LayerType.Gru && l.BatchNormalize)
+                if (l.LayerType == Layers.Gru && l.BatchNormalize)
                 {
                     l.InputZLayer.denormalize_connected_layer();
                     l.InputRLayer.denormalize_connected_layer();
@@ -380,15 +381,15 @@ namespace Yolo_V2
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                if (l.LayerType == LayerType.Convolutional && !l.BatchNormalize)
+                if (l.LayerType == Layers.Convolutional && !l.BatchNormalize)
                 {
                     net.Layers[i] = normalize_layer(l, l.N);
                 }
-                if (l.LayerType == LayerType.Connected && !l.BatchNormalize)
+                if (l.LayerType == Layers.Connected && !l.BatchNormalize)
                 {
                     net.Layers[i] = normalize_layer(l, l.Outputs);
                 }
-                if (l.LayerType == LayerType.Gru && l.BatchNormalize)
+                if (l.LayerType == Layers.Gru && l.BatchNormalize)
                 {
                     l.InputZLayer = normalize_layer(l.InputZLayer, l.InputZLayer.Outputs);
                     l.InputRLayer = normalize_layer(l.InputRLayer, l.InputRLayer.Outputs);
@@ -414,25 +415,25 @@ namespace Yolo_V2
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                if (l.LayerType == LayerType.Connected && l.BatchNormalize)
+                if (l.LayerType == Layers.Connected && l.BatchNormalize)
                 {
                     Console.Write($"Connected Layer %d\n", i);
                     l.statistics_connected_layer();
                 }
-                if (l.LayerType == LayerType.Gru && l.BatchNormalize)
+                if (l.LayerType == Layers.Gru && l.BatchNormalize)
                 {
-                    Console.Write($"LayerType.Gru Layer %d\n", i);
+                    Console.Write($"Layers.Gru Layer %d\n", i);
                     Console.Write($"Input Z\n");
                     l.InputZLayer.statistics_connected_layer();
                     Console.Write($"Input R\n");
                     l.InputRLayer.statistics_connected_layer();
-                    Console.Write($"Input H\n");
+                    Console.Write($"Input Height\n");
                     l.InputHLayer.statistics_connected_layer();
                     Console.Write($"State Z\n");
                     l.StateZLayer.statistics_connected_layer();
                     Console.Write($"State R\n");
                     l.StateRLayer.statistics_connected_layer();
-                    Console.Write($"State H\n");
+                    Console.Write($"State Height\n");
                     l.StateHLayer.statistics_connected_layer();
                 }
                 Console.Write($"\n");
@@ -451,17 +452,17 @@ namespace Yolo_V2
             for (i = 0; i < net.N; ++i)
             {
                 Layer l = net.Layers[i];
-                if (l.LayerType == LayerType.Convolutional && l.BatchNormalize)
+                if (l.LayerType == Layers.Convolutional && l.BatchNormalize)
                 {
                     l.denormalize_convolutional_layer();
                     net.Layers[i].BatchNormalize = false;
                 }
-                if (l.LayerType == LayerType.Connected && l.BatchNormalize)
+                if (l.LayerType == Layers.Connected && l.BatchNormalize)
                 {
                     l.denormalize_connected_layer();
                     net.Layers[i].BatchNormalize = false;
                 }
-                if (l.LayerType == LayerType.Gru && l.BatchNormalize)
+                if (l.LayerType == Layers.Gru && l.BatchNormalize)
                 {
                     l.InputZLayer.denormalize_connected_layer();
                     l.InputRLayer.denormalize_connected_layer();
@@ -488,7 +489,7 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.visualize_network(net);
+            Network.visualize_network(ref net);
             CvInvoke.WaitKey();
         }
     }

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Emgu.CV;
+using Emgu.CV.Util;
 
 namespace Yolo_V2.Data
 {
@@ -253,7 +255,7 @@ namespace Yolo_V2.Data
             return (float)Math.Sqrt(sum / n);
         }
 
-        public static void normalize_array(float[] a, int n)
+        public static void normalize_array(ref float[] a, int n)
         {
             int i;
             float mu = mean_array(a, n);

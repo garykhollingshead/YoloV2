@@ -138,7 +138,7 @@ namespace Yolo_V2
 
                 sw.Reset();
                 sw.Start();
-                Matrix pred = Network.network_predict_data(net, val);
+                Matrix pred = Network.network_predict_data(ref net, ref val);
                 int j, k;
                 for (j = 0; j < val.Y.Rows; ++j)
                 {
@@ -177,7 +177,7 @@ namespace Yolo_V2
             float[] x = new float[net.W * net.H * net.C];
             Array.Copy(im1.Data, 0, x, 0, im1.Data.Length);
             Array.Copy(im2.Data, 0, x, im1.Data.Length, im2.Data.Length);
-            float[] predictions = Network.network_predict(net, x);
+            float[] predictions = Network.network_predict(ref net, ref x);
 
             if (predictions[sclass * 2] > predictions[sclass * 2 + 1])
             {
@@ -204,7 +204,7 @@ namespace Yolo_V2
             float[] x = new float[net.W * net.H * net.C];
             Array.Copy(im1.Data, 0, x, 0, im1.Data.Length);
             Array.Copy(im2.Data, 0, x, im1.Data.Length, im2.Data.Length);
-            float[] predictions = Network.network_predict(net, x);
+            float[] predictions = Network.network_predict(ref net, ref x);
             ++TotalCompares;
 
             int i;
@@ -227,7 +227,7 @@ namespace Yolo_V2
                 Parser.load_weights(net, weightfile);
             }
 
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
 
             string[] paths = Data.Data.GetPaths("Data.Data/compare.sort.list");
             int n = paths.Length;
@@ -261,7 +261,7 @@ namespace Yolo_V2
                 Parser.load_weights(net, weightfile);
             }
 
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref net, 1);
 
             string[] paths = Data.Data.GetPaths("Data.Data/compare.sort.list");
             int n = paths.Length;

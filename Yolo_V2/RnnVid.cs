@@ -13,8 +13,8 @@ namespace Yolo_V2
         {
             int b;
             Image outIm = Network.get_network_image(net);
-            int outputSize = outIm.W * outIm.H * outIm.C;
-            Console.Write($"%d %d %d\n", outIm.W, outIm.H, outIm.C);
+            int outputSize = outIm.Width * outIm.Height * outIm.NumberOfChannels;
+            Console.Write($"%d %d %d\n", outIm.Width, outIm.Height, outIm.NumberOfChannels);
             float[] feats = new float[net.Batch * batch * outputSize];
             for (b = 0; b < batch; ++b)
             {
@@ -47,7 +47,7 @@ namespace Yolo_V2
                         }
                     }
 
-                    float[] output = Network.network_predict(net, input);
+                    float[] output = Network.network_predict(ref net, ref input);
 
                     for (i = 0; i < net.Batch; ++i)
                     {
@@ -152,8 +152,8 @@ namespace Yolo_V2
             {
                 Parser.load_weights(net, weightfile);
             }
-            Network.set_batch_network(extractor, 1);
-            Network.set_batch_network(net, 1);
+            Network.set_batch_network(ref extractor, 1);
+            Network.set_batch_network(ref net, 1);
 
             int i;
             VideoCapture cap = new VideoCapture("/extra/vid/ILSVRC2015/Data.Data/VID/snippets/val/ILSVRC2015_val_00007030.mp4");
@@ -165,7 +165,7 @@ namespace Yolo_V2
             {
                 Image im = LoadArgs.get_image_from_stream(cap);
                 Image re = LoadArgs.resize_image(im, extractor.W, extractor.H);
-                feat = Network.network_predict(extractor, re.Data);
+                feat = Network.network_predict(ref extractor, ref re.Data);
                 if (i > 0)
                 {
                     Console.Write($"%f %f\n", Utils.mean_array(feat, 14 * 14 * 512), Utils.variance_array(feat, 14 * 14 * 512));
@@ -174,12 +174,12 @@ namespace Yolo_V2
                     Blas.Axpy_cpu(14 * 14 * 512, -1, feat, next);
                     Console.Write($"%f\n", Utils.mse_array(next, 14 * 14 * 512));
                 }
-                next = Network.network_predict(net, feat);
+                next = Network.network_predict(ref net, ref feat);
                 if (i == 24) last = new Image(re);
             }
             for (i = 0; i < 30; ++i)
             {
-                next = Network.network_predict(net, next);
+                next = Network.network_predict(ref net, ref next);
                 Image newi = save_reconstruction(extractor, last, next, "new", i);
                 last = newi;
             }

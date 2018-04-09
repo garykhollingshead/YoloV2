@@ -6,21 +6,26 @@ namespace Yolo_V2.Data
 {
     public static class Im2Col
     {
-        private static float im2col_get_pixel(float[] im, int height, int width, int channels,
-            int row, int col, int channel, int pad, int imStart = 0)
+        private static float im2col_get_pixel(float[] imageData, int height, int width, int channels,
+            int row, int col, int channel, int pad, int imageDataStart = 0)
         {
             row -= pad;
             col -= pad;
 
             if (row < 0 || col < 0 ||
                 row >= height || col >= width) return 0;
-            return im[imStart + col + width * (row + height * channel)];
+            var index = imageDataStart + col + width * (row + height * channel);
+            return imageData[index];
         }
 
         public static void im2col_cpu(float[] dataIm,
             int channels, int height, int width,
             int ksize, int stride, int pad, float[] dataCol, int dataImStart = 0, int dataColStart = 0)
         {
+            //for (var i = 0; i < dataIm.Length; i += 3)
+            //{
+            //    dataCol[i] = (byte) dataIm[i] << 16 + (byte) dataIm[i + 1] << 8 + (byte) dataIm[i + 2];
+            //}
             int c, h, w;
             int heightCol = (height + 2 * pad - ksize) / stride + 1;
             int widthCol = (width + 2 * pad - ksize) / stride + 1;
@@ -38,14 +43,15 @@ namespace Yolo_V2.Data
                         int imRow = hOffset + h * stride;
                         int imCol = wOffset + w * stride;
                         int colIndex = (c * heightCol + h) * widthCol + w;
-                        dataCol[dataColStart + colIndex] = im2col_get_pixel(dataIm, height, width, channels,
+                        var e = im2col_get_pixel(dataIm, height, width, channels,
                             imRow, imCol, cIm, pad, dataImStart);
+                        dataCol[dataColStart + colIndex] = e;
                     }
                 }
             }
         }
 
-        private static void col2im_add_pixel(float[] im, int height, int width, int channels,
+        private static void col2im_add_pixel(float[] im, int height, int width,
             int row, int col, int channel, int pad, float val, int imStart = 0)
         {
             row -= pad;
@@ -78,7 +84,7 @@ namespace Yolo_V2.Data
                         int imCol = wOffset + w * stride;
                         int colIndex = (c * heightCol + h) * widthCol + w;
                         float val = dataCol[colIndex];
-                        col2im_add_pixel(dataIm, height, width, channels,
+                        col2im_add_pixel(dataIm, height, width, 
                             imRow, imCol, cIm, pad, val, dataImStart);
                     }
                 }
@@ -123,19 +129,21 @@ namespace Yolo_V2.Data
             }
         }
 
-        [GpuManaged]
         public static void im2col_ongpu(float[] im,
             int channels, int height, int width,
-            int ksize, int stride, int pad, float[] dataCol, int imStart = 0)
+            int ksize, int stride, int pad, ref float[] dataCol, int imStart = 0)
         {
             // We are going to launch channels * height_col * width_col kernels, each
             // kernel responsible for copying a single-channel grid.
             int heightCol = (height + 2 * pad - ksize) / stride + 1;
             int widthCol = (width + 2 * pad - ksize) / stride + 1;
             int numKernels = channels * heightCol * widthCol;
+            var tempOutput = Gpu.Default.Allocate(dataCol);
             var lp = new LaunchParam((numKernels + CudaUtils.BlockSize - 1) / CudaUtils.BlockSize, CudaUtils.BlockSize);
             Gpu.Default.Launch(im2col_gpu_kernel, lp, numKernels, im, height, width, ksize, pad,
-                stride, heightCol, widthCol, dataCol, imStart);
+                stride, heightCol, widthCol, tempOutput, imStart);
+            dataCol = Gpu.CopyToHost(tempOutput);
+            Gpu.Free(tempOutput);
         }
 
         private static void col2im_gpu_kernel(int n, float[] dataCol,
@@ -184,8 +192,11 @@ namespace Yolo_V2.Data
             int widthCol = (width + 2 * pad - ksize) / stride + 1;
             int numKernels = channels * height * width;
             var lp = new LaunchParam((numKernels + CudaUtils.BlockSize - 1) / CudaUtils.BlockSize, CudaUtils.BlockSize);
+            var tempOutput = Gpu.Default.Allocate(dataIm);
             Gpu.Default.Launch(col2im_gpu_kernel, lp, numKernels, dataCol, height, width, ksize, pad, stride,
-                heightCol, widthCol, dataIm, imStart);
+                heightCol, widthCol, tempOutput, imStart);
+            dataCol = Gpu.CopyToHost(tempOutput);
+            Gpu.Free(tempOutput);
         }
     }
 }

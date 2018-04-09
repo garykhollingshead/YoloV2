@@ -1,6 +1,6 @@
 ﻿namespace Yolo_V2.Data.Enums
 {
-    public enum LayerType
+    public enum Layers
     {
         Convolutional,
         Deconvolutional,

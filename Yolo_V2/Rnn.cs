@@ -108,7 +108,7 @@ namespace Yolo_V2
                 Layer l = net.Layers[i];
                 if (l.StateGpu.Length != 0)
                 {
-                    Blas.fill_ongpu(l.Outputs, 0, l.StateGpu, 1, l.Outputs * b);
+                    Blas.fill_ongpu(l.Outputs, 0, ref l.StateGpu, 1, l.Outputs * b);
                 }
             }
         }
@@ -253,7 +253,7 @@ namespace Yolo_V2
             {
                 c = seed[i];
                 input[c] = 1;
-                Network.network_predict(net, input);
+                Network.network_predict(ref net, ref input);
                 input[c] = 0;
                 print_symbol(c, tokens);
             }
@@ -262,7 +262,7 @@ namespace Yolo_V2
             for (i = 0; i < num; ++i)
             {
                 input[c] = 1;
-                float[] outf = Network.network_predict(net, input);
+                float[] outf = Network.network_predict(ref net, ref input);
                 input[c] = 0;
                 for (j = 0; j < inputs; ++j)
                 {
@@ -304,7 +304,7 @@ namespace Yolo_V2
             foreach (var c in readLine)
             {
                 input[c] = 1;
-                outf = Network.network_predict(net, input);
+                outf = Network.network_predict(ref net, ref input);
                 input[c] = 0;
             }
             for (i = 0; i < num; ++i)
@@ -320,7 +320,7 @@ namespace Yolo_V2
                 print_symbol(c, tokens);
 
                 input[c] = 1;
-                outf = Network.network_predict(net, input);
+                outf = Network.network_predict(ref net, ref input);
                 input[c] = 0;
             }
             Console.Write($"\n");
@@ -348,7 +348,7 @@ namespace Yolo_V2
             {
                 c = seed[i];
                 input[c] = 1;
-                Network.network_predict(net, input);
+                Network.network_predict(ref net, ref input);
                 input[c] = 0;
             }
             float sum = 0;
@@ -364,7 +364,7 @@ namespace Yolo_V2
                 var next = readLine[i + 1];
                 if (next < 0 || next >= 255) Utils.Error("Out of range character");
                 input[c] = 1;
-                float[] outf = Network.network_predict(net, input);
+                float[] outf = Network.network_predict(ref net, ref input);
                 input[c] = 0;
 
                 if (c == '.' && next == '\n') iIn = false;
@@ -404,7 +404,7 @@ namespace Yolo_V2
             {
                 c = seed[i];
                 input[c] = 1;
-                Network.network_predict(net, input);
+                Network.network_predict(ref net, ref input);
                 input[c] = 0;
             }
             float sum = 0;
@@ -422,7 +422,7 @@ namespace Yolo_V2
                 ++count;
                 if (next == ' ' || next == '\n' || next == '\t') ++words;
                 input[c] = 1;
-                float[] outf = Network.network_predict(net, input);
+                float[] outf = Network.network_predict(ref net, ref input);
                 input[c] = 0;
                 sum += (float)Math.Log(outf[next]) / log2;
                 Console.Write($"%d Perplexity: %4.4f    Word Perplexity: %4.4f\n", count, (float)Math.Pow(2, -sum / count), (float)Math.Pow(2, -sum / words));
@@ -456,7 +456,7 @@ namespace Yolo_V2
                 {
                     c = seed[i];
                     input[c] = 1;
-                    Network.network_predict(net, input);
+                    Network.network_predict(ref net, ref input);
                     input[c] = 0;
                 }
                 Utils.Strip(line);
@@ -465,12 +465,12 @@ namespace Yolo_V2
                 {
                     c = line[i];
                     input[c] = 1;
-                    Network.network_predict(net, input);
+                    Network.network_predict(ref net, ref input);
                     input[c] = 0;
                 }
                 c = ' ';
                 input[c] = 1;
-                Network.network_predict(net, input);
+                Network.network_predict(ref net, ref input);
                 input[c] = 0;
 
                 Layer l = net.Layers[0];
