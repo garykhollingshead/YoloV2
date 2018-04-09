@@ -1,10 +1,6 @@
-﻿using System.Linq;
-using System.Runtime.CompilerServices;
+﻿using System;
 using Alea;
-using Alea.CSharp;
 using Alea.CudaToolkit;
-using Alea.Parallel;
-using dim3 = Alea.dim3;
 
 namespace Yolo_V2.Data
 {
@@ -130,9 +126,19 @@ namespace Yolo_V2.Data
         {
             unsafe
             {
-                using (var gpuA = Gpu.Default.AllocateDevice(a.ToArray()))
-                using (var gpuB = Gpu.Default.AllocateDevice(b.ToArray()))
-                using (var gpuC = Gpu.Default.AllocateDevice(c.ToArray()))
+                var aSize = ta != 0 ? lda * k : lda * m;
+                var bSize = tb != 0 ? ldb * n : ldb * k;
+                var cSize = ldc * m;
+
+                var tempA = new float[aSize];
+                Array.Copy(a, tempA, tempA.Length);
+                var tempB = new float[bSize];
+                Array.Copy(b, tempB, tempB.Length);
+                var tempC = new float[cSize];
+                Array.Copy(c, tempC, tempC.Length);
+                using (var gpuA = Gpu.Default.AllocateDevice(tempA))
+                using (var gpuB = Gpu.Default.AllocateDevice(tempB))
+                using (var gpuC = Gpu.Default.AllocateDevice(tempC))
                 {
                     var handle = CudaUtils.blas_handle();
                     CudaUtils.SafeCall(CuBlas.cublasSgemm_v2(handle,
@@ -142,7 +148,8 @@ namespace Yolo_V2.Data
                         (float*)gpuA.Handle, lda, &beta, (float*)gpuC.Handle, ldc));
                     //a = Gpu.CopyToHost(gpuA);
                     //b = Gpu.CopyToHost(gpuB);
-                    c = Gpu.CopyToHost(gpuC);
+                    tempC = Gpu.CopyToHost(gpuC);
+                    Array.Copy(tempC, 0, c, 0, cSize);
                 }
             }
 

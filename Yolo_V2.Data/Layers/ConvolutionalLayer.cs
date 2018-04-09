@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using Emgu.CV.UI;
 using Yolo_V2.Data.Enums;
 
 namespace Yolo_V2.Data
@@ -135,7 +134,7 @@ namespace Yolo_V2.Data
             WorkspaceSize = get_workspace_size();
             Activation = activation;
 
-            Console.Error.Write($"conv  {n} {size} x{size} /{stride}  {width} x{height} x{numberOfChannels}   .  {OutW} x{OutH} x{OutC}\n");
+            Console.Error.Write($"conv\t\t{n}\t{size} x{size} /{stride}\t{width} x{height} x{numberOfChannels}\t.\t{OutW} x{OutH} x{OutC}\n");
 
         }
 

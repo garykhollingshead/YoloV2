@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using Emgu.CV;
-using Emgu.CV.CvEnum;
 using Yolo_V2.Data;
 using Yolo_V2.Data.Enums;
 
@@ -30,7 +26,6 @@ namespace Yolo_V2
             {
                 CudaUtils.UseGpu = false;
             }
-
 
             switch (args[1])
             {
@@ -133,6 +128,8 @@ namespace Yolo_V2
                     Console.Error.WriteLine($"Not an option: {args[1]}");
                     break;
             }
+
+            Console.ReadKey();
         }
 
         private static void Average(List<string> args)

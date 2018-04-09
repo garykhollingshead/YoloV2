@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Alea;
-using Alea.cuDNN;
-using Alea.CudaDnn;
 using Alea.CudaToolkit;
-using dim3 = Alea.dim3;
 
 namespace Yolo_V2.Data
 {

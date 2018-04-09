@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Threading;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
-using Emgu.CV.Structure;
-using Emgu.CV.UI;
 using Yolo_V2.Data;
 using Yolo_V2.Data.Enums;
 
@@ -114,7 +111,7 @@ namespace Yolo_V2
 
             if (!string.IsNullOrEmpty(filename))
             {
-                Console.Write($"video file: %s\n", filename);
+                Console.Write($"video file: {filename}\n");
             }
 
             using (var capture = !string.IsNullOrEmpty(filename)

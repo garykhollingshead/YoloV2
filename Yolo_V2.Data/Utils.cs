@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Emgu.CV;
-using Emgu.CV.Util;
 
 namespace Yolo_V2.Data
 {

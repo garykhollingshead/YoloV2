@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Runtime.InteropServices;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
-using Emgu.CV.UI;
 
 namespace Yolo_V2.Data
 {

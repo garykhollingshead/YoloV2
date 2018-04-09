@@ -1,15 +1,8 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using System.Linq;
 using Alea;
-using Alea.cuDNN;
 using Alea.CSharp;
-using Alea.CudaDnn;
-using Alea.IL.Reflection;
-using Alea.Interop;
 using Yolo_V2.Data.Enums;
-using DataType = Alea.cuDNN.DataType;
-using Marshal = System.Runtime.InteropServices.Marshal;
 
 namespace Yolo_V2.Data
 {

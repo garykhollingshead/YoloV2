@@ -31,7 +31,7 @@ namespace Yolo_V2.Data
             OutputGpu = new float[outputSize];
             DeltaGpu = new float[outputSize];
 
-            Console.Error.Write($"max          {size} x {size} / {stride}  {width} x{height} x{numberOfChannels}   .  {OutW} x{OutH} x{OutC}\n");
+            Console.Error.Write($"max\t\t{size} x {size} / {stride}\t{width} x{height} x{numberOfChannels}\t.\t{OutW} x{OutH} x{OutC}\n");
         }
 
         public void resize_maxpool_layer(int w, int h)
