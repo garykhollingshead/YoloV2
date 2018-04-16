@@ -204,7 +204,7 @@ namespace Yolo_V2.Data
         public override void ForwardGpu(ref NetworkState state)
         {
             int i;
-            Blas.fill_ongpu(Outputs * Batch, 0, ref OutputGpu, 1);
+            OutputGpu = new float[Outputs * Batch];
 
             int m = Batch;
             int k = Inputs;

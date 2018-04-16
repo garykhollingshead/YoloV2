@@ -46,14 +46,14 @@ namespace Yolo_V2.Data
 
         public override void ForwardGpu(ref NetworkState state)
         {
-            Blas.copy_ongpu(Outputs * Batch, state.Input, OutputGpu);
+            Blas.copy_ongpu(Outputs * Batch, state.Input, ref OutputGpu);
             ActivationsHelper.activate_array_ongpu(ref OutputGpu, Outputs * Batch, Activation);
         }
 
         public override void BackwardGpu(ref NetworkState state)
         {
             ActivationsHelper.gradient_array_ongpu(OutputGpu, Outputs * Batch, Activation, ref DeltaGpu);
-            Blas.copy_ongpu(Outputs * Batch, DeltaGpu, state.Delta);
+            Blas.copy_ongpu(Outputs * Batch, DeltaGpu, ref state.Delta);
         }
 
     }

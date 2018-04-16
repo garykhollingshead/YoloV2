@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 using System.Threading;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
@@ -18,15 +22,13 @@ namespace Yolo_V2
         private static Box[] boxes;
         private static Network net;
         private static Image nextImage;
-        private static object resizedImageLock = new object();
         private static Image resizedImage;
-        static AutoResetEvent capturedImageEvent = new AutoResetEvent(false);
         private static Image detectedImage;
-        private static object displayImageLock = new object();
         private static Image displayImage = new Image();
         private static VideoCapture vidCap;
         private static float fps;
         private static float demoThresh;
+        private static bool running;
 
         private static float[][] predictions = new float[frames][];
         private static int demoIndex;
@@ -35,21 +37,16 @@ namespace Yolo_V2
 
         private static void fetch_in_thread()
         {
-            while (true)
+            nextImage = LoadArgs.get_image_from_stream(vidCap);
+            if (nextImage.Data.Length == 0)
             {
-                nextImage = LoadArgs.get_image_from_stream(vidCap);
-                if (nextImage.Data.Length == 0)
-                {
-                    Utils.Error("Stream closed.");
-                }
-                var tempImage = LoadArgs.resize_image(nextImage, net.W, net.H);
-                lock (resizedImageLock)
-                {
-                    resizedImage = tempImage;
-                }
-
-                capturedImageEvent.Set();
+                Utils.Error("Stream closed.");
             }
+
+            var x = nextImage;
+            var tempImage = LoadArgs.resize_image(nextImage, net.W, net.H);
+            detectedImage = new Image(nextImage);
+            resizedImage = new Image(tempImage);
         }
 
         private static void detect_in_thread()
@@ -57,16 +54,15 @@ namespace Yolo_V2
             float nms = .4f;
 
             Layer l = net.Layers[net.N - 1];
-            lock (resizedImageLock)
-            {
-                detectedImage = new Image(resizedImage);
-            }
+            Image workingImage;
+            displayImage = new Image(detectedImage);
+            workingImage = new Image(resizedImage);
+            var x = workingImage.Data;
 
-            var x = detectedImage.Data;
             float[] prediction = Network.network_predict(ref net, ref x);
 
             Array.Copy(prediction, 0, predictions[demoIndex], 0, l.Outputs);
-            Utils.mean_arrays(predictions, frames, l.Outputs, avg);
+            Utils.mean_arrays(predictions, frames, l.Outputs, ref avg);
             l.Output = avg;
 
             if (l.LayerType == Layers.Detection)
@@ -87,11 +83,7 @@ namespace Yolo_V2
             Console.Write($"\nFPS:{fps:F1}\n", fps);
             Console.Write($"Objects:\n\n");
 
-            LoadArgs.draw_detections(ref detectedImage, l.Width * l.Height * l.N, demoThresh, boxes, probs, demoNames, demoClasses);
-            lock (displayImageLock)
-            {
-                displayImage = detectedImage;
-            }
+            LoadArgs.draw_detections(ref displayImage, l.Width * l.Height * l.N, demoThresh, boxes, probs, demoNames, demoClasses);
         }
 
         public static void DemoRun(string cfgfile, string weightfile, float thresh, int camIndex, string filename, string[] names, int classes, int frameSkip, string prefix)
@@ -135,34 +127,29 @@ namespace Yolo_V2
                 probs = new float[l.Width * l.Height * l.N][];
                 for (j = 0; j < l.Width * l.Height * l.N; ++j) probs[j] = new float[l.Classes];
 
-                var fetchThread = new Thread(fetch_in_thread);
-                fetchThread.Start();
-                capturedImageEvent.WaitOne();
+                fetch_in_thread();
                 int count = 0;
-                while (true)
+                var sw = new Stopwatch();
+                sw.Start();
+                while (count < 5)
                 {
+                    fps = (float)count / (sw.ElapsedMilliseconds / 1000f);
                     ++count;
-                    var detectThread = new Thread(detect_in_thread);
-                    detectThread.Start();
-
-                    detectThread.Join();
-
-                    Image disp;
-                    lock (displayImageLock)
-                    {
-                        disp = new Image(displayImage);
-                    }
+                    fetch_in_thread();
+                    detect_in_thread();
 
                     if (string.IsNullOrEmpty(prefix))
                     {
-                        LoadArgs.show_image(disp, "Demo");
+                        LoadArgs.show_image(displayImage, "Demo");
                     }
                     else
                     {
                         var buff = $"{prefix}_{count:D8}";
-                        LoadArgs.save_image(disp, buff);
+                        LoadArgs.save_image(displayImage, buff);
                     }
                 }
+
+                running = false;
             }
 
             vidCap = null;

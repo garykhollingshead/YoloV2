@@ -206,7 +206,7 @@ namespace Yolo_V2.Data
         {
             if (!state.Train)
             {
-                Blas.copy_ongpu(Batch * Inputs, state.Input, OutputGpu);
+                Blas.copy_ongpu(Batch * Inputs, state.Input, ref OutputGpu);
                 return;
             }
 

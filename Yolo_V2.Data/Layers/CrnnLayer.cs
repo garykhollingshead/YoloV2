@@ -166,10 +166,11 @@ namespace Yolo_V2.Data
             s.Train = state.Train;
             int i;
 
-            Blas.fill_ongpu(Outputs * Batch * Steps, 0, ref OutputLayer.DeltaGpu, 1);
-            Blas.fill_ongpu(Hidden * Batch * Steps, 0, ref SelfLayer.DeltaGpu, 1);
-            Blas.fill_ongpu(Hidden * Batch * Steps, 0, ref InputLayer.DeltaGpu, 1);
-            if (state.Train) Blas.fill_ongpu(Hidden * Batch, 0, ref StateGpu, 1);
+            OutputLayer.DeltaGpu = new float[Outputs * Batch * Steps];
+            SelfLayer.DeltaGpu = new float[Hidden * Batch * Steps];
+            InputLayer.DeltaGpu = new float[Hidden * Batch * Steps];
+            if (state.Train)
+                StateGpu = new float[Hidden * Batch]; 
 
             for (i = 0; i < Steps; ++i)
             {
@@ -186,11 +187,11 @@ namespace Yolo_V2.Data
                 }
                 if (Shortcut)
                 {
-                    Blas.copy_ongpu(Hidden * Batch, oldState, StateGpu);
+                    Blas.copy_ongpu(Hidden * Batch, oldState, ref StateGpu);
                 }
                 else
                 {
-                    Blas.fill_ongpu(Hidden * Batch, 0, ref StateGpu, 1);
+                    StateGpu = new float[Hidden * Batch]; 
                 }
                 Blas.axpy_ongpu(Hidden * Batch, 1, InputLayer.OutputGpu, StateGpu);
                 Blas.axpy_ongpu(Hidden * Batch, 1, SelfLayer.OutputGpu, StateGpu);
@@ -217,7 +218,7 @@ namespace Yolo_V2.Data
             Utils.IncArray(ref StateGpu, ref StateGpuBackup, StateGpuIndex, StateGpuIndex += Hidden * Batch * Steps);
             for (i = Steps - 1; i >= 0; --i)
             {
-                Blas.copy_ongpu(Hidden * Batch, InputLayer.OutputGpu, StateGpu);
+                Blas.copy_ongpu(Hidden * Batch, InputLayer.OutputGpu, ref StateGpu);
                 Blas.axpy_ongpu(Hidden * Batch, 1, SelfLayer.OutputGpu, StateGpu);
 
                 s.Input = StateGpu;
@@ -231,7 +232,7 @@ namespace Yolo_V2.Data
                 if (i == 0) s.Delta = new float[0];
                 SelfLayer.BackwardGpu(ref s);
 
-                Blas.copy_ongpu(Hidden * Batch, SelfLayer.DeltaGpu, InputLayer.DeltaGpu);
+                Blas.copy_ongpu(Hidden * Batch, SelfLayer.DeltaGpu, ref InputLayer.DeltaGpu);
 
                 if (i > 0 && Shortcut)
                 {

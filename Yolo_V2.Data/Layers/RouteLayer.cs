@@ -118,7 +118,7 @@ namespace Yolo_V2.Data
                 int inputSize = InputSizes[i];
                 for (j = 0; j < Batch; ++j)
                 {
-                    Blas.copy_ongpu(inputSize, input, OutputGpu, j * inputSize, offset + j * Outputs);
+                    Blas.copy_ongpu(inputSize, input, ref OutputGpu, j * inputSize, offset + j * Outputs);
                 }
                 offset += inputSize;
             }

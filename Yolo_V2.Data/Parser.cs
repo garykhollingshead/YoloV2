@@ -925,7 +925,7 @@ namespace Yolo_V2.Data
             var bytes = new byte[size * sizeof(float)];
             fstream.Read(bytes, 0, bytes.Length);
             var floats = new float[size];
-            Buffer.BlockCopy(bytes, 0, floats, 0, floats.Length);
+            Buffer.BlockCopy(bytes, 0, floats, 0, bytes.Length);
             return floats;
         }
 
@@ -934,7 +934,7 @@ namespace Yolo_V2.Data
             var bytes = new byte[size * sizeof(int)];
             fstream.Read(bytes, 0, bytes.Length);
             var ints = new int[size];
-            Buffer.BlockCopy(bytes, 0, ints, 0, ints.Length);
+            Buffer.BlockCopy(bytes, 0, ints, 0, bytes.Length);
             return ints;
         }
 

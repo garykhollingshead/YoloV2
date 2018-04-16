@@ -129,7 +129,6 @@ namespace Yolo_V2
                     break;
             }
 
-            Console.ReadKey();
         }
 
         private static void Average(List<string> args)

@@ -55,7 +55,7 @@ namespace Yolo_V2.Data
 
         public override void ForwardGpu(ref NetworkState state)
         {
-            Blas.copy_ongpu(Outputs * Batch, state.Input, OutputGpu);
+            Blas.copy_ongpu(Outputs * Batch, state.Input, ref OutputGpu);
             Blas.shortcut_gpu(Batch, Width, Height, NumberOfChannels, state.Net.Layers[Index].OutputGpu, OutW, OutH, OutC, ref OutputGpu);
             ActivationsHelper.activate_array_ongpu(ref OutputGpu, Outputs * Batch, Activation);
         }

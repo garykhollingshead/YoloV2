@@ -41,7 +41,7 @@ namespace Yolo_V2
             state.Delta = (float[])im.Data.Clone();
 
             Network.forward_network_gpu(ref net, ref state);
-            Blas.copy_ongpu(last.Outputs, last.OutputGpu, last.DeltaGpu);
+            Blas.copy_ongpu(last.Outputs, last.OutputGpu, ref last.DeltaGpu);
 
             Array.Copy(last.DeltaGpu, last.Delta, last.Outputs);
             calculate_loss(last.Delta, last.Delta, last.Outputs, thresh);

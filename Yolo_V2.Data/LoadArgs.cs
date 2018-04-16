@@ -127,7 +127,7 @@ namespace Yolo_V2.Data
 
         public static void draw_label(ref Image a, int x, int y, string label, float blue, float green, float red)
         {
-            using (var img = a.ToMat(true))
+            using (var img = a.ToMat())
             {
                 CvInvoke.PutText(img, label, new Point(x, y - 20), FontFace.HersheyPlain, 1.25,
                     new MCvScalar(blue, green, red), 2);
@@ -137,7 +137,7 @@ namespace Yolo_V2.Data
 
         public static void draw_box(ref Image a, int x, int y, int width, int height, int thickness, float blue, float green, float red)
         {
-            using (var img = a.ToMat(true))
+            using (var img = a.ToMat())
             {
                 CvInvoke.Rectangle(img, new Rectangle(x, y, width, height), new MCvScalar(blue, green, red), thickness);
                 a = new Image(img);
@@ -186,7 +186,7 @@ namespace Yolo_V2.Data
 
         public static void flip_image(ref Image a)
         {
-            using (var img = a.ToMat(true))
+            using (var img = a.ToMat())
             {
                 CvInvoke.Flip(img, img, FlipType.Vertical);
             }
@@ -194,13 +194,6 @@ namespace Yolo_V2.Data
 
         private static void embed_image(Image source, ref Image dest, int dx, int dy)
         {
-            using (var srcImg = source.ToMat(true))
-            using (var roiImg = new Mat(dest.ToMat(true), new Rectangle(dx, dy, srcImg.Width, srcImg.Height)))
-            {
-                srcImg.CopyTo(roiImg);
-                dest = new Image(roiImg);
-                return;
-            }
             int x, y, k;
             for (k = 0; k < source.NumberOfChannels; ++k)
             {
@@ -289,7 +282,7 @@ namespace Yolo_V2.Data
             string buff = name;
             CvInvoke.NamedWindow(buff, NamedWindowType.Normal);
 
-            using (Mat disp = copy.ToMat(true))
+            using (Mat disp = copy.ToMat())
             {
                 CvInvoke.Imshow(buff, disp);
                 CvInvoke.WaitKey(1);
@@ -313,12 +306,7 @@ namespace Yolo_V2.Data
         {
             show_image_cv(p, name);
         }
-
-        private static Image ipl_to_image(Mat src)
-        {
-            return new Image(src);
-        }
-
+        
         private static void System(string command)
         {
             var cmd = new Process
@@ -351,8 +339,7 @@ namespace Yolo_V2.Data
             {
                 using (Mat src = new Mat(filename, flag))
                 {
-                    Image retImage = ipl_to_image(src);
-                    //rgbgr_image(retImage);
+                    Image retImage = new Image(src);
                     return retImage;
                 }
             }
@@ -371,9 +358,7 @@ namespace Yolo_V2.Data
             {
                 if (src.IsEmpty) return new Image();
 
-                Image im = ipl_to_image(src);
-
-                //rgbgr_image(im);
+                Image im = new Image(src);
                 return im;
             }
         }
@@ -381,7 +366,7 @@ namespace Yolo_V2.Data
         private static void save_image_jpg(Image p, string name)
         {
 
-            using (var img = p.ToMat(true))
+            using (var img = p.ToMat())
             {
                 img.Save($"{name}.jpg");
             }
@@ -389,7 +374,7 @@ namespace Yolo_V2.Data
 
         public static void save_image_png(Image im, string name)
         {
-            using (var img = im.ToMat(true))
+            using (var img = im.ToMat())
             {
                 img.Save($"{name}.png");
                 //CvInvoke.Imwrite($"{name}.png", img, new KeyValuePair<ImwriteFlags, int>(ImwriteFlags.PngCompression, 5));
@@ -776,11 +761,60 @@ namespace Yolo_V2.Data
 
         public static Image resize_image(Image im, int w, int h)
         {
-            using (var img = im.ToMat(true))
+            //using (var img = im.ToMat())
+            //{
+            //    CvInvoke.Resize(img, img, new Size(w, h));
+            //    return new Image(img);
+            //}
+
+            Image resized = new Image(w, h, im.NumberOfChannels);
+            Image part = new Image(w, im.Height, im.NumberOfChannels);
+            int r, c, k;
+            float w_scale = (float)(im.Width - 1) / (w - 1);
+            float h_scale = (float)(im.Height - 1) / (h - 1);
+            for (k = 0; k < im.NumberOfChannels; ++k)
             {
-                CvInvoke.Resize(img, img, new Size(w, h));
-                return new Image(img);
+                for (r = 0; r < im.Height; ++r)
+                {
+                    for (c = 0; c < w; ++c)
+                    {
+                        float val = 0;
+                        if (c == w - 1 || im.Width == 1)
+                        {
+                            val = get_pixel(im, im.Width - 1, r, k);
+                        }
+                        else
+                        {
+                            float sx = c * w_scale;
+                            int ix = (int)sx;
+                            float dx = sx - ix;
+                            val = (1 - dx) * get_pixel(im, ix, r, k) + dx * get_pixel(im, ix + 1, r, k);
+                        }
+                        set_pixel(part, c, r, k, val);
+                    }
+                }
             }
+            for (k = 0; k < im.NumberOfChannels; ++k)
+            {
+                for (r = 0; r < h; ++r)
+                {
+                    float sy = r * h_scale;
+                    int iy = (int)sy;
+                    float dy = sy - iy;
+                    for (c = 0; c < w; ++c)
+                    {
+                        float val = (1 - dy) * get_pixel(part, c, iy, k);
+                        set_pixel(resized, c, r, k, val);
+                    }
+                    if (r == h - 1 || im.Height == 1) continue;
+                    for (c = 0; c < w; ++c)
+                    {
+                        float val = dy * get_pixel(part, c, iy + 1, k);
+                        add_pixel(resized, c, r, k, val);
+                    }
+                }
+            }
+            return resized;
         }
 
         public static void test_resize(string filename)

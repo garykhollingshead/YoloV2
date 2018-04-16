@@ -11,8 +11,8 @@ namespace Yolo_V2.Data
         public readonly int Width;
         public readonly int NumberOfChannels;
 
-        // Data in the form of RGB, ie 2x2 image would be:
-        // RRRRGGGGBBBB
+        // Data in the form of BGR, ie 2x2 image would be:
+        // BBBBGGGGRRRR
         public float[] Data;
 
         public Image(int width = 0, int height = 0, int numberOfChannels = 0, float[] data = null, int start = 0)
@@ -42,23 +42,24 @@ namespace Yolo_V2.Data
 
         public Image(Mat src)
         {
-            // Mat stores images BGRBGRBGR
-            // and going to RRRGGGBBB
             NumberOfChannels = src.NumberOfChannels;
             Height = src.Height;
             Width = src.Width;
             Data = new float[NumberOfChannels * Width * Height];
             var byteData = src.GetData();
             var channelSize = Width * Height;
+            var red = 0;
+            var green = channelSize;
+            var blue = channelSize * 2;
             for (var i = 0; i < byteData.Length; i += 3)
             {
-                Data[i/3] = byteData[i + 2] / 255.0f;
-                Data[channelSize + i/3] = byteData[i + 1] / 255.0f;
-                Data[channelSize * 2 + i/3] = byteData[i] / 255.0f;
+                Data[red + i / 3] = byteData[i + 2] / 255.0f;
+                Data[green + i / 3] = byteData[i + 1] / 255.0f;
+                Data[blue + i / 3] = byteData[i] / 255.0f;
             }
         }
 
-        public Mat ToMat(bool constrain)
+        public Mat ToMat()
         {
             // RRRGGGBBB going to BGRBGRBGR
             byte[] byteData = new byte[Width * Height * NumberOfChannels];
@@ -68,42 +69,29 @@ namespace Yolo_V2.Data
             var green = channelSize;
             var blue = channelSize * 2;
             // image might have been shrunk to values ~0-1
-            if (constrain)
-            {
-                var temp = (float[])Data.Clone();
-                for (var i = 0; i < Data.Length; i += 3)
-                {
-                    if (temp[blue + i/3] > 1)
-                        temp[blue + i/3] = 1;
-                    if (temp[blue + i/3] < 0)
-                        temp[blue + i / 3] = 0;
-                    byteData[i] = (byte)(temp[blue + i/3] * 255);
-                    if (temp[green + i / 3] > 1)
-                        temp[green + i / 3] = 1;
-                    if (temp[green + i / 3] < 0)
-                        temp[green + i / 3] = 0;
-                    byteData[i + 1] = (byte)(temp[green + i/3] * 255);
-                    if (temp[red + i / 3] > 1)
-                        temp[red + i / 3] = 1;
-                    if (temp[red + i / 3] < 0)
-                        temp[red + i / 3] = 0;
-                    byteData[i + 2] = (byte)(temp[red + i/3] * 255);
-                }
-                newMat = new Mat(new Size(Width, Height), DepthType.Cv8U, NumberOfChannels);
-                newMat.SetTo(byteData);
-                //ImageViewer.Show(newMat);
-
-                return newMat;
-            }
+            var temp = new float[Data.Length];
+            Array.Copy(Data, temp, Data.Length);
             for (var i = 0; i < Data.Length; i += 3)
             {
-                byteData[i] = (byte)(Data[blue + i/3]);
-                byteData[i + 1] = (byte)(Data[green + i/3]);
-                byteData[i + 2] = (byte)(Data[red + i/3]);
+                if (temp[blue + i / 3] > 1)
+                    temp[blue + i / 3] = 1;
+                if (temp[blue + i / 3] < 0)
+                    temp[blue + i / 3] = 0;
+                byteData[i] = (byte)(temp[blue + i / 3] * 255);
+                if (temp[green + i / 3] > 1)
+                    temp[green + i / 3] = 1;
+                if (temp[green + i / 3] < 0)
+                    temp[green + i / 3] = 0;
+                byteData[i + 1] = (byte)(temp[green + i / 3] * 255);
+                if (temp[red + i / 3] > 1)
+                    temp[red + i / 3] = 1;
+                if (temp[red + i / 3] < 0)
+                    temp[red + i / 3] = 0;
+                byteData[i + 2] = (byte)(temp[red + i / 3] * 255);
             }
             newMat = new Mat(new Size(Width, Height), DepthType.Cv8U, NumberOfChannels);
             newMat.SetTo(byteData);
-            //ImageViewer.Show(newMat);
+
             return newMat;
         }
     }

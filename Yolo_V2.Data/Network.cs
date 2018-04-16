@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using Yolo_V2.Data.Enums;
@@ -457,7 +458,7 @@ namespace Yolo_V2.Data
                 Layer l = net.Layers[i];
                 if (l.DeltaGpu.Any())
                 {
-                    Blas.fill_ongpu(l.Outputs * l.Batch, 0, ref l.DeltaGpu, 1);
+                    l.DeltaGpu = new float[l.Outputs * l.Batch];
                 }
                 l.ForwardGpu( ref state);
                 state.Input = l.OutputGpu;

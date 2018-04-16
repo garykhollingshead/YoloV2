@@ -114,14 +114,14 @@ namespace Yolo_V2.Data
 
                 if (batchNormalize)
                 {
-                    MeanGpu = (float[])Mean.Clone();
-                    VarianceGpu = (float[])Variance.Clone();
+                    MeanGpu = new float[Mean.Length];
+                    VarianceGpu = new float[Variance.Length];
 
-                    RollingMeanGpu = (float[])Mean.Clone();
-                    RollingVarianceGpu = (float[])Variance.Clone();
+                    RollingMeanGpu = new float[Mean.Length];
+                    RollingVarianceGpu = new float[Variance.Length];
 
-                    MeanDeltaGpu = (float[])Mean.Clone();
-                    VarianceDeltaGpu = (float[])Variance.Clone();
+                    MeanDeltaGpu = new float[Mean.Length];
+                    VarianceDeltaGpu = new float[Variance.Length];
 
                     ScalesGpu = (float[])Scales.Clone();
                     ScaleUpdatesGpu = (float[])ScaleUpdates.Clone();
@@ -254,7 +254,7 @@ namespace Yolo_V2.Data
 
         public override void ForwardGpu(ref NetworkState state)
         {
-            Blas.fill_ongpu(Outputs * Batch, 0, ref OutputGpu, 1);
+            OutputGpu = new float[Outputs * Batch];
             if (Binary)
             {
                 binarize_weights_gpu(WeightsGpu, N, NumberOfChannels * Size * Size, ref BinaryWeightsGpu);
@@ -275,15 +275,21 @@ namespace Yolo_V2.Data
             int n = OutW * OutH;
             for (i = 0; i < Batch; ++i)
             {
+                Console.WriteLine($"before {state.Input[0]} {state.Input[1]} {state.Input[2]}");
                 Im2Col.im2col_ongpu(state.Input, NumberOfChannels, Height, Width, Size, Stride, Pad, ref state.Workspace, i * NumberOfChannels * Height * Width);
                 float[] a = WeightsGpu;
                 float[] b = state.Workspace;
                 float[] c = new float[OutputGpu.Length - i * m * n];
 
+                Console.WriteLine($"mid {WeightsGpu[0]} {WeightsGpu[1]} {WeightsGpu[2]}");
+                
+                int width_col = (Width + 2 * Pad - Size) / Stride + 1;
+                Console.WriteLine($"mid {state.Workspace[0+ width_col]} {state.Workspace[1+ width_col]} {state.Workspace[2+ width_col]}");
                 Array.Copy(OutputGpu, i * m * n, c, 0, c.Length);
                 GemmUtils.gemm_ongpu(0, 0, m, n, k, 1, a, k, b, n, 1, ref c, n);
 
                 Array.Copy(c, 0, OutputGpu, i * m * n, c.Length);
+                Console.WriteLine($"after {OutputGpu[0]} {OutputGpu[1]} {OutputGpu[2]}");
             }
 
             if (BatchNormalize)
@@ -365,7 +371,7 @@ namespace Yolo_V2.Data
                 Blas.axpy_ongpu(size, (1 - B2), WeightUpdatesGpu, VGpu);
 
                 Blas.adam_gpu(size, ref WeightsGpu, MGpu, VGpu, B1, B2, learningRate / batch, Eps, T + 1);
-                Blas.fill_ongpu(size, 0, ref WeightUpdatesGpu, 1);
+                WeightUpdatesGpu = new float[size];
             }
             else
             {
@@ -431,7 +437,7 @@ namespace Yolo_V2.Data
         {
             if (LayerType == Layers.Batchnorm)
             {
-                Blas.copy_ongpu(Outputs * Batch, state.Input, OutputGpu);
+                Blas.copy_ongpu(Outputs * Batch, state.Input, ref OutputGpu);
             }
             if (LayerType == Layers.Connected)
             {
@@ -448,9 +454,9 @@ namespace Yolo_V2.Data
                 Blas.scal_ongpu(OutC, .99f, ref RollingVarianceGpu, 1);
                 Blas.axpy_ongpu(OutC, .01f, VarianceGpu, RollingVarianceGpu);
 
-                Blas.copy_ongpu(Outputs * Batch, OutputGpu, XGpu);
+                Blas.copy_ongpu(Outputs * Batch, OutputGpu, ref XGpu);
                 Blas.normalize_gpu(ref OutputGpu, MeanGpu, VarianceGpu, Batch, OutC, OutH * OutW);
-                Blas.copy_ongpu(Outputs * Batch, OutputGpu, XNormGpu);
+                Blas.copy_ongpu(Outputs * Batch, OutputGpu, ref XNormGpu);
             }
             else
             {

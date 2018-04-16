@@ -212,13 +212,7 @@ namespace Yolo_V2.Data
             var n = h * w * c * Batch;
 
             var lp = CudaUtils.cuda_gridsize(n);
-            var tempOutput = Gpu.Default.Allocate(OutputGpu);
-            var tempIndexes = Gpu.Default.Allocate(IndexesGpu);
-            Gpu.Default.Launch(forward_maxpool_layer_kernel, lp, n, Height, Width, NumberOfChannels, Stride, Size, Pad, state.Input, tempOutput, tempIndexes);
-            OutputGpu = Gpu.CopyToHost(tempOutput);
-            Gpu.Free(tempOutput);
-            IndexesGpu = Gpu.CopyToHost(tempIndexes);
-            Gpu.Free(tempIndexes);
+            Gpu.Default.Launch(forward_maxpool_layer_kernel, lp, n, Height, Width, NumberOfChannels, Stride, Size, Pad, state.Input, OutputGpu, IndexesGpu);
         }
 
         [GpuManaged]

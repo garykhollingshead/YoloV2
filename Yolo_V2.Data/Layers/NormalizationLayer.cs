@@ -142,7 +142,7 @@ namespace Yolo_V2.Data
 
                 for (k = 1; k < NumberOfChannels; ++k)
                 {
-                    Blas.copy_ongpu(w * h, norms, norms, w * h * (k - 1), w * h * k);
+                    Blas.copy_ongpu(w * h, norms, ref norms, w * h * (k - 1), w * h * k);
                     int prev = k - ((Size - 1) / 2) - 1;
                     int next = k + (Size / 2);
                     if (prev >= 0) Blas.axpy_ongpu(w * h, -Alpha, squared, norms, w * h * prev, w * h * k);

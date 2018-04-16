@@ -109,7 +109,7 @@ namespace Yolo_V2.Data
         {
             if (LayerType == Layers.Batchnorm)
             {
-                Blas.copy_ongpu(Outputs * Batch, state.Input, OutputGpu);
+                Blas.copy_ongpu(Outputs * Batch, state.Input, ref OutputGpu);
             }
             if (LayerType == Layers.Connected)
             {
@@ -126,9 +126,9 @@ namespace Yolo_V2.Data
                 Blas.scal_ongpu(OutC, .99f, ref RollingVarianceGpu, 1);
                 Blas.axpy_ongpu(OutC, .01f, VarianceGpu, RollingVarianceGpu);
 
-                Blas.copy_ongpu(Outputs * Batch, OutputGpu, XGpu);
+                Blas.copy_ongpu(Outputs * Batch, OutputGpu, ref XGpu);
                 Blas.normalize_gpu(ref OutputGpu, MeanGpu, VarianceGpu, Batch, OutC, OutH * OutW);
-                Blas.copy_ongpu(Outputs * Batch, OutputGpu, XNormGpu);
+                Blas.copy_ongpu(Outputs * Batch, OutputGpu, ref XNormGpu);
             }
             else
             {
@@ -148,7 +148,7 @@ namespace Yolo_V2.Data
             Blas.fast_mean_delta_gpu(DeltaGpu, VarianceGpu, Batch, OutC, OutW * OutH, ref MeanDeltaGpu);
             Blas.fast_variance_delta_gpu(XGpu, DeltaGpu, MeanGpu, VarianceGpu, Batch, OutC, OutW * OutH, ref VarianceDeltaGpu);
             Blas.normalize_delta_gpu(XGpu, MeanGpu, VarianceGpu, MeanDeltaGpu, VarianceDeltaGpu, Batch, OutC, OutW * OutH, ref DeltaGpu);
-            if (LayerType == Layers.Batchnorm) Blas.copy_ongpu(Outputs * Batch, DeltaGpu, state.Delta);
+            if (LayerType == Layers.Batchnorm) Blas.copy_ongpu(Outputs * Batch, DeltaGpu, ref state.Delta);
         }
 
     }

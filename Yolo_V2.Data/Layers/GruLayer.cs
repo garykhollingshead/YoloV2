@@ -160,17 +160,16 @@ namespace Yolo_V2.Data
             s.Train = state.Train;
             int i;
 
-            Blas.fill_ongpu(Outputs * Batch * Steps, 0, ref InputZLayer.DeltaGpu, 1);
-            Blas.fill_ongpu(Outputs * Batch * Steps, 0, ref InputRLayer.DeltaGpu, 1);
-            Blas.fill_ongpu(Outputs * Batch * Steps, 0, ref InputHLayer.DeltaGpu, 1);
-
-            Blas.fill_ongpu(Outputs * Batch * Steps, 0, ref StateZLayer.DeltaGpu, 1);
-            Blas.fill_ongpu(Outputs * Batch * Steps, 0, ref StateRLayer.DeltaGpu, 1);
-            Blas.fill_ongpu(Outputs * Batch * Steps, 0, ref StateHLayer.DeltaGpu, 1);
+            InputZLayer.DeltaGpu = new float[Outputs * Batch * Steps];
+            InputRLayer.DeltaGpu = new float[Outputs * Batch * Steps];
+            InputHLayer.DeltaGpu = new float[Outputs * Batch * Steps];
+            StateZLayer.DeltaGpu = new float[Outputs * Batch * Steps];
+            StateRLayer.DeltaGpu = new float[Outputs * Batch * Steps];
+            StateHLayer.DeltaGpu = new float[Outputs * Batch * Steps];
             if (state.Train)
             {
-                Blas.fill_ongpu(Outputs * Batch * Steps, 0, ref DeltaGpu, 1);
-                Blas.copy_ongpu(Outputs * Batch, StateGpu, PrevStateGpu);
+                DeltaGpu = new float[Outputs * Batch * Steps];
+                Blas.copy_ongpu(Outputs * Batch, StateGpu, ref PrevStateGpu);
             }
 
             for (i = 0; i < Steps; ++i)
@@ -185,22 +184,22 @@ namespace Yolo_V2.Data
                 InputHLayer.ForwardGpu(ref s);
 
 
-                Blas.copy_ongpu(Outputs * Batch, InputZLayer.OutputGpu, ZGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputZLayer.OutputGpu, ref ZGpu);
                 Blas.axpy_ongpu(Outputs * Batch, 1, StateZLayer.OutputGpu, ZGpu);
 
-                Blas.copy_ongpu(Outputs * Batch, InputRLayer.OutputGpu, RGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputRLayer.OutputGpu, ref RGpu);
                 Blas.axpy_ongpu(Outputs * Batch, 1, StateRLayer.OutputGpu, RGpu);
 
                 ActivationsHelper.activate_array_ongpu(ref ZGpu, Outputs * Batch, Activation.Logistic);
                 ActivationsHelper.activate_array_ongpu(ref RGpu, Outputs * Batch, Activation.Logistic);
 
-                Blas.copy_ongpu(Outputs * Batch, StateGpu, ForgotStateGpu);
+                Blas.copy_ongpu(Outputs * Batch, StateGpu, ref ForgotStateGpu);
                 Blas.mul_ongpu(Outputs * Batch, RGpu, 1, ref ForgotStateGpu, 1);
 
                 s.Input = ForgotStateGpu;
                 StateHLayer.ForwardGpu(ref s);
 
-                Blas.copy_ongpu(Outputs * Batch, InputHLayer.OutputGpu, HGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputHLayer.OutputGpu, ref HGpu);
                 Blas.axpy_ongpu(Outputs * Batch, 1, StateHLayer.OutputGpu, HGpu);
 
                 // USET ActivationsHelper.activate_array_ongpu(HGpu, Outputs * Batch, TANH);
@@ -209,7 +208,7 @@ namespace Yolo_V2.Data
 
                 Blas.weighted_sum_gpu(StateGpu, HGpu, ZGpu, Outputs * Batch, ref OutputGpu);
 
-                Blas.copy_ongpu(Outputs * Batch, OutputGpu, StateGpu);
+                Blas.copy_ongpu(Outputs * Batch, OutputGpu, ref StateGpu);
 
                 Utils.IncArray(ref state.Input, ref state.InputBackup, state.InputIndex, state.InputIndex += Inputs * Batch);
                 Utils.IncArray(ref OutputGpu, ref OutputGpuBackup, OutputGpuIndex, OutputGpuIndex += Outputs * Batch);
@@ -248,7 +247,7 @@ namespace Yolo_V2.Data
             {
                 if (i != 0)
                 {
-                    Blas.copy_ongpu(Outputs * Batch, OutputGpuBackup, PrevStateGpu, OutputGpuIndex - Outputs * Batch);
+                    Blas.copy_ongpu(Outputs * Batch, OutputGpuBackup, ref PrevStateGpu, OutputGpuIndex - Outputs * Batch);
                 }
                 float[] prevDeltaGpu;
                 if (i == 0)
@@ -262,16 +261,16 @@ namespace Yolo_V2.Data
                     Array.Copy(DeltaGpu, 0, prevDeltaGpu, Outputs * Batch, DeltaGpu.Length);
                 }
 
-                Blas.copy_ongpu(Outputs * Batch, InputZLayer.OutputGpu, ZGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputZLayer.OutputGpu, ref ZGpu);
                 Blas.axpy_ongpu(Outputs * Batch, 1, StateZLayer.OutputGpu, ZGpu);
 
-                Blas.copy_ongpu(Outputs * Batch, InputRLayer.OutputGpu, RGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputRLayer.OutputGpu, ref RGpu);
                 Blas.axpy_ongpu(Outputs * Batch, 1, StateRLayer.OutputGpu, RGpu);
 
                 ActivationsHelper.activate_array_ongpu(ref ZGpu, Outputs * Batch, Activation.Logistic);
                 ActivationsHelper.activate_array_ongpu(ref RGpu, Outputs * Batch, Activation.Logistic);
 
-                Blas.copy_ongpu(Outputs * Batch, InputHLayer.OutputGpu, HGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputHLayer.OutputGpu, ref HGpu);
                 Blas.axpy_ongpu(Outputs * Batch, 1, StateHLayer.OutputGpu, HGpu);
 
                 // USET ActivationsHelper.activate_array_ongpu(HGpu, Outputs * Batch, TANH);
@@ -284,11 +283,11 @@ namespace Yolo_V2.Data
                 ActivationsHelper.gradient_array_ongpu(HGpu, Outputs * Batch, Activation.Logistic, ref InputHLayer.DeltaGpu);
 
 
-                Blas.copy_ongpu(Outputs * Batch, InputHLayer.DeltaGpu, StateHLayer.DeltaGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputHLayer.DeltaGpu, ref StateHLayer.DeltaGpu);
 
-                Blas.copy_ongpu(Outputs * Batch, PrevStateGpu, ForgotStateGpu);
+                Blas.copy_ongpu(Outputs * Batch, PrevStateGpu, ref ForgotStateGpu);
                 Blas.mul_ongpu(Outputs * Batch, RGpu, 1, ref ForgotStateGpu, 1);
-                Blas.fill_ongpu(Outputs * Batch, 0, ref ForgotDeltaGpu, 1);
+                ForgotDeltaGpu = new float[Outputs * Batch];
 
                 s.Input = ForgotStateGpu;
                 s.Delta = ForgotDeltaGpu;
@@ -301,10 +300,10 @@ namespace Yolo_V2.Data
                 Blas.mult_add_into_gpu(Outputs * Batch, ForgotDeltaGpu, PrevStateGpu, ref InputRLayer.DeltaGpu);
 
                 ActivationsHelper.gradient_array_ongpu(RGpu, Outputs * Batch, Activation.Logistic, ref InputRLayer.DeltaGpu);
-                Blas.copy_ongpu(Outputs * Batch, InputRLayer.DeltaGpu, StateRLayer.DeltaGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputRLayer.DeltaGpu, ref StateRLayer.DeltaGpu);
 
                 ActivationsHelper.gradient_array_ongpu(ZGpu, Outputs * Batch, Activation.Logistic, ref InputZLayer.DeltaGpu);
-                Blas.copy_ongpu(Outputs * Batch, InputZLayer.DeltaGpu, StateZLayer.DeltaGpu);
+                Blas.copy_ongpu(Outputs * Batch, InputZLayer.DeltaGpu, ref StateZLayer.DeltaGpu);
 
                 s.Input = PrevStateGpu;
                 s.Delta = prevDeltaGpu;

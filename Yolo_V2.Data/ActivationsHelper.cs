@@ -269,7 +269,10 @@ namespace Yolo_V2.Data
         private static void activate_array_kernel(float[] x, int n, Activation a)
         {
             int i = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
-            if (i < n) x[i] = Activate(x[i], a);
+            if (i < n)
+            {
+                x[i] = Activate(x[i], a);
+            }
         }
 
         private static void gradient_array_kernel(float[] x, int n, Activation a, float[] delta, int xStart = 0, int deltaStart = 0)
@@ -278,13 +281,12 @@ namespace Yolo_V2.Data
             if (i < n) delta[i + deltaStart] *= Gradient(x[i + xStart], a);
         }
 
+        [GpuManaged]
         public static void activate_array_ongpu(ref float[] x, int n, Activation a)
         {
+            Console.WriteLine(a);
             var lp = CudaUtils.cuda_gridsize(n);
-            var tempOutput = Gpu.Default.Allocate(x);
-            Gpu.Default.Launch(activate_array_kernel, lp, tempOutput, n, a);
-            x = Gpu.CopyToHost(tempOutput);
-            Gpu.Free(tempOutput);
+            Gpu.Default.Launch(activate_array_kernel, lp, x, n, a);
         }
 
         public static void gradient_array_ongpu(float[] x, int n, Activation a,ref float[] delta, int xStart = 0, int deltaStart = 0)

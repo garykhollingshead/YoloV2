@@ -246,18 +246,20 @@ namespace Yolo_V2.Data
             int filter = blockIdx.y;
             int batch = blockIdx.z;
 
-            if (offset < size) output[(batch * n + filter) * size + offset] *= biases[filter];
+            if (offset < size)
+            {
+                var orig = output[(batch * n + filter) * size + offset];
+                output[(batch * n + filter) * size + offset] *= biases[filter];
+            }
         }
 
+        [GpuManaged]
         public static void scale_bias_gpu(ref float[] output, float[] biases, int batch, int n, int size)
         {
             var dimGrid = new dim3((size - 1) / CudaUtils.BlockSize + 1, n, batch);
             var dimBlock = new dim3(CudaUtils.BlockSize, 1, 1);
             var lp = new LaunchParam(dimGrid, dimBlock);
-            var tempOutput = Gpu.Default.Allocate(output);
-            Gpu.Default.Launch(scale_bias_kernel, lp, tempOutput, biases, n, size);
-            output = Gpu.CopyToHost(tempOutput);
-            Gpu.Free(tempOutput);
+            Gpu.Default.Launch(scale_bias_kernel, lp, output, biases, n, size);
         }
 
         private static void backward_scale_kernel(float[] xNorm, float[] delta, int batch, int n, int size, float[] scaleUpdates)
@@ -558,16 +560,14 @@ namespace Yolo_V2.Data
             if (i < n) y[i * incy] *= x[i * incx];
         }
         
+        [GpuManaged]
         public static void normalize_gpu(ref float[] x, float[] mean, float[] variance, int batch, int filters, int spatial)
         {
             var n = batch * filters * spatial;
             
             var lp = CudaUtils.cuda_gridsize(n);
-            var tempx = Gpu.Default.Allocate<float>(x);
-            Gpu.Default.Launch(normalize_kernel, lp, n, tempx, mean, variance, batch, filters, spatial);
-            var xx = Gpu.CopyToHost(tempx);
-            Gpu.Free(tempx);
-            x = xx;
+            Gpu.Default.Launch(normalize_kernel, lp, n, x, mean, variance, batch, filters, spatial);
+
         }
 
         private static void fast_mean_kernel(float[] x, int batch, int filters, int spatial, float[] mean)
@@ -674,7 +674,7 @@ namespace Yolo_V2.Data
             Gpu.Free(temp);
         }
 
-        public static void copy_ongpu(int n, float[] from, float[] to, int xStart = 0, int yStart = 0)
+        public static void copy_ongpu(int n, float[] from, ref float[] to, int xStart = 0, int yStart = 0)
         {
             copy_ongpu_offset(n, from, ref to, xStart, yStart);
         }
@@ -761,13 +761,11 @@ namespace Yolo_V2.Data
             Gpu.Free(temp);
         }
         
+        [GpuManaged]
         public static void scal_ongpu(int n, float alpha,ref float[] x, int incx)
         {
             var lp = CudaUtils.cuda_gridsize(n);
-            var temp = Gpu.Default.Allocate(x);
-            Gpu.Default.Launch(scal_kernel, lp, n, alpha, temp, incx);
-            x = Gpu.CopyToHost(temp);
-            Gpu.Free(temp);
+            Gpu.Default.Launch(scal_kernel, lp, n, alpha, x, incx);
         }
 
         public static void supp_ongpu(int n, float alpha,ref float[] x, int incx)

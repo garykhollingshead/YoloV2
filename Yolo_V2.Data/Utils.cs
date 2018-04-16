@@ -188,7 +188,7 @@ namespace Yolo_V2.Data
             return sum / n;
         }
 
-        public static void mean_arrays(float[][] a, int n, int els, float[] avg)
+        public static void mean_arrays(float[][] a, int n, int els, ref float[] avg)
         {
             int i;
             int j;
@@ -300,7 +300,7 @@ namespace Yolo_V2.Data
 
         public static int max_index(float[] a, int num)
         {
-            if (!a.Any()) return -1;
+            if (num <= 0) return -1;
             int maxI = 0;
             float max = a[0];
             for (var i = 1; i < num; ++i)
