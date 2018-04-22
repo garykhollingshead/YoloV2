@@ -100,10 +100,6 @@ namespace Yolo_V2.Data
             int imStart = 0)
         {
             int index = blockIdx.x * blockDim.x + threadIdx.x;
-            int firstIndex = index;
-            int colStart = 0;
-            bool first = true;
-            int imStart2 = 0;
             for (; index < n; index += blockDim.x * gridDim.x)
             {
                 int wOut = index % widthCol;
@@ -125,19 +121,17 @@ namespace Yolo_V2.Data
                         float val = 0f;
                         if ((h >= 0 && w >= 0 && h < height && w < width))
                         {
+                            if (dataIm.Length <= dataImPtr + i * width + j)
+                            {
+                                Console.WriteLine("Accessing outside data im: {0} + {1} * {2} + {3} = {4}, not {5}", dataImPtr, i, width, j, dataImPtr + i * width + j, dataIm.Length);
+                            }
                             val = dataIm[dataImPtr + i * width + j];
 
                         }
 
-
-                        if (first)
+                        if (dataCol.Length <= dataColPtr)
                         {
-                            if (h >= 0 && w >= 0 && h < height && w < width)
-                            {
-                                colStart = (channelOut * heightCol + hOut) * widthCol + wOut + ((i * 3 + j) * heightCol * widthCol);
-                                imStart2 = (channelIn * height + hIn) * width + wIn + i * width + j;
-                                first = false;
-                            }
+                            Console.WriteLine("accessing outside data col: {0}, not {1}", dataCol.Length, dataColPtr);
                         }
                         dataCol[dataColPtr] = val;
 
@@ -156,7 +150,7 @@ namespace Yolo_V2.Data
             // kernel responsible for copying a single-channel grid.
             int heightCol = (height + 2 * pad - ksize) / stride + 1;
             int widthCol = (width + 2 * pad - ksize) / stride + 1;
-            int numKernels = channels * heightCol * widthCol;
+            int numKernels = im.Length;
             var lp = new LaunchParam((numKernels + CudaUtils.BlockSize - 1) / CudaUtils.BlockSize, CudaUtils.BlockSize);
             Gpu.Default.Launch(im2col_gpu_kernel, lp, numKernels, im, height, width, ksize, pad,
                 stride, heightCol, widthCol, dataCol, imStart);

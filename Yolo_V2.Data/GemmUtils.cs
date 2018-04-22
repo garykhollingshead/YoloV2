@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Alea;
+using Alea.cuBLAS;
 using Alea.CudaToolkit;
 
 namespace Yolo_V2.Data
@@ -20,6 +22,7 @@ namespace Yolo_V2.Data
                 float[] b, int ldb,
                 float[] c, int ldc)
         {
+            Console.WriteLine($"starting...\n{c[0]}");
             for (var i = 0; i < m; ++i)
             {
                 var iapart = i * lda;
@@ -31,11 +34,15 @@ namespace Yolo_V2.Data
 
                     for (int ij = 0; ij < n; ++ij)
                     {
-
+                        if (icpart + ij == 0)
+                        {
+                            Console.WriteLine($"+ {aPart} * {b[kbpart + ij]}");
+                        }
                         c[icpart + ij] += aPart * b[kbpart + ij];
                     }
                 }
             }
+            Console.WriteLine($"{c[0]}\ndone");
         }
 
         private static void gemm_nt(int m, int n, int ok, float alpha,
@@ -126,20 +133,29 @@ namespace Yolo_V2.Data
         {
             unsafe
             {
+                Gpu.FreeAllImplicitMemory(true);
+                ulong free = 0;
+                ulong total = 0;
+                Cuda.cudaMemGetInfo(&free, &total);
+
                 using (var gpuA = Gpu.Default.AllocateDevice(a))
                 using (var gpuB = Gpu.Default.AllocateDevice(b))
                 using (var gpuC = Gpu.Default.AllocateDevice(c))
                 {
                     var handle = CudaUtils.blas_handle();
                     CudaUtils.SafeCall(Alea.cuBLAS.Interop.cublasSgemm(handle,
-                        (tb != 0 ? cublasOperation_t.CUBLAS_OP_T : cublasOperation_t.CUBLAS_OP_N),
-                        (ta != 0 ? cublasOperation_t.CUBLAS_OP_T : cublasOperation_t.CUBLAS_OP_N), n, m, k, &alpha,
+                        (tb != 0 ? Operation.T : Operation.N),
+                        (ta != 0 ? Operation.T : Operation.N), n, m, k, &alpha,
                         (float*)gpuB.Handle, ldb,
                         (float*)gpuA.Handle, lda, &beta, (float*)gpuC.Handle, ldc));
                     //a = Gpu.CopyToHost(gpuA);
                     //b = Gpu.CopyToHost(gpuB);
                     c = Gpu.CopyToHost(gpuC);
                 }
+                Gpu.FreeAllImplicitMemory(true);
+                ulong freeA = 0;
+                ulong totalA = 0;
+                Cuda.cudaMemGetInfo(&freeA, &totalA);
             }
 
         }

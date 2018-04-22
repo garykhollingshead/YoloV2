@@ -80,35 +80,57 @@ namespace Yolo_V2.Data
 
         private static float Gradient(float x, Activation a)
         {
-            switch (a)
+            if (a == Activation.Linear)
+                return Linear_gradient(x);
+            else if (a == Activation.Logistic)
             {
-                case Activation.Linear:
-                    return Linear_gradient(x);
-                case Activation.Logistic:
-                    return Logistic_gradient(x);
-                case Activation.Loggy:
-                    return Loggy_gradient(x);
-                case Activation.Relu:
-                    return Relu_gradient(x);
-                case Activation.Elu:
-                    return Elu_gradient(x);
-                case Activation.Relie:
-                    return Relie_gradient(x);
-                case Activation.Ramp:
-                    return Ramp_gradient(x);
-                case Activation.Leaky:
-                    return Leaky_gradient(x);
-                case Activation.Tanh:
-                    return Tanh_gradient(x);
-                case Activation.Plse:
-                    return Plse_gradient(x);
-                case Activation.Stair:
-                    return Stair_gradient(x);
-                case Activation.Hardtan:
-                    return Hardtan_gradient(x);
-                case Activation.Lhtan:
-                    return Lhtan_gradient(x);
+                return Logistic_gradient(x);
             }
+            else if (a == Activation.Loggy)
+            {
+                return Loggy_gradient(x);
+            }
+            else if (a == Activation.Relu)
+            {
+                return Relu_gradient(x);
+            }
+            else if (a == Activation.Elu)
+            {
+                return Elu_gradient(x);
+            }
+            else if (a == Activation.Relie)
+            {
+                return Relie_gradient(x);
+            }
+            else if (a == Activation.Ramp)
+            {
+                return Ramp_gradient(x);
+            }
+            else if (a == Activation.Leaky)
+            {
+                return Leaky_gradient(x);
+            }
+            else if (a == Activation.Tanh)
+            {
+                return Tanh_gradient(x);
+            }
+            else if (a == Activation.Plse)
+            {
+                return Plse_gradient(x);
+            }
+            else if (a == Activation.Stair)
+            {
+                return Stair_gradient(x);
+            }
+            else if (a == Activation.Hardtan)
+            {
+                return Hardtan_gradient(x);
+            }
+            else if (a == Activation.Lhtan)
+            {
+                return Lhtan_gradient(x);
+            }
+
             return 0;
         }
 
@@ -284,7 +306,6 @@ namespace Yolo_V2.Data
         [GpuManaged]
         public static void activate_array_ongpu(ref float[] x, int n, Activation a)
         {
-            Console.WriteLine(a);
             var lp = CudaUtils.cuda_gridsize(n);
             Gpu.Default.Launch(activate_array_kernel, lp, x, n, a);
         }

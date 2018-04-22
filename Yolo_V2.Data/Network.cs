@@ -451,6 +451,7 @@ namespace Yolo_V2.Data
         public static void forward_network_gpu(ref Network net,ref  NetworkState state)
         {
             state.Workspace = net.Workspace;
+            var outputsize = state.Input.Length;
             int i;
             for (i = 0; i < net.N; ++i)
             {
@@ -511,7 +512,7 @@ namespace Yolo_V2.Data
             int xSize = get_network_input_size(net) * net.Batch;
             int ySize = get_network_output_size(net) * net.Batch;
             if (net.Layers[net.N - 1].Truths != 0) ySize = net.Layers[net.N - 1].Truths * net.Batch;
-            if (!net.InputGpu.Any())
+            if (net.InputGpu == null || !net.InputGpu.Any())
             {
                 net.InputGpu = (float[])x.Clone(); 
                 net.TruthGpu = (float[])y.Clone();
@@ -526,6 +527,14 @@ namespace Yolo_V2.Data
             state.Truth = net.TruthGpu;
             state.Train = true;
             forward_network_gpu(ref net,ref state);
+            var l = net.Layers[0];
+            int heightCol = (l.Height + 2 * l.Pad - l.Size) / l.Stride + 1;
+            int widthCol = (l.Width + 2 * l.Pad - l.Size) / l.Stride + 1;
+            int numKernels = l.NumberOfChannels * heightCol * widthCol;
+            if (state.Input.Length != numKernels)
+            {
+                Console.WriteLine("think we broke");
+            }
             backward_network_gpu(ref net,ref state);
         }
 

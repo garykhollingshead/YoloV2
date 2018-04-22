@@ -16,8 +16,8 @@ namespace Yolo_V2
 
             float avgLoss = -1;
             string basec = Utils.Basecfg(cfgfile);
-            Console.Write($"%s\n", basec);
-            Console.Write($"%d\n", ngpus);
+            Console.Write($"{basec}\n");
+            Console.Write($"{ngpus}\n");
             Network[] nets = new Network[ngpus];
 
 
@@ -76,9 +76,8 @@ namespace Yolo_V2
 
             Data.Data train;
             Data.Data buffer = new Data.Data();
-            Thread loadThread;
             args.D = buffer;
-            loadThread = Data.Data.load_data(args);
+            Data.Data.load_data(args);
 
             int epoch = (net.Seen) / n;
             while (Network.get_current_batch(net) < net.MaxBatches || net.MaxBatches == 0)
@@ -86,9 +85,8 @@ namespace Yolo_V2
                 sw.Reset();
                 sw.Start();
 
-                loadThread.Join();
                 train = buffer;
-                loadThread = Data.Data.load_data(args);
+                Data.Data.load_data(args);
 
                 sw.Stop();
                 Console.Write($"Loaded: %lf seconds\n", sw.Elapsed.Seconds);
@@ -168,13 +166,12 @@ namespace Yolo_V2
             args.D = buffer;
             args.Type = DataType.OldClassificationData;
 
-            Thread loadThread = Data.Data.load_data_in_thread(args);
+            Data.Data.load_data_in_thread(args);
             for (i = 1; i <= splits; ++i)
             {
                 sw.Reset();
                 sw.Start();
 
-                loadThread.Join();
                 var val = buffer;
 
                 num = (i + 1) * m / splits - i * m / splits;
@@ -183,7 +180,7 @@ namespace Yolo_V2
                 if (i != splits)
                 {
                     args.Paths = part;
-                    loadThread = Data.Data.load_data_in_thread(args);
+                    Data.Data.load_data_in_thread(args);
                 }
                 sw.Stop();
                 Console.Write($"Loaded: %d images ini %lf seconds\n", val.X.Rows, sw.Elapsed.Seconds);
@@ -660,13 +657,12 @@ namespace Yolo_V2
             args.D = buffer;
             args.Type = DataType.OldClassificationData;
 
-            Thread loadThread = Data.Data.load_data_in_thread(args);
+            Data.Data.load_data_in_thread(args);
             for (curr = net.Batch; curr < m; curr += net.Batch)
             {
                 sw.Reset();
                 sw.Start();
 
-                loadThread.Join();
                 var val = buffer;
 
                 if (curr < m)
@@ -674,7 +670,7 @@ namespace Yolo_V2
                     args.Paths = new string[paths.Length - curr];
                     Array.Copy(paths, curr, args.Paths, 0, args.Paths.Length);
                     if (curr + net.Batch > m) args.N = m - curr;
-                    loadThread = Data.Data.load_data_in_thread(args);
+                    Data.Data.load_data_in_thread(args);
                 }
                 sw.Stop();
                 Console.Error.Write($"Loaded: %d images ini %lf seconds\n", val.X.Rows, sw.Elapsed.Seconds);

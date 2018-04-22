@@ -263,7 +263,7 @@ namespace Yolo_V2.Data
 
 
                     int sclass = (int)state.Truth[t * 5 + b * Truths + 4];
-                    if (Map.Length != 0) sclass = Map[sclass];
+                    if (Map != null) sclass = Map[sclass];
                     delta_region_class(Output, Delta, bestIndex + 5, sclass, Classes, SoftmaxTree, ClassScale, ref avgCat);
                     ++count;
                     ++classCount;
@@ -281,11 +281,13 @@ namespace Yolo_V2.Data
 
         public override void Update(ref int i, ref float a, ref float b, ref float c)
         {
+            return;
             throw new NotImplementedException();
         }
 
         public override void UpdateGpu(ref int i, ref float a, ref float b, ref float c)
         {
+            return;
             throw new NotImplementedException();
         }
 

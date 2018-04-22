@@ -113,12 +113,14 @@ namespace Yolo_V2.Data
 
         public override void Update(ref int i, ref float a, ref float b, ref float c)
         {
+            return;
             throw new NotImplementedException();
         }
 
         public override void UpdateGpu(ref int i, ref float a, ref float b, ref float c)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+            return;
         }
 
         public  void forward_maxpool_layer_kernel(int n, int inH, int inW, int inC, int stride, int size, int pad, float[] input, float[] output, int[] indexes)

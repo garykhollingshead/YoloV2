@@ -43,15 +43,14 @@ namespace Yolo_V2
             args.D = buffer;
             args.Type = DataType.WritingData;
 
-            Thread loadThread = Data.Data.load_data_in_thread(args);
+            Data.Data.load_data_in_thread(args);
             int epoch = (net.Seen) / n;
             while (Network.get_current_batch(net) < net.MaxBatches || net.MaxBatches == 0)
             {
                 sw.Reset();
                 sw.Start();
-                loadThread.Join();
                 var train = buffer;
-                loadThread = Data.Data.load_data_in_thread(args);
+                Data.Data.load_data_in_thread(args);
                 sw.Stop();
                 Console.Write($"Loaded %lf seconds\n", sw.Elapsed.Seconds);
 

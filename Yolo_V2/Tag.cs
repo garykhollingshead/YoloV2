@@ -28,7 +28,6 @@ namespace Yolo_V2
             Console.Write($"%d\n", paths.Length);
             int n = paths.Length;
             var sw = new Stopwatch();
-            Thread loadThread;
             Data.Data train;
             Data.Data buffer = new Data.Data();
 
@@ -54,16 +53,15 @@ namespace Yolo_V2
 
             Console.Error.Write($"%d classes\n", net.Outputs);
 
-            loadThread = Data.Data.load_data_in_thread(args);
+            Data.Data.load_data_in_thread(args);
             int epoch = (net.Seen) / n;
             while (Network.get_current_batch(net) < net.MaxBatches || net.MaxBatches == 0)
             {
                 sw.Reset();
                 sw.Start();
-                loadThread.Join();
                 train = buffer;
 
-                loadThread = Data.Data.load_data_in_thread(args);
+                Data.Data.load_data_in_thread(args);
                 sw.Stop();
                 Console.Write($"Loaded: %lf seconds\n", sw.Elapsed.Seconds);
                 sw.Reset();
@@ -91,8 +89,6 @@ namespace Yolo_V2
 
             string buff2 = $"{backupDirectory}/{basec}.Weights";
             Parser.save_weights(net, buff2);
-
-            loadThread.Join();
         }
 
         private static void test_tag(string cfgfile, string weightfile, string filename)

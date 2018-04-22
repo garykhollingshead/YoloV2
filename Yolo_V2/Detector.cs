@@ -15,12 +15,12 @@ namespace Yolo_V2
         private static void train_detector(string datacfg, string cfgfile, string weightfile, bool clear)
         {
             var options = OptionList.read_data_cfg(datacfg);
-            string trainImages = OptionList.option_find_str(options, "train", "Data.Data/train.list");
+            string trainImages = OptionList.option_find_str(options, "train", "Data/train.list");
             string backupDirectory = OptionList.option_find_str(options, "backup", "/backup/");
 
 
             string basec = Utils.Basecfg(cfgfile);
-            Console.Write($"%s\n", basec);
+            Console.Write($"{basec}\n");
             float avgLoss = -1;
             Network[] nets = new Network[1];
 
@@ -41,8 +41,7 @@ namespace Yolo_V2
             Network net = nets[0];
 
             int imgs = net.Batch * net.Subdivisions * 1;
-            Console.Write($"Learning Rate: %g, Momentum: %g, Decay: %g\n", net.LearningRate, net.Momentum, net.Decay);
-            Data.Data buffer = new Data.Data();
+            Console.Write($"Learning Rate: {net.LearningRate}, Momentum: {net.Momentum}, Decay: {net.Decay}\n");
 
             Layer l = net.Layers[net.N - 1];
 
@@ -60,7 +59,7 @@ namespace Yolo_V2
             args.Classes = classes;
             args.Jitter = jitter;
             args.NumBoxes = l.MaxBoxes;
-            args.D = buffer;
+            args.D = new Data.Data();
             args.Type = DataType.DetectionData;
             args.Threads = 8;
 
@@ -69,7 +68,7 @@ namespace Yolo_V2
             args.Saturation = net.Saturation;
             args.Hue = net.Hue;
 
-            Thread loadThread = Data.Data.load_data(args);
+            Data.Data.load_data(args);
             var sw = new Stopwatch();
             int count = 0;
             while (Network.get_current_batch(net) < net.MaxBatches)
@@ -80,12 +79,11 @@ namespace Yolo_V2
                     Console.Write($"Resizing\n");
                     int dim = (Utils.Rand.Next() % 10 + 10) * 32;
                     if (Network.get_current_batch(net) + 100 > net.MaxBatches) dim = 544;
-                    Console.Write($"%d\n", dim);
+                    Console.Write($"{dim}\n");
                     args.W = dim;
                     args.H = dim;
 
-                    loadThread.Join();
-                    loadThread = Data.Data.load_data(args);
+                    Data.Data.load_data(args);
 
                     for (i = 0; i < 1; ++i)
                     {
@@ -94,11 +92,10 @@ namespace Yolo_V2
                     net = nets[0];
                 }
                 sw.Start();
-                loadThread.Join();
-                train = buffer;
-                loadThread = Data.Data.load_data(args);
+                train = args.D;
+                Data.Data.load_data(args);
                 sw.Stop();
-                Console.Write($"Loaded: %lf seconds\n", sw.Elapsed.Seconds);
+                Console.Write($"Loaded: {sw.Elapsed.Seconds} seconds\n");
 
                 sw.Reset();
                 sw.Start();
@@ -109,11 +106,11 @@ namespace Yolo_V2
 
                 i = Network.get_current_batch(net);
                 sw.Stop();
-                Console.Write($"%d: %f, %f avg, %f rate, %lf seconds, %d images\n", Network.get_current_batch(net), loss, avgLoss, Network.get_current_rate(net), sw.Elapsed.Seconds, i * imgs);
+                Console.Write($"{Network.get_current_batch(net)}: {loss}, {avgLoss} avg, {Network.get_current_rate(net)} rate, {sw.Elapsed.Seconds} seconds, {i * imgs} images\n");
                 if (i % 1000 == 0 || (i < 1000 && i % 100 == 0))
                 {
 
-                    string buffa = $"{backupDirectory}/{basec}_{i}.Weights";
+                    string buffa = $"{backupDirectory}\\{basec}_{i}.Weights".Replace("/", "\\").Replace("\\\\", "\\").Replace("\\\\", "\\");
                     Parser.save_weights(net, buffa);
                 }
             }
@@ -279,7 +276,6 @@ namespace Yolo_V2
                 Image[] valResized = new Image[nthreads];
                 Image[] buf = new Image[nthreads];
                 Image[] bufResized = new Image[nthreads];
-                Thread[] thr = new Thread[nthreads];
 
                 LoadArgs args = new LoadArgs();
                 args.W = net.W;
@@ -291,7 +287,7 @@ namespace Yolo_V2
                     args.Path = paths[i + t];
                     args.Im = buf[t];
                     args.Resized = bufResized[t];
-                    thr[t] = Data.Data.load_data_in_thread(args);
+                    Data.Data.load_data_in_thread(args);
                 }
 
                 sw.Start();
@@ -300,7 +296,6 @@ namespace Yolo_V2
                     Console.Error.Write($"%d\n", i);
                     for (t = 0; t < nthreads && i + t - nthreads < m; ++t)
                     {
-                        thr[t].Join();
                         val[t] = buf[t];
                         valResized[t] = bufResized[t];
                     }
@@ -309,7 +304,7 @@ namespace Yolo_V2
                         args.Path = paths[i + t];
                         args.Im = buf[t];
                         args.Resized = bufResized[t];
-                        thr[t] = Data.Data.load_data_in_thread(args);
+                        Data.Data.load_data_in_thread(args);
                     }
                     for (t = 0; t < nthreads && i + t - nthreads < m; ++t)
                     {
@@ -319,7 +314,7 @@ namespace Yolo_V2
                         Network.network_predict(ref net, ref x);
                         int w = val[t].Width;
                         int h = val[t].Height;
-                        l.get_region_boxes( w, h, thresh, ref probs, ref boxes, false, map);
+                        l.get_region_boxes(w, h, thresh, ref probs, ref boxes, false, map);
                         if (nms != 0) Box.do_nms_sort(boxes, probs, l.Width * l.Height * l.N, classes, nms);
                         if (coco)
                         {
@@ -395,7 +390,7 @@ namespace Yolo_V2
                 Image sized = LoadArgs.resize_image(orig, net.W, net.H);
                 string id = Utils.Basecfg(path);
                 Network.network_predict(ref net, ref sized.Data);
-                l.get_region_boxes( 1, 1, thresh, ref probs, ref boxes, true, new int[0]);
+                l.get_region_boxes(1, 1, thresh, ref probs, ref boxes, true, new int[0]);
                 if (nms != 0) Box.do_nms(boxes, probs, l.Width * l.Height * l.N, 1, nms);
 
                 string labelpath;
@@ -482,7 +477,7 @@ namespace Yolo_V2
                 Network.network_predict(ref net, ref x);
                 sw.Stop();
                 Console.Write($"%s: Predicted ini %f seconds.\n", input, sw.Elapsed.Seconds);
-                l.get_region_boxes( 1, 1, thresh, ref probs, ref boxes, false, new int[0]);
+                l.get_region_boxes(1, 1, thresh, ref probs, ref boxes, false, new int[0]);
                 if (nms != 0) Box.do_nms_sort(boxes, probs, l.Width * l.Height * l.N, l.Classes, nms);
                 LoadArgs.draw_detections(ref im, l.Width * l.Height * l.N, thresh, boxes, probs, names, l.Classes);
                 LoadArgs.save_image(im, "predictions");

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Alea;
+using Alea.cuBLAS;
 using Alea.CudaToolkit;
 
 namespace Yolo_V2.Data
@@ -12,7 +13,7 @@ namespace Yolo_V2.Data
         public static int BlockSize = 512;
 
         private static bool cublasInit;
-        private static unsafe cublasContext* cublasHandle;
+        private static Alea.cuBLAS.Blas blas;
         private static bool curandInit;
         private static unsafe curandGenerator_st* gen;
 
@@ -42,16 +43,14 @@ namespace Yolo_V2.Data
         }
 
 
-        public static unsafe cublasContext* blas_handle()
+        public static IntPtr blas_handle()
         {
             if (!cublasInit)
             {
-                cublasContext* handle;
-                SafeCall(CuBlas.cublasCreate_v2(&handle));
+                blas = Alea.cuBLAS.Blas.Get(Gpu.Default);
                 cublasInit = true;
-                cublasHandle = handle;
             }
-            return cublasHandle;
+            return blas.Handle;
         }
         
         public static unsafe void cuda_random(float[] x, ulong n)
@@ -77,9 +76,9 @@ namespace Yolo_V2.Data
             x = Gpu.CopyToHost(gpuX);
         }
 
-        public static void SafeCall(cublasStatus_t status)
+        public static void SafeCall(Alea.cuBLAS.Status status)
         {
-            if (status != cublasStatus_t.CUBLAS_STATUS_SUCCESS)
+            if (status != Status.SUCCESS)
             {
                 throw new InvalidOperationException(status.ToString());
             }

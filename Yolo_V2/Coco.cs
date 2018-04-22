@@ -62,16 +62,15 @@ namespace Yolo_V2
             args.Saturation = net.Saturation;
             args.Hue = net.Hue;
 
-            Thread loadThread = Data.Data.load_data_in_thread(args);
+            Data.Data.load_data_in_thread(args);
             var sw = new Stopwatch();
             while (Network.get_current_batch(net) < net.MaxBatches)
             {
                 i += 1;
                 sw.Reset();
                 sw.Start();
-                loadThread.Join();
                 var train = buffer;
-                loadThread = Data.Data.load_data_in_thread(args);
+                Data.Data.load_data_in_thread(args);
 
                 sw.Stop();
                 Console.Write($"Loaded: %lf seconds\n", sw.Elapsed.Seconds);
@@ -184,7 +183,6 @@ namespace Yolo_V2
                 var valResized = new Image[nthreads];
                 var buf = new Image[nthreads];
                 var bufResized = new Image[nthreads];
-                var thr = new Thread[nthreads];
 
                 LoadArgs args = new LoadArgs();
                 args.W = net.W;
@@ -196,7 +194,7 @@ namespace Yolo_V2
                     args.Path = paths[i + t];
                     args.Im = buf[t];
                     args.Resized = bufResized[t];
-                    thr[t] = Data.Data.load_data_in_thread(args);
+                    Data.Data.load_data_in_thread(args);
                 }
 
                 var sw = new Stopwatch();
@@ -206,7 +204,6 @@ namespace Yolo_V2
                     Console.Error.Write($"%d\n", i);
                     for (t = 0; t < nthreads && i + t - nthreads < m; ++t)
                     {
-                        thr[t].Join();
                         val[t] = buf[t];
                         valResized[t] = bufResized[t];
                     }
@@ -216,7 +213,7 @@ namespace Yolo_V2
                         args.Path = paths[i + t];
                         args.Im = buf[t];
                         args.Resized = bufResized[t];
-                        thr[t] = Data.Data.load_data_in_thread(args);
+                        Data.Data.load_data_in_thread(args);
                     }
 
                     for (t = 0; t < nthreads && i + t - nthreads < m; ++t)

@@ -12,7 +12,7 @@ namespace Yolo_V2.Data
         public readonly int NumberOfChannels;
 
         // Data in the form of BGR, ie 2x2 image would be:
-        // BBBBGGGGRRRR
+        // RRRRGGGGBBBB
         public float[] Data;
 
         public Image(int width = 0, int height = 0, int numberOfChannels = 0, float[] data = null, int start = 0)

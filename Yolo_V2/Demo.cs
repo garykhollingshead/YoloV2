@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
@@ -43,8 +44,8 @@ namespace Yolo_V2
                 Utils.Error("Stream closed.");
             }
 
-            var x = nextImage;
-            var tempImage = LoadArgs.resize_image(nextImage, net.W, net.H);
+            var x = new Image(nextImage);
+            var tempImage = LoadArgs.resize_image(x, net.W, net.H);
             detectedImage = new Image(nextImage);
             resizedImage = new Image(tempImage);
         }
@@ -58,6 +59,7 @@ namespace Yolo_V2
             displayImage = new Image(detectedImage);
             workingImage = new Image(resizedImage);
             var x = workingImage.Data;
+
 
             float[] prediction = Network.network_predict(ref net, ref x);
 

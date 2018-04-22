@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using Yolo_V2.Data.Enums;
 
@@ -275,21 +276,18 @@ namespace Yolo_V2.Data
             int n = OutW * OutH;
             for (i = 0; i < Batch; ++i)
             {
-                Console.WriteLine($"before {state.Input[0]} {state.Input[1]} {state.Input[2]}");
                 Im2Col.im2col_ongpu(state.Input, NumberOfChannels, Height, Width, Size, Stride, Pad, ref state.Workspace, i * NumberOfChannels * Height * Width);
                 float[] a = WeightsGpu;
                 float[] b = state.Workspace;
                 float[] c = new float[OutputGpu.Length - i * m * n];
-
-                Console.WriteLine($"mid {WeightsGpu[0]} {WeightsGpu[1]} {WeightsGpu[2]}");
                 
                 int width_col = (Width + 2 * Pad - Size) / Stride + 1;
-                Console.WriteLine($"mid {state.Workspace[0+ width_col]} {state.Workspace[1+ width_col]} {state.Workspace[2+ width_col]}");
+                
                 Array.Copy(OutputGpu, i * m * n, c, 0, c.Length);
                 GemmUtils.gemm_ongpu(0, 0, m, n, k, 1, a, k, b, n, 1, ref c, n);
-
+                
                 Array.Copy(c, 0, OutputGpu, i * m * n, c.Length);
-                Console.WriteLine($"after {OutputGpu[0]} {OutputGpu[1]} {OutputGpu[2]}");
+                //Console.WriteLine($"after {OutputGpu[0]} {OutputGpu[1]} {OutputGpu[2]}");
             }
 
             if (BatchNormalize)
@@ -311,8 +309,7 @@ namespace Yolo_V2.Data
 
             if (BatchNormalize)
             {
-                throw new Exception("not batchnorm");
-                //backward_batchnorm_layer_gpu(l, state);
+                BatchnormalBackwardGpu(ref state);
             }
             float[] originalInput = state.Input;
 
@@ -353,7 +350,7 @@ namespace Yolo_V2.Data
             Blas.axpy_ongpu(N, learningRate / batch, BiasUpdatesGpu, BiasesGpu);
             Blas.scal_ongpu(N, momentum, ref BiasUpdatesGpu, 1);
 
-            if (ScalesGpu.Any())
+            if (ScalesGpu != null && ScalesGpu.Any())
             {
                 Blas.axpy_ongpu(N, learningRate / batch, ScaleUpdatesGpu, ScalesGpu);
                 Blas.scal_ongpu(N, momentum, ref ScaleUpdatesGpu, 1);
@@ -465,6 +462,17 @@ namespace Yolo_V2.Data
 
             Blas.scale_bias_gpu(ref OutputGpu, ScalesGpu, Batch, OutC, OutH * OutW);
         }
+        
+        public void BatchnormalBackwardGpu(ref NetworkState state)
+        {
+            Blas.backward_scale_gpu(XNormGpu, DeltaGpu, Batch, OutC, OutW * OutH, ref ScaleUpdatesGpu);
 
+            Blas.scale_bias_gpu(ref DeltaGpu, ScalesGpu, Batch, OutC, OutH * OutW);
+
+            Blas.fast_mean_delta_gpu(DeltaGpu, VarianceGpu, Batch, OutC, OutW * OutH, ref MeanDeltaGpu);
+            Blas.fast_variance_delta_gpu(XGpu, DeltaGpu, MeanGpu, VarianceGpu, Batch, OutC, OutW * OutH, ref VarianceDeltaGpu);
+            Blas.normalize_delta_gpu(XGpu, MeanGpu, VarianceGpu, MeanDeltaGpu, VarianceDeltaGpu, Batch, OutC, OutW * OutH, ref DeltaGpu);
+            if (LayerType == Layers.Batchnorm) Blas.copy_ongpu(Outputs * Batch, DeltaGpu, ref state.Delta);
+        }
     }
 }

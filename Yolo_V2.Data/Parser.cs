@@ -802,7 +802,6 @@ namespace Yolo_V2.Data
         public static void save_weights_upto(Network net, string filename, int cutoff)
         {
             Console.Error.Write($"Saving weights to {filename}\n");
-            if (!File.Exists(filename)) Utils.file_error(filename);
 
             using (var fstream = File.OpenWrite(filename))
             {

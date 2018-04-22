@@ -36,14 +36,11 @@ namespace Yolo_V2.Data
         {
             string[] randomPaths = new string[n];
             int i;
-            lock (mutexLock)
-            {
                 for (i = 0; i < n; ++i)
                 {
                     int index = Utils.Rand.Next() % m;
                     randomPaths[i] = paths[index];
                 }
-            }
             return randomPaths;
         }
 
@@ -717,11 +714,9 @@ namespace Yolo_V2.Data
             }
         }
 
-        public static Thread load_data_in_thread(LoadArgs args)
+        public static void load_data_in_thread(LoadArgs args)
         {
-            Thread thread = new Thread(() => load_thread(args));
-            thread.Start();
-            return thread;
+            load_thread(args);
         }
 
         private static void load_threads(LoadArgs ptr)
@@ -731,29 +726,26 @@ namespace Yolo_V2.Data
             Data output = ptr.D;
             int total = ptr.N;
             Data[] buffers = new Data[ptr.Threads];
-            Thread[] threads = new Thread[ptr.Threads];
             for (i = 0; i < ptr.Threads; ++i)
             {
                 ptr.D = buffers[i];
                 ptr.N = (i + 1) * total / ptr.Threads - i * total / ptr.Threads;
-                threads[i] = load_data_in_thread(ptr);
+                load_data_in_thread(ptr);
+                buffers[i] = ptr.D;
             }
-            for (i = 0; i < ptr.Threads; ++i)
-            {
-                threads[i].Join();
-            }
-            output = concat_datas(buffers, ptr.Threads);
+            output = concat_datas(ref buffers, ptr.Threads);
             output.Shallow = 0;
             for (i = 0; i < ptr.Threads; ++i)
             {
                 buffers[i].Shallow = 1;
             }
+
+            ptr.D = output;
         }
 
-        public static Thread load_data(LoadArgs args)
+        public static void load_data(LoadArgs args)
         {
-            Thread thread = new Thread(() => load_threads(args));
-            return thread;
+            load_threads(args);
         }
 
         private static Data load_data_writing(string[] paths, int n, int m, int w, int h, int outW, int outH)
@@ -848,7 +840,7 @@ namespace Yolo_V2.Data
             return m;
         }
 
-        private static Data concat_data(Data d1, Data d2)
+        private static Data concat_data(ref Data d1, Data d2)
         {
             Data d = new Data();
             d.Shallow = 1;
@@ -857,13 +849,13 @@ namespace Yolo_V2.Data
             return d;
         }
 
-        private static Data concat_datas(Data[] d, int n)
+        private static Data concat_datas(ref Data[] d, int n)
         {
             int i;
             Data output = new Data();
             for (i = 0; i < n; ++i)
             {
-                Data snew = concat_data(d[i], output);
+                Data snew = concat_data(ref d[i], output);
                 output = snew;
             }
             return output;

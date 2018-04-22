@@ -99,11 +99,13 @@ namespace Yolo_V2.Data
 
         public override void Update(ref int i, ref float a, ref float b, ref float c)
         {
+            return;
             throw new NotImplementedException();
         }
 
         public override void UpdateGpu(ref int i, ref float a, ref float b, ref float c)
         {
+            return;
             throw new NotImplementedException();
         }
 

@@ -31,7 +31,6 @@ namespace Yolo_V2
             int n = paths.Length;
             Console.Write($"%d\n", n);
             var sw = new Stopwatch();
-            Thread loadThread;
             Data.Data train;
             Data.Data buffer = new Data.Data();
 
@@ -45,7 +44,7 @@ namespace Yolo_V2
             args.D = buffer;
             args.Type = DataType.CompareData;
 
-            loadThread = Data.Data.load_data_in_thread(args);
+            Data.Data.load_data_in_thread(args);
             int epoch = net.Seen / n;
             int i = 0;
             while (true)
@@ -53,10 +52,9 @@ namespace Yolo_V2
                 ++i;
                 sw.Reset();
                 sw.Start();
-                loadThread.Join();
                 train = buffer;
 
-                loadThread = Data.Data.load_data_in_thread(args);
+                Data.Data.load_data_in_thread(args);
                 sw.Stop();
                 Console.Write($"Loaded: %lf seconds\n", sw.Elapsed.Seconds);
 
@@ -83,7 +81,6 @@ namespace Yolo_V2
                     if (epoch % 22 == 0) net.LearningRate *= .1f;
                 }
             }
-            loadThread.Join();
         }
 
         private static void validate_compare(string filename, string weightfile)
@@ -116,13 +113,12 @@ namespace Yolo_V2
             args.D = buffer;
             args.Type = DataType.CompareData;
 
-            Thread loadThread = Data.Data.load_data_in_thread(args);
+            Data.Data.load_data_in_thread(args);
             for (i = 1; i <= splits; ++i)
             {
                 sw.Reset();
                 sw.Start();
 
-                loadThread.Join();
                 var val = buffer;
 
                 num = (i + 1) * n / splits - i * n / splits;
@@ -131,7 +127,7 @@ namespace Yolo_V2
                 if (i != splits)
                 {
                     args.Paths = part;
-                    loadThread = Data.Data.load_data_in_thread(args);
+                    Data.Data.load_data_in_thread(args);
                 }
                 sw.Stop();
                 Console.Write($"Loaded: %d images ini %lf seconds\n", val.X.Rows, sw.Elapsed.Seconds);

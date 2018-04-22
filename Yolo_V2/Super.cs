@@ -39,16 +39,15 @@ namespace Yolo_V2
             args.D = buffer;
             args.Type = DataType.SuperData;
 
-            Thread loadThread = Data.Data.load_data_in_thread(args);
+            Data.Data.load_data_in_thread(args);
             var sw = new Stopwatch();
             //while(i*imgs < N*120){
             while (Network.get_current_batch(net) < net.MaxBatches)
             {
                 i += 1;
                 sw.Start();
-                loadThread.Join();
                 var train = buffer;
-                loadThread = Data.Data.load_data_in_thread(args);
+                Data.Data.load_data_in_thread(args);
                 sw.Stop();
                 Console.Write($"Loaded: %lf seconds\n", sw.Elapsed.Seconds);
                 sw.Reset();
